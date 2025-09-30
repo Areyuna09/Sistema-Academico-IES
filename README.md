@@ -26,13 +26,21 @@ cp .env.example .env
 php artisan key:generate
 ```
 
-### 3. Base de Datos
+### 3. Configurar Base de Datos MySQL por Defecto
+
+Editar `config/database.php` línea 19:
+
+```php
+'default' => env('DB_CONNECTION', 'mysql'),
+```
+
+### 4. Base de Datos
 
 -   Abrir XAMPP → Iniciar MySQL
 -   phpMyAdmin → Crear BD `expediente_ies`
 -   Importar: `expediente_ies_compatible.sql`
 
-### 4. Configurar .env
+### 5. Configurar .env
 
 ```env
 DB_CONNECTION=mysql
@@ -41,7 +49,23 @@ DB_USERNAME=root
 DB_PASSWORD=
 ```
 
-### 5. Iniciar
+### 6. Ejecutar Migraciones
+
+```bash
+php artisan migrate
+```
+
+Esto creará las tablas necesarias de Laravel (users, sessions, cache, jobs).
+
+### 7. Crear Usuario de Prueba
+
+```bash
+php artisan tinker --execute="App\Models\User::create(['name' => 'Admin Test', 'email' => 'test@ies.edu', 'password' => bcrypt('123456')]); echo 'Usuario creado';"
+```
+
+**Credenciales:** `test@ies.edu` / `123456`
+
+### 8. Iniciar
 
 ```bash
 ./iniciar.bat
