@@ -11,15 +11,27 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('users', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable();
-            $table->string('password');
-            $table->rememberToken();
-            $table->timestamps();
-        });
+        // Verificar si la tabla ya existe antes de crearla
+        if (!Schema::hasTable('users')) {
+            Schema::create('users', function (Blueprint $table) {
+                $table->id();
+                $table->string('dni', 20);
+                $table->enum('role', ['admin', 'profesor', 'alumno'])->default('alumno');
+                $table->integer('alumno_id')->nullable();
+                $table->integer('profesor_id')->nullable();
+                $table->string('name');
+                $table->string('email')->nullable();
+                $table->timestamp('email_verified_at')->nullable();
+                $table->string('password');
+                $table->rememberToken();
+                $table->timestamps();
+
+                // Índices
+                $table->unique('dni');
+                $table->index('alumno_id');
+                $table->index('profesor_id');
+            });
+        }
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('email')->primary();
