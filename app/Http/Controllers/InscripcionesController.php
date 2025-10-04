@@ -424,4 +424,44 @@ class InscripcionesController extends Controller
         }
     }
 
+    /**
+     * Descargar comprobante de inscripción en PDF
+     */
+    public function descargarComprobante(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user->alumno_id) {
+            abort(403, 'No tienes un perfil de alumno asociado');
+        }
+
+        $alumno = $user->alumno;
+        $periodoActivo = PeriodoInscripcion::activo();
+
+        if (!$periodoActivo) {
+            abort(404, 'No hay período de inscripción activo');
+        }
+
+        // Obtener inscripciones del período actual
+        $inscripciones = Inscripcion::with('materia')
+            ->where('alumno_id', $alumno->id)
+            ->where('periodo_id', $periodoActivo->id)
+            ->where('estado', 'confirmada')
+            ->get();
+
+        if ($inscripciones->isEmpty()) {
+            abort(404, 'No tienes inscripciones en el período actual');
+        }
+
+        // Generar PDF usando la misma vista del email
+        $pdf = \PDF::loadView('emails.comprobante-inscripcion', [
+            'alumno' => $alumno,
+            'inscripciones' => $inscripciones,
+            'periodo' => $periodoActivo,
+        ]);
+
+        // Descargar PDF
+        return $pdf->download('comprobante-inscripcion-' . $alumno->dni . '.pdf');
+    }
+
 }

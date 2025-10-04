@@ -94,7 +94,7 @@ const props = defineProps({
 
                     <!-- Información del comprobante -->
                     <div class="bg-green-50 border-t border-green-100 p-6">
-                        <div class="flex items-start gap-3">
+                        <div class="flex items-start gap-3 mb-4">
                             <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
                                 <i class="bx bx-envelope text-green-600 text-2xl"></i>
                             </div>
@@ -109,6 +109,16 @@ const props = defineProps({
                                 </p>
                             </div>
                         </div>
+
+                        <!-- Botón de descarga -->
+                        <a
+                            href="/inscripciones/comprobante/pdf"
+                            target="_blank"
+                            class="inline-flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-all duration-200 font-medium shadow-md hover:shadow-lg"
+                        >
+                            <i class="bx bx-download text-xl"></i>
+                            <span>Descargar Comprobante PDF</span>
+                        </a>
                     </div>
                 </div>
 

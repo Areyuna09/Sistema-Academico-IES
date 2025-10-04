@@ -5,263 +5,368 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Comprobante de Inscripción</title>
     <style>
+        @page {
+            margin: 0;
+        }
         body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background-color: #f4f4f4;
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            line-height: 1.3;
+            color: #1a1a1a;
             margin: 0;
             padding: 0;
-        }
-        .container {
-            max-width: 600px;
-            margin: 20px auto;
             background: #ffffff;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
+        .page {
+            width: 180mm;
+            padding: 12mm;
+            margin: 0 auto;
+            background: white;
+        }
+
+        /* Header con logo */
         .header {
-            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-            color: white;
-            padding: 30px 20px;
             text-align: center;
+            border-bottom: 2px solid #2563eb;
+            padding-bottom: 12px;
+            margin-bottom: 15px;
         }
-        .header h1 {
-            margin: 0;
-            font-size: 24px;
-            font-weight: bold;
+        .logo {
+            max-width: 70px;
+            height: auto;
+            margin-bottom: 8px;
         }
-        .header p {
-            margin: 5px 0 0;
-            opacity: 0.9;
-        }
-        .content {
-            padding: 30px 20px;
-        }
-        .alert {
-            background-color: #dcfce7;
-            border-left: 4px solid #16a34a;
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 4px;
-        }
-        .alert h2 {
-            margin: 0 0 10px;
-            color: #15803d;
+        .institution-name {
             font-size: 18px;
-        }
-        .alert p {
-            margin: 0;
-            color: #166534;
-        }
-        .info-section {
-            background-color: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-        .info-section h3 {
-            margin: 0 0 15px;
+            font-weight: bold;
             color: #1e293b;
+            margin: 8px 0 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .document-title {
             font-size: 16px;
+            color: #2563eb;
             font-weight: bold;
+            margin: 10px 0 4px;
+            text-transform: uppercase;
         }
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid #e2e8f0;
-        }
-        .info-row:last-child {
-            border-bottom: none;
-        }
-        .info-label {
-            font-weight: bold;
+        .document-subtitle {
+            font-size: 11px;
             color: #64748b;
         }
-        .info-value {
-            color: #1e293b;
-        }
-        .materias-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-        .materia-item {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            padding: 15px;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-        }
-        .materia-item:last-child {
-            margin-bottom: 0;
-        }
-        .check-icon {
-            width: 24px;
-            height: 24px;
-            background-color: #16a34a;
-            border-radius: 50%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 12px;
-            flex-shrink: 0;
-        }
-        .check-icon::before {
-            content: '✓';
+
+        /* Sección de confirmación */
+        .confirmation-badge {
+            background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
             color: white;
+            text-align: center;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+        .confirmation-badge h2 {
+            margin: 0 0 4px;
+            font-size: 14px;
             font-weight: bold;
         }
-        .materia-info {
-            flex: 1;
+        .confirmation-badge p {
+            margin: 0;
+            font-size: 10px;
+            opacity: 0.95;
+        }
+
+        /* Información en tabla */
+        .info-table {
+            width: 100%;
+            margin-bottom: 12px;
+            border-collapse: collapse;
+        }
+        .info-table td {
+            padding: 7px 10px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 11px;
+        }
+        .info-table .label {
+            font-weight: bold;
+            color: #475569;
+            width: 35%;
+        }
+        .info-table .value {
+            color: #1e293b;
+        }
+
+        /* Lista de materias */
+        .section-title {
+            font-size: 11px;
+            font-weight: bold;
+            color: #1e293b;
+            margin: 12px 0 8px;
+            padding-bottom: 4px;
+            border-bottom: 2px solid #e2e8f0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .materias-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 12px;
+        }
+        .materias-table thead {
+            background-color: #2563eb;
+            color: white;
+        }
+        .materias-table th {
+            padding: 7px 10px;
+            text-align: left;
+            font-size: 10px;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+        .materias-table td {
+            padding: 6px 10px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 10px;
+            line-height: 1.3;
+        }
+        .materias-table tbody tr:nth-child(even) {
+            background-color: #f8fafc;
         }
         .materia-name {
-            font-weight: bold;
+            font-weight: 600;
             color: #1e293b;
-            margin-bottom: 4px;
         }
         .materia-details {
-            font-size: 13px;
             color: #64748b;
+            font-size: 8px;
         }
-        .materia-status {
+        .status-badge {
             background-color: #dcfce7;
             color: #15803d;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 12px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 8px;
             font-weight: bold;
-            white-space: nowrap;
+            text-transform: uppercase;
+            display: inline-block;
         }
-        .footer {
-            background-color: #f8fafc;
-            padding: 20px;
-            text-align: center;
-            border-top: 1px solid #e2e8f0;
+
+        /* Información importante */
+        .important-box {
+            background-color: #fef3c7;
+            border-left: 3px solid #f59e0b;
+            padding: 8px;
+            margin: 10px 0;
+            border-radius: 3px;
         }
-        .footer p {
-            margin: 5px 0;
-            color: #64748b;
-            font-size: 14px;
+        .important-box strong {
+            color: #92400e;
+            display: block;
+            margin-bottom: 3px;
+            font-size: 9px;
         }
-        .info-box {
+        .important-box p {
+            margin: 0;
+            color: #78350f;
+            font-size: 8px;
+            line-height: 1.4;
+        }
+
+        /* Próximos pasos */
+        .steps-box {
             background-color: #eff6ff;
-            border-left: 4px solid #2563eb;
-            padding: 15px;
-            margin: 20px 0;
+            border: 1px solid #bfdbfe;
             border-radius: 4px;
+            padding: 8px;
+            margin: 10px 0;
         }
-        .info-box p {
-            margin: 0;
+        .steps-box h3 {
+            margin: 0 0 6px;
             color: #1e40af;
-            font-size: 14px;
+            font-size: 9px;
+            font-weight: bold;
+            text-transform: uppercase;
         }
-        .next-steps {
-            background-color: #fefce8;
-            border: 1px solid #fde047;
-            border-radius: 8px;
-            padding: 20px;
-            margin-top: 20px;
-        }
-        .next-steps h3 {
-            margin: 0 0 15px;
-            color: #713f12;
-            font-size: 16px;
-        }
-        .next-steps ul {
+        .steps-box ul {
             margin: 0;
-            padding-left: 20px;
+            padding-left: 15px;
         }
-        .next-steps li {
-            color: #854d0e;
+        .steps-box li {
+            color: #1e40af;
+            margin-bottom: 3px;
+            font-size: 8px;
+            line-height: 1.3;
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 20px;
+            padding-top: 10px;
+            border-top: 1px solid #e2e8f0;
+            text-align: center;
+        }
+        .footer-row {
+            display: flex;
+            justify-content: space-between;
             margin-bottom: 8px;
+            font-size: 8px;
+            color: #64748b;
+        }
+        .footer-col {
+            flex: 1;
+        }
+        .footer-signature {
+            margin-top: 15px;
+            padding-top: 10px;
+        }
+        .signature-line {
+            border-top: 1px solid #1e293b;
+            width: 150px;
+            margin: 0 auto 5px;
+        }
+        .signature-label {
+            font-size: 8px;
+            color: #475569;
+            font-weight: bold;
+        }
+        .footer-note {
+            margin-top: 8px;
+            font-size: 7px;
+            color: #94a3b8;
+            font-style: italic;
+        }
+
+        /* Número de comprobante */
+        .comprobante-number {
+            text-align: right;
+            font-size: 9px;
+            color: #64748b;
+            margin-bottom: 8px;
+        }
+        .comprobante-number strong {
+            color: #1e293b;
         }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="page">
         <!-- Header -->
         <div class="header">
-            <h1>✓ Inscripción Confirmada</h1>
-            <p>Comprobante de inscripción académica</p>
+            <img src="{{ public_path('images/logo-ies-original.png') }}" alt="Logo IES" class="logo">
+            <div class="institution-name">Instituto de Educación Superior<br>General Manuel Belgrano</div>
+            <div class="document-title">Comprobante de Inscripción</div>
+            <div class="document-subtitle">{{ $periodo->nombre }}</div>
         </div>
 
-        <!-- Content -->
-        <div class="content">
-            <!-- Success Alert -->
-            <div class="alert">
-                <h2>¡Inscripción procesada exitosamente!</h2>
-                <p>Tu inscripción ha sido confirmada. Conserva este comprobante como respaldo.</p>
-            </div>
+        <!-- Número de comprobante -->
+        <div class="comprobante-number">
+            <strong>N° de Comprobante:</strong> {{ strtoupper(uniqid('INS-')) }} |
+            <strong>Fecha de emisión:</strong> {{ now()->format('d/m/Y H:i') }}hs
+        </div>
 
-            <!-- Student Info -->
-            <div class="info-section">
-                <h3>Información del Estudiante</h3>
-                <div class="info-row">
-                    <span class="info-label">Nombre:</span>
-                    <span class="info-value">{{ $alumno->nombre_completo }}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">DNI:</span>
-                    <span class="info-value">{{ $alumno->dni }}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Período:</span>
-                    <span class="info-value">{{ $periodo->nombre }}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Fecha:</span>
-                    <span class="info-value">{{ now()->format('d/m/Y H:i') }}</span>
-                </div>
-            </div>
+        <!-- Confirmación -->
+        <div class="confirmation-badge">
+            <h2>✓ INSCRIPCIÓN CONFIRMADA</h2>
+            <p>Su inscripción ha sido procesada y confirmada exitosamente</p>
+        </div>
 
-            <!-- Enrolled Subjects -->
-            <div class="info-section">
-                <h3>Materias Inscritas ({{ $inscripciones->count() }})</h3>
-                <ul class="materias-list">
-                    @foreach($inscripciones as $inscripcion)
-                    <li class="materia-item">
-                        <div class="check-icon"></div>
-                        <div class="materia-info">
-                            <div class="materia-name">{{ $inscripcion->materia->nombre }}</div>
-                            <div class="materia-details">
-                                {{ $inscripcion->materia->anno }}° Año -
-                                {{ $inscripcion->materia->semestre === 1 ? '1er' : '2do' }} Cuatrimestre
-                            </div>
+        <!-- Información del estudiante -->
+        <h3 class="section-title">Datos del Estudiante</h3>
+        <table class="info-table">
+            <tr>
+                <td class="label">Apellido y Nombre:</td>
+                <td class="value">{{ strtoupper($alumno->nombre_completo) }}</td>
+            </tr>
+            <tr>
+                <td class="label">DNI:</td>
+                <td class="value">{{ number_format($alumno->dni, 0, ',', '.') }}</td>
+            </tr>
+            <tr>
+                <td class="label">Año de Cursada:</td>
+                <td class="value">{{ $alumno->curso }}° Año</td>
+            </tr>
+            <tr>
+                <td class="label">Período Académico:</td>
+                <td class="value">{{ $periodo->nombre }}</td>
+            </tr>
+        </table>
+
+        <!-- Materias inscritas -->
+        <h3 class="section-title">Materias Inscritas ({{ $inscripciones->count() }})</h3>
+        <table class="materias-table">
+            <thead>
+                <tr>
+                    <th style="width: 5%">#</th>
+                    <th style="width: 55%">Materia</th>
+                    <th style="width: 20%">Año / Cuatrimestre</th>
+                    <th style="width: 20%">Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($inscripciones as $index => $inscripcion)
+                <tr>
+                    <td>{{ $index + 1 }}</td>
+                    <td>
+                        <div class="materia-name">{{ $inscripcion->materia->nombre }}</div>
+                    </td>
+                    <td>
+                        <div class="materia-details">
+                            {{ $inscripcion->materia->anno }}° Año - {{ $inscripcion->materia->semestre === 1 ? '1er' : '2do' }} Cuatr.
                         </div>
-                        <span class="materia-status">Confirmada</span>
-                    </li>
-                    @endforeach
-                </ul>
-            </div>
+                    </td>
+                    <td>
+                        <span class="status-badge">Confirmada</span>
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
 
-            <!-- Important Info -->
-            <div class="info-box">
-                <p><strong>📧 Importante:</strong> Este es tu comprobante oficial de inscripción. Guárdalo para futuras consultas.</p>
-            </div>
+        <!-- Información importante -->
+        <div class="important-box">
+            <strong>📌 IMPORTANTE</strong>
+            <p>
+                Este comprobante certifica su inscripción a las materias detalladas.
+                Debe conservarlo como documento oficial y presentarlo cuando sea requerido.
+                La inscripción está sujeta a la aprobación de las correlatividades correspondientes.
+            </p>
+        </div>
 
-            <!-- Next Steps -->
-            <div class="next-steps">
-                <h3>📋 Próximos Pasos</h3>
-                <ul>
-                    <li>Revisa los horarios de cursada en la plataforma académica</li>
-                    <li>Verifica las fechas de inicio de clases</li>
-                    <li>Mantén este comprobante como respaldo de tu inscripción</li>
-                    <li>Ante cualquier duda, comunícate con la secretaría académica</li>
-                </ul>
-            </div>
+        <!-- Próximos pasos -->
+        <div class="steps-box">
+            <h3>📋 Próximos Pasos</h3>
+            <ul>
+                <li>Verificar los horarios de cursada en el Sistema de Gestión Académica</li>
+                <li>Consultar las fechas de inicio de clases para cada materia</li>
+                <li>Presentar este comprobante en Secretaría Académica si es requerido</li>
+                <li>Ante cualquier consulta, comunicarse con Secretaría en horario de atención</li>
+            </ul>
         </div>
 
         <!-- Footer -->
         <div class="footer">
-            <p><strong>Instituto de Educación Superior</strong></p>
-            <p>Este es un mensaje automático, por favor no responder a este correo.</p>
-            <p style="margin-top: 15px; font-size: 12px;">© {{ date('Y') }} IES - Todos los derechos reservados</p>
+            <div class="footer-row">
+                <div class="footer-col">
+                    <strong>Secretaría Académica</strong><br>
+                    Instituto de Educación Superior<br>
+                    General Manuel Belgrano
+                </div>
+                <div class="footer-col">
+                    <strong>Contacto</strong><br>
+                    secretaria@ies.edu.ar<br>
+                    Tel: (0264) XXX-XXXX
+                </div>
+            </div>
+
+            <div class="footer-signature">
+                <div class="signature-line"></div>
+                <div class="signature-label">Secretaría Académica</div>
+            </div>
+
+            <div class="footer-note">
+                Documento generado automáticamente el {{ now()->format('d/m/Y') }} a las {{ now()->format('H:i') }}hs.<br>
+                Este comprobante tiene validez oficial sin necesidad de firma autógrafa.<br>
+                © {{ date('Y') }} Instituto de Educación Superior - Todos los derechos reservados
+            </div>
         </div>
     </div>
 </body>

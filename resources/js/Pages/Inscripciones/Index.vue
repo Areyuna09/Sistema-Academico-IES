@@ -73,12 +73,11 @@ const anioFormateado = computed(() => {
 const materiasFiltradas = computed(() => {
     let resultado = props.materias;
 
-    // Filtro por búsqueda
+    // Filtro por búsqueda (solo por nombre)
     if (busqueda.value) {
         const termino = busqueda.value.toLowerCase();
         resultado = resultado.filter(m =>
-            m.nombre.toLowerCase().includes(termino) ||
-            m.codigo.toLowerCase().includes(termino)
+            m.nombre.toLowerCase().includes(termino)
         );
     }
 
@@ -86,13 +85,13 @@ const materiasFiltradas = computed(() => {
     if (filtroEstado.value !== 'todas') {
         resultado = resultado.filter(m => {
             if (filtroEstado.value === 'disponibles') {
-                return m.puede_cursar && m.cupos_disponibles > 0;
+                return m.puede_cursar && !m.ya_inscrito;
             }
-            if (filtroEstado.value === 'sin-cupos') {
-                return m.cupos_disponibles === 0;
+            if (filtroEstado.value === 'inscrito') {
+                return m.ya_inscrito;
             }
-            if (filtroEstado.value === 'no-disponibles') {
-                return !m.puede_cursar;
+            if (filtroEstado.value === 'bloqueadas') {
+                return !m.puede_cursar && !m.ya_inscrito;
             }
             return true;
         });
@@ -246,9 +245,9 @@ const cerrarModal = () => {
                         class="px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                         <option value="todas">Todas las materias</option>
-                        <option value="disponibles">Disponibles</option>
-                        <option value="sin-cupos">Sin cupos</option>
-                        <option value="no-disponibles">No disponibles</option>
+                        <option value="disponibles">✅ Disponibles para inscribirse</option>
+                        <option value="inscrito">📝 Ya inscrito</option>
+                        <option value="bloqueadas">🔒 Bloqueadas (sin correlativas)</option>
                     </select>
                 </div>
             </div>
@@ -287,11 +286,10 @@ const cerrarModal = () => {
             leave-from-class="opacity-100 translate-y-0"
             leave-to-class="opacity-0 translate-y-4"
         >
-            <div
-                v-if="materiasSeleccionadas.length > 0"
-                class="fixed bottom-6 right-6 z-50"
-            >
+            <div v-if="materiasSeleccionadas.length > 0" class="fixed bottom-6 right-6 z-50">
+                <!-- Botón de confirmar cuando período está abierto -->
                 <button
+                    v-if="periodo.inscripciones_abiertas"
                     @click="confirmarInscripcion"
                     class="flex items-center gap-3 bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-full shadow-2xl hover:shadow-xl transition-all duration-200 group"
                 >
@@ -300,6 +298,17 @@ const cerrarModal = () => {
                     </span>
                     <i class="bx bx-check-circle text-2xl group-hover:scale-110 transition-transform"></i>
                 </button>
+
+                <!-- Mensaje cuando período está cerrado -->
+                <div
+                    v-else
+                    class="flex items-center gap-3 bg-red-100 border-2 border-red-400 text-red-800 px-6 py-4 rounded-full shadow-2xl"
+                >
+                    <i class="bx bx-lock text-2xl"></i>
+                    <span class="font-semibold text-base">
+                        Período de inscripciones cerrado
+                    </span>
+                </div>
             </div>
         </transition>
 
