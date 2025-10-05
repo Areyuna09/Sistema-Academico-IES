@@ -275,6 +275,109 @@ class MotorCorrelativasService
     }
 
     /**
+     * Validar correlativas para rendir examen por alumno_id
+     * Usado en inscripción a mesas de examen
+     */
+    public function validarCorrelativasParaExamen(int $alumnoId, int $materiaId): array
+    {
+        $alumno = Alumno::find($alumnoId);
+
+        if (!$alumno) {
+            return [
+                'puede_rendir' => false,
+                'mensaje' => "Alumno no encontrado",
+                'correlativas_faltantes' => [],
+            ];
+        }
+
+        $materia = Materia::find($materiaId);
+
+        if (!$materia) {
+            return [
+                'puede_rendir' => false,
+                'mensaje' => "Materia no encontrada",
+                'correlativas_faltantes' => [],
+            ];
+        }
+
+        $carreraId = $materia->carrera;
+
+        // Verificar que la materia esté al menos regularizada
+        $historial = $alumno->materiasCursadas()
+            ->where('carrera', $carreraId)
+            ->where('materia', $materiaId)
+            ->first();
+
+        // Verificar si ya tiene la materia aprobada
+        if ($historial && $historial->estaAprobada()) {
+            return [
+                'puede_rendir' => false,
+                'mensaje' => "Ya tiene esta materia aprobada",
+                'correlativas_faltantes' => [],
+            ];
+        }
+
+        if (!$historial || !$historial->estaRegular()) {
+            return [
+                'puede_rendir' => false,
+                'mensaje' => "Debe tener la materia regularizada para poder rendir el examen final",
+                'correlativas_faltantes' => [],
+            ];
+        }
+
+        // Obtener correlativas para rendir
+        $correlativasData = $this->parser->obtenerCorrelativasCombinadas($materia, 'rendir');
+
+        // Obtener materias del alumno
+        $materiasAlumno = $alumno->materiasCursadas()
+            ->where('carrera', $carreraId)
+            ->with('materiaRelacion')
+            ->get();
+
+        $correlativasFaltantes = [];
+
+        // Para rendir, todas las correlativas deben estar aprobadas
+        $todasCorrelativasIds = array_merge(
+            $correlativasData['regulares'] ?? [],
+            $correlativasData['aprobadas'] ?? []
+        );
+
+        // Obtener información de las materias correlativas
+        if (!empty($todasCorrelativasIds)) {
+            $materiasCorrelativas = Materia::whereIn('id', $todasCorrelativasIds)->get()->keyBy('id');
+
+            foreach ($todasCorrelativasIds as $correlativaId) {
+                $materiaCorrelativa = $materiasCorrelativas->get($correlativaId);
+                if (!$materiaCorrelativa) {
+                    continue;
+                }
+
+                $materiaAlumno = $materiasAlumno->where('materia', $correlativaId)->first();
+
+                // Para rendir se requiere que las correlativas estén aprobadas
+                if (!$materiaAlumno || !$materiaAlumno->estaAprobada()) {
+                    $correlativasFaltantes[] = [
+                        'id' => $correlativaId,
+                        'nombre' => $materiaCorrelativa->nombre,
+                        'estado_requerido' => 'aprobada',
+                        'estado_actual' => $materiaAlumno ? ($materiaAlumno->estaRegular() ? 'regular' : 'no cursada') : 'no cursada',
+                    ];
+                }
+            }
+        }
+
+        $puedeRendir = count($correlativasFaltantes) === 0;
+
+        return [
+            'puede_rendir' => $puedeRendir,
+            'mensaje' => $puedeRendir
+                ? "Cumple con todas las correlativas para rendir"
+                : "No cumple con las correlativas requeridas",
+            'correlativas_faltantes' => $correlativasFaltantes,
+        ];
+    }
+
+    /**
      * Respuesta de error estándar
      */
     protected function respuestaError(string $mensaje): array

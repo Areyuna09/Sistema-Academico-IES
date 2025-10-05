@@ -18,6 +18,34 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): Response
     {
+        $user = $request->user();
+
+        // Si es alumno, cargar información adicional
+        if ($user->alumno_id) {
+            $alumno = $user->alumno()->with('carreraRelacion')->first();
+
+            return Inertia::render('Profile/Edit', [
+                'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
+                'status' => session('status'),
+                'alumno' => $alumno ? [
+                    'id' => $alumno->id,
+                    'dni' => $alumno->dni,
+                    'nombre_completo' => $alumno->nombre_completo,
+                    'email' => $alumno->email,
+                    'telefono' => $alumno->telefono,
+                    'celular' => $alumno->celular,
+                    'legajo' => $alumno->legajo,
+                    'curso' => $alumno->curso,
+                    'division' => $alumno->division,
+                    'descripcion_personalizada' => $alumno->descripcion_personalizada ?? null,
+                    'carrera' => $alumno->carreraRelacion ? [
+                        'id' => $alumno->carreraRelacion->Id,
+                        'nombre' => $alumno->carreraRelacion->nombre,
+                    ] : null,
+                ] : null,
+            ]);
+        }
+
         return Inertia::render('Profile/Edit', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => session('status'),
@@ -29,15 +57,39 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        $user = $request->user();
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        // Actualizar el usuario
+        $user->fill($request->only(['name', 'email']));
+
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
         }
 
-        $request->user()->save();
+        $user->save();
 
-        return Redirect::route('profile.edit');
+        // Si es alumno, actualizar también la tabla de alumnos
+        if ($user->alumno_id && $user->alumno) {
+            $alumno = $user->alumno;
+
+            // Actualizar campos del alumno
+            if ($request->has('telefono')) {
+                $alumno->telefono = $request->telefono;
+            }
+            if ($request->has('celular')) {
+                $alumno->celular = $request->celular;
+            }
+            if ($request->has('descripcion_personalizada')) {
+                $alumno->descripcion_personalizada = $request->descripcion_personalizada;
+            }
+            if ($request->has('email')) {
+                $alumno->email = $request->email;
+            }
+
+            $alumno->save();
+        }
+
+        return Redirect::route('profile.edit')->with('status', 'profile-updated');
     }
 
     /**

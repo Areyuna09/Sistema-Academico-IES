@@ -251,8 +251,12 @@
     <div class="page">
         <!-- Header -->
         <div class="header">
-            <img src="{{ public_path('images/logo-ies-original.png') }}" alt="Logo IES" class="logo">
-            <div class="institution-name">Instituto de Educación Superior<br>General Manuel Belgrano</div>
+            @if($configuracion->logo_path)
+                <img src="{{ public_path('storage/' . $configuracion->logo_path) }}" alt="Logo {{ $configuracion->nombre_institucion }}" class="logo">
+            @else
+                <img src="{{ public_path('images/logo-ies-original.png') }}" alt="Logo IES" class="logo">
+            @endif
+            <div class="institution-name">{{ $configuracion->nombre_institucion }}</div>
             <div class="document-title">Comprobante de Inscripción</div>
             <div class="document-subtitle">{{ $periodo->nombre }}</div>
         </div>
@@ -347,25 +351,38 @@
             <div class="footer-row">
                 <div class="footer-col">
                     <strong>Secretaría Académica</strong><br>
-                    Instituto de Educación Superior<br>
-                    General Manuel Belgrano
+                    {{ $configuracion->nombre_institucion }}<br>
+                    @if($configuracion->direccion)
+                        {{ $configuracion->direccion }}
+                    @endif
                 </div>
                 <div class="footer-col">
                     <strong>Contacto</strong><br>
-                    secretaria@ies.edu.ar<br>
-                    Tel: (0264) XXX-XXXX
+                    @if($configuracion->email)
+                        {{ $configuracion->email }}<br>
+                    @endif
+                    @if($configuracion->telefono)
+                        Tel: {{ $configuracion->telefono }}
+                    @endif
                 </div>
             </div>
 
             <div class="footer-signature">
-                <div class="signature-line"></div>
-                <div class="signature-label">Secretaría Académica</div>
+                @if($configuracion->firma_digital_path)
+                    <img src="{{ public_path('storage/' . $configuracion->firma_digital_path) }}" alt="Firma" style="max-width: 120px; height: auto; margin-bottom: 5px;">
+                @else
+                    <div class="signature-line"></div>
+                @endif
+                <div class="signature-label">{{ $configuracion->cargo_firma ?? 'Secretaría Académica' }}</div>
             </div>
 
             <div class="footer-note">
+                @if($configuracion->footer_documentos)
+                    {!! nl2br(e($configuracion->footer_documentos)) !!}<br>
+                @endif
                 Documento generado automáticamente el {{ now()->format('d/m/Y') }} a las {{ now()->format('H:i') }}hs.<br>
                 Este comprobante tiene validez oficial sin necesidad de firma autógrafa.<br>
-                © {{ date('Y') }} Instituto de Educación Superior - Todos los derechos reservados
+                © {{ date('Y') }} {{ $configuracion->nombre_institucion }} - Todos los derechos reservados
             </div>
         </div>
     </div>

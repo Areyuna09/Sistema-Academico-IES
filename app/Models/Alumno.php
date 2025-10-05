@@ -34,6 +34,7 @@ class Alumno extends Model
         'telefono',
         'celular',
         'legajo',
+        'descripcion_personalizada',
         'anno',
         'carrera',
         'materia',
@@ -60,6 +61,14 @@ class Alumno extends Model
      * Relación: Carrera del alumno
      */
     public function carrera()
+    {
+        return $this->belongsTo(Carrera::class, 'carrera', 'Id');
+    }
+
+    /**
+     * Relación: Carrera del alumno (alias para evitar conflicto con atributo)
+     */
+    public function carreraRelacion()
     {
         return $this->belongsTo(Carrera::class, 'carrera', 'Id');
     }

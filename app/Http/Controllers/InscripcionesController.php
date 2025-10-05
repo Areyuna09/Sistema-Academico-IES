@@ -7,6 +7,7 @@ use App\Models\Carrera;
 use App\Models\Materia;
 use App\Models\PeriodoInscripcion;
 use App\Models\Inscripcion;
+use App\Models\Configuracion;
 use App\Services\MotorCorrelativasService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -453,11 +454,15 @@ class InscripcionesController extends Controller
             abort(404, 'No tienes inscripciones en el período actual');
         }
 
+        // Obtener configuración global
+        $configuracion = Configuracion::get();
+
         // Generar PDF usando la misma vista del email
         $pdf = \PDF::loadView('emails.comprobante-inscripcion', [
             'alumno' => $alumno,
             'inscripciones' => $inscripciones,
             'periodo' => $periodoActivo,
+            'configuracion' => $configuracion,
         ]);
 
         // Descargar PDF

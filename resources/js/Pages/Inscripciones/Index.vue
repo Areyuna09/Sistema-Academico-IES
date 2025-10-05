@@ -62,6 +62,12 @@ const materiasSeleccionadas = ref([]);
 const mostrarModalConfirmacion = ref(false);
 const mostrandoAdvertencia = ref(false);
 
+// Usuarios especiales con estilo VIP (dorado)
+const esUsuarioVIP = computed(() => {
+    const dniVIPs = ['46180633', '44674217']; // Ramon y Alan
+    return dniVIPs.includes(props.estudiante?.dni);
+});
+
 const anioFormateado = computed(() => {
     const anio = props.anio;
     if (anio === 1 || anio === '1') return '1er Año';
@@ -199,28 +205,76 @@ const cerrarModal = () => {
             </div>
 
             <!-- Información del estudiante y resumen -->
-            <div class="bg-white border border-gray-200 rounded-lg p-5">
+            <div
+                class="rounded-lg p-5 transition-all duration-300"
+                :class="esUsuarioVIP
+                    ? 'bg-gradient-to-br from-yellow-50 via-amber-50 to-yellow-50 border-2 border-yellow-400 shadow-lg shadow-yellow-200'
+                    : 'bg-white border border-gray-200'"
+            >
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <!-- Info del estudiante -->
                     <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                            <i class="bx bx-user text-blue-600 text-xl"></i>
+                        <div
+                            class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                            :class="esUsuarioVIP
+                                ? 'bg-gradient-to-br from-yellow-400 to-amber-500 shadow-md'
+                                : 'bg-blue-100'"
+                        >
+                            <i
+                                class="bx text-xl"
+                                :class="[esUsuarioVIP ? 'bx-crown text-white' : 'bx-user text-blue-600']"
+                            ></i>
                         </div>
                         <div>
-                            <h3 class="text-sm font-semibold text-gray-900">{{ estudiante.nombre }}</h3>
-                            <p class="text-xs text-gray-500">{{ carrera.nombre }} - {{ anioFormateado }}</p>
-                            <p v-if="estudiante.descripcion" class="text-xs text-blue-600 italic mt-1">
+                            <div class="flex items-center gap-2">
+                                <h3
+                                    class="text-sm font-semibold"
+                                    :class="esUsuarioVIP ? 'text-yellow-900' : 'text-gray-900'"
+                                >
+                                    {{ estudiante.nombre }}
+                                </h3>
+                                <span v-if="esUsuarioVIP" class="px-2 py-0.5 bg-yellow-400 text-yellow-900 text-[10px] font-bold rounded-full">
+                                    VIP
+                                </span>
+                            </div>
+                            <p
+                                class="text-xs"
+                                :class="esUsuarioVIP ? 'text-yellow-700' : 'text-gray-500'"
+                            >
+                                {{ carrera.nombre }} - {{ anioFormateado }}
+                            </p>
+                            <p
+                                v-if="estudiante.descripcion"
+                                class="text-xs italic mt-1"
+                                :class="esUsuarioVIP ? 'text-yellow-600 font-medium' : 'text-blue-600'"
+                            >
                                 "{{ estudiante.descripcion }}"
                             </p>
                         </div>
                     </div>
 
                     <!-- Contador de materias seleccionadas -->
-                    <div class="flex items-center gap-2 bg-blue-50 px-4 py-2 rounded-lg">
-                        <i class="bx bx-check-square text-blue-600 text-xl"></i>
+                    <div
+                        class="flex items-center gap-2 px-4 py-2 rounded-lg"
+                        :class="esUsuarioVIP ? 'bg-yellow-100' : 'bg-blue-50'"
+                    >
+                        <i
+                            class="bx bx-check-square text-xl"
+                            :class="esUsuarioVIP ? 'text-yellow-600' : 'text-blue-600'"
+                        ></i>
                         <div>
-                            <p class="text-xs text-blue-600 font-medium">Materias seleccionadas</p>
-                            <p class="text-lg font-bold text-blue-700">{{ materiasSeleccionadas.length }}</p>
+                            <p
+                                class="text-xs font-medium"
+                                :class="esUsuarioVIP ? 'text-yellow-600' : 'text-blue-600'"
+                            >
+                                Materias seleccionadas
+                            </p>
+                            <p
+                                class="text-lg font-bold"
+                                :class="esUsuarioVIP ? 'text-yellow-700' : 'text-blue-700'"
+                            >
+                                {{ materiasSeleccionadas.length }}
+                            </p>
                         </div>
                     </div>
                 </div>

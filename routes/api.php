@@ -3,10 +3,21 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\CorrelativasController;
+use App\Http\Controllers\Api\AuthController;
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+// Rutas de Autenticación con Sanctum
+Route::post('/login', [AuthController::class, 'login']);
+
+// Rutas protegidas con token
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/me', [AuthController::class, 'me']);
+    Route::post('/change-password', [AuthController::class, 'changePassword']);
+
+    Route::get('/user', function (Request $request) {
+        return $request->user();
+    });
+});
 
 // Rutas de Correlativas - Motor de Correlativas (RF02, RF03)
 Route::prefix('correlativas')->group(function () {
