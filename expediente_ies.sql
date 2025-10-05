@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 02-10-2025 a las 03:56:59
+-- Tiempo de generación: 05-10-2025 a las 03:40:52
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -32,14 +32,6 @@ CREATE TABLE `cache` (
   `value` mediumtext NOT NULL,
   `expiration` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Volcado de datos para la tabla `cache`
---
-
-INSERT INTO `cache` (`key`, `value`, `expiration`) VALUES
-('sistema-academico-ies-cache-46407086|127.0.0.1', 'i:1;', 1759323032),
-('sistema-academico-ies-cache-46407086|127.0.0.1:timer', 'i:1759323032;', 1759323032);
 
 -- --------------------------------------------------------
 
@@ -156,6 +148,36 @@ CREATE TABLE `failed_jobs` (
   `exception` longtext NOT NULL,
   `failed_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `inscripciones`
+--
+
+CREATE TABLE `inscripciones` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `alumno_id` int(10) UNSIGNED NOT NULL COMMENT 'ID del alumno',
+  `materia_id` int(10) UNSIGNED NOT NULL COMMENT 'ID de la materia',
+  `carrera_id` int(10) UNSIGNED NOT NULL COMMENT 'ID de la carrera',
+  `periodo_id` bigint(20) UNSIGNED NOT NULL COMMENT 'ID del período de inscripción',
+  `estado` enum('pendiente','confirmada','cancelada') NOT NULL DEFAULT 'confirmada',
+  `observaciones` text DEFAULT NULL COMMENT 'Observaciones sobre la inscripción',
+  `fecha_inscripcion` timestamp NOT NULL DEFAULT current_timestamp() COMMENT 'Fecha y hora de inscripción',
+  `fecha_cancelacion` timestamp NULL DEFAULT NULL COMMENT 'Fecha y hora de cancelación si aplica',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Tabla de inscripciones a materias por período académico';
+
+--
+-- Volcado de datos para la tabla `inscripciones`
+--
+
+INSERT INTO `inscripciones` (`id`, `alumno_id`, `materia_id`, `carrera_id`, `periodo_id`, `estado`, `observaciones`, `fecha_inscripcion`, `fecha_cancelacion`, `created_at`, `updated_at`) VALUES
+(15, 16, 23, 1, 2, 'confirmada', NULL, '2025-10-04 05:11:40', NULL, '2025-10-04 05:11:40', '2025-10-04 05:11:40'),
+(16, 16, 26, 1, 2, 'confirmada', NULL, '2025-10-04 05:11:40', NULL, '2025-10-04 05:11:40', '2025-10-04 05:11:40'),
+(17, 16, 27, 1, 2, 'confirmada', NULL, '2025-10-04 05:11:40', NULL, '2025-10-04 05:11:40', '2025-10-04 05:11:40'),
+(19, 282, 17, 1, 2, 'confirmada', NULL, '2025-10-04 23:09:14', NULL, '2025-10-04 23:09:14', '2025-10-04 23:09:14');
 
 -- --------------------------------------------------------
 
@@ -359,7 +381,18 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES
 (6, '2025_09_30_153039_create_personal_access_tokens_table', 3),
 (7, '2025_09_30_202358_add_dni_to_users_table', 3),
 (8, '2025_10_01_020019_create_tbl_periodos_inscripcion_table', 4),
-(9, '2025_10_01_153302_add_descripcion_personalizada_to_alumnos', 5);
+(9, '2025_10_01_153302_add_descripcion_personalizada_to_alumnos', 5),
+(11, '2025_10_02_040500_update_tbl_usuarios_for_modern_auth', 6),
+(12, '2025_10_02_041000_add_dni_to_tbl_usuarios', 7),
+(13, '2025_10_02_025601_create_inscripciones_table', 8),
+(14, '2025_10_04_091714_add_activo_to_tbl_usuarios_table', 9),
+(18, '2025_10_04_095036_make_pais_provincia_sexo_nullable_in_tbl_usuarios', 10),
+(19, '2025_10_04_095526_create_catalogos_pais_provincia_sexo_tables', 11),
+(21, '2025_10_04_115907_create_tbl_configuracion_table', 12),
+(22, '2025_10_04_141117_create_tbl_mesas_examen_table', 13),
+(23, '2025_10_04_141207_create_tbl_inscripciones_mesa_table', 13),
+(24, '2025_10_04_143506_remove_cupo_maximo_from_tbl_mesas_examen_table', 14),
+(25, '2025_10_04_152227_add_periodo_inscripcion_to_tbl_mesas_examen_table', 15);
 
 -- --------------------------------------------------------
 
@@ -392,6 +425,13 @@ CREATE TABLE `personal_access_tokens` (
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Volcado de datos para la tabla `personal_access_tokens`
+--
+
+INSERT INTO `personal_access_tokens` (`id`, `tokenable_type`, `tokenable_id`, `name`, `token`, `abilities`, `last_used_at`, `expires_at`, `created_at`, `updated_at`) VALUES
+(1, 'App\\Models\\User', 19, 'test-device', '6ea912ce88d8106fb38e62359096e6490e7d69cd28ce8bb6064d9543cb483c29', '[\"*\"]', '2025-10-05 01:07:07', NULL, '2025-10-05 01:07:06', '2025-10-05 01:07:07');
+
 -- --------------------------------------------------------
 
 --
@@ -411,6 +451,36 @@ CREATE TABLE `reglas_correlativas` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Volcado de datos para la tabla `reglas_correlativas`
+--
+
+INSERT INTO `reglas_correlativas` (`id`, `materia_id`, `carrera_id`, `tipo`, `correlativa_id`, `estado_requerido`, `es_activa`, `excepciones`, `observaciones`, `created_at`, `updated_at`) VALUES
+(1, 2, 1, 'cursar', 1, 'regular', 1, NULL, 'Regla migrada del sistema anterior', '2025-10-04 03:48:18', '2025-10-04 03:48:18'),
+(2, 3, 1, 'cursar', 1, 'regular', 1, NULL, 'Regla migrada del sistema anterior', '2025-10-04 03:48:18', '2025-10-04 03:48:18'),
+(3, 4, 1, 'cursar', 2, 'regular', 1, NULL, 'Regla migrada del sistema anterior', '2025-10-04 03:48:18', '2025-10-04 03:48:18'),
+(4, 5, 1, 'cursar', 3, 'regular', 1, NULL, 'Regla migrada del sistema anterior', '2025-10-04 03:48:18', '2025-10-04 03:48:18'),
+(5, 6, 1, 'cursar', 4, 'regular', 1, NULL, 'Regla migrada del sistema anterior', '2025-10-04 03:48:18', '2025-10-04 03:48:18'),
+(6, 7, 1, 'cursar', 5, 'regular', 1, NULL, 'Regla migrada del sistema anterior', '2025-10-04 03:48:18', '2025-10-04 03:48:18'),
+(7, 8, 1, 'cursar', 6, 'regular', 1, NULL, 'Regla migrada del sistema anterior', '2025-10-04 03:48:18', '2025-10-04 03:48:18'),
+(8, 9, 1, 'cursar', 7, 'regular', 1, NULL, 'Regla migrada del sistema anterior', '2025-10-04 03:48:18', '2025-10-04 03:48:18'),
+(9, 10, 1, 'cursar', 8, 'regular', 1, NULL, 'Regla migrada del sistema anterior', '2025-10-04 03:48:18', '2025-10-04 03:48:18'),
+(10, 11, 1, 'cursar', 9, 'regular', 1, NULL, 'Regla migrada del sistema anterior', '2025-10-04 03:48:18', '2025-10-04 03:48:18'),
+(11, 12, 1, 'cursar', 10, 'regular', 1, NULL, 'Regla migrada del sistema anterior', '2025-10-04 03:48:18', '2025-10-04 03:48:18'),
+(12, 13, 1, 'cursar', 11, 'regular', 1, NULL, 'Regla migrada del sistema anterior', '2025-10-04 03:48:18', '2025-10-04 03:48:18'),
+(13, 14, 1, 'cursar', 12, 'regular', 1, NULL, 'Regla migrada del sistema anterior', '2025-10-04 03:48:18', '2025-10-04 03:48:18'),
+(14, 15, 1, 'cursar', 13, 'regular', 1, NULL, 'Regla migrada del sistema anterior', '2025-10-04 03:48:18', '2025-10-04 03:48:18'),
+(15, 16, 1, 'cursar', 14, 'regular', 1, NULL, 'Regla migrada del sistema anterior', '2025-10-04 03:48:18', '2025-10-04 03:48:18'),
+(16, 17, 1, 'cursar', 15, 'regular', 1, NULL, 'Regla migrada del sistema anterior', '2025-10-04 03:48:18', '2025-10-04 03:48:18'),
+(17, 18, 1, 'cursar', 16, 'regular', 1, NULL, 'Regla migrada del sistema anterior', '2025-10-04 03:48:18', '2025-10-04 03:48:18'),
+(18, 19, 1, 'cursar', 17, 'regular', 1, NULL, 'Regla migrada del sistema anterior', '2025-10-04 03:48:18', '2025-10-04 03:48:18'),
+(19, 20, 1, 'cursar', 18, 'regular', 1, NULL, 'Regla migrada del sistema anterior', '2025-10-04 03:48:18', '2025-10-04 03:48:18'),
+(20, 11, 1, 'rendir', 1, 'aprobada', 1, NULL, 'Regla migrada del sistema anterior', '2025-10-04 03:48:18', '2025-10-04 03:48:18'),
+(21, 11, 1, 'rendir', 2, 'aprobada', 1, NULL, 'Regla migrada del sistema anterior', '2025-10-04 03:48:18', '2025-10-04 03:48:18'),
+(22, 12, 1, 'rendir', 3, 'aprobada', 1, NULL, 'Regla migrada del sistema anterior', '2025-10-04 03:48:18', '2025-10-04 03:48:18'),
+(23, 12, 1, 'rendir', 4, 'aprobada', 1, NULL, 'Regla migrada del sistema anterior', '2025-10-04 03:48:18', '2025-10-04 03:48:18'),
+(24, 13, 1, 'rendir', 5, 'aprobada', 1, NULL, 'Regla migrada del sistema anterior', '2025-10-04 03:48:18', '2025-10-04 03:48:18');
 
 -- --------------------------------------------------------
 
@@ -432,11 +502,8 @@ CREATE TABLE `sessions` (
 --
 
 INSERT INTO `sessions` (`id`, `user_id`, `ip_address`, `user_agent`, `payload`, `last_activity`) VALUES
-('ChPmJaTymRjDrZPTHgo8ODpM6YCTj8iT3sAXXwKu', NULL, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', 'YTo0OntzOjY6Il90b2tlbiI7czo0MDoiQTJ1MlN2NXdVazBkVHdUM2JldkhaMnNoWFRzSXR1WTdxZkVvTTBpTiI7czozOiJ1cmwiO2E6MTp7czo4OiJpbnRlbmRlZCI7czozNToiaHR0cDovLzEyNy4wLjAuMTo4MDAwL2luc2NyaXBjaW9uZXMiO31zOjk6Il9wcmV2aW91cyI7YToxOntzOjM6InVybCI7czozNToiaHR0cDovLzEyNy4wLjAuMTo4MDAwL2luc2NyaXBjaW9uZXMiO31zOjY6Il9mbGFzaCI7YToyOntzOjM6Im9sZCI7YTowOnt9czozOiJuZXciO2E6MDp7fX19', 1759322950),
-('DXaJnAJvA1a9IdsCldC8CE1sOcsKWueckYdv9Tlm', 2, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', 'YTo1OntzOjY6Il90b2tlbiI7czo0MDoidVdnVmYwMHRUS2I4eHlic0hOdHdydW82NVd2UHcwajFTeEVmajhUUSI7czozOiJ1cmwiO2E6MDp7fXM6OToiX3ByZXZpb3VzIjthOjE6e3M6MzoidXJsIjtzOjM1OiJodHRwOi8vMTI3LjAuMC4xOjgwMDAvaW5zY3JpcGNpb25lcyI7fXM6NjoiX2ZsYXNoIjthOjI6e3M6Mzoib2xkIjthOjA6e31zOjM6Im5ldyI7YTowOnt9fXM6NTA6ImxvZ2luX3dlYl81OWJhMzZhZGRjMmIyZjk0MDE1ODBmMDE0YzdmNThlYTRlMzA5ODlkIjtpOjI7fQ==', 1759291528),
-('i1DeRUCRkb8ZStqQ8ELC7cyOxsuLxuqYdEMYIdr5', NULL, '127.0.0.1', 'curl/8.12.1', 'YTo0OntzOjY6Il90b2tlbiI7czo0MDoiTGNzMFRlQWczZUlJUWQwa2FTa1RKUjNGdzE4NFNYWWlnaVd6bmFqYiI7czozOiJ1cmwiO2E6MTp7czo4OiJpbnRlbmRlZCI7czozNToiaHR0cDovLzEyNy4wLjAuMTo4MDAwL2luc2NyaXBjaW9uZXMiO31zOjk6Il9wcmV2aW91cyI7YToxOntzOjM6InVybCI7czozNToiaHR0cDovLzEyNy4wLjAuMTo4MDAwL2luc2NyaXBjaW9uZXMiO31zOjY6Il9mbGFzaCI7YToyOntzOjM6Im9sZCI7YTowOnt9czozOiJuZXciO2E6MDp7fX19', 1759251138),
-('jG476sXPBwW1HohBTIxhixKbsDwng0yUzn7ZYxEO', 17, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', 'YTozOntzOjY6Il90b2tlbiI7czo0MDoiaWIydG55d2xhcUF6TUhHd2x6ZUVKMVNNQUVrUWJZZTdSWnE2aUtOZCI7czo2OiJfZmxhc2giO2E6Mjp7czozOiJvbGQiO2E6MDp7fXM6MzoibmV3IjthOjA6e319czo1MDoibG9naW5fd2ViXzU5YmEzNmFkZGMyYjJmOTQwMTU4MGYwMTRjN2Y1OGVhNGUzMDk4OWQiO2k6MTc7fQ==', 1759339868),
-('WFc6PmbxfpZWyCGO2cEqB2rxFvieEhidkKICCdhA', 1, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', 'YTozOntzOjY6Il90b2tlbiI7czo0MDoiaEdFVEdIZXcwSWljTkNpYzIyanNKUWZ5UlFFOFJLbUpzaDdCS3g2aiI7czo2OiJfZmxhc2giO2E6Mjp7czozOiJvbGQiO2E6MDp7fXM6MzoibmV3IjthOjA6e319czo1MDoibG9naW5fd2ViXzU5YmEzNmFkZGMyYjJmOTQwMTU4MGYwMTRjN2Y1OGVhNGUzMDk4OWQiO2k6MTt9', 1759263863);
+('nYahW8nRCvydLM3iyINkdkL3u2M898FVNm4kxUgA', 46180633, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', 'YTo0OntzOjY6Il90b2tlbiI7czo0MDoiRTJocXd5WW40VXNJMHQ4dGhMOUtSUGhkUUVMQnladnhsWUNvQjdmcSI7czo2OiJfZmxhc2giO2E6Mjp7czozOiJvbGQiO2E6MDp7fXM6MzoibmV3IjthOjA6e319czo1MDoibG9naW5fd2ViXzU5YmEzNmFkZGMyYjJmOTQwMTU4MGYwMTRjN2Y1OGVhNGUzMDk4OWQiO3M6ODoiNDYxODA2MzMiO3M6OToiX3ByZXZpb3VzIjthOjE6e3M6MzoidXJsIjtzOjI3OiJodHRwOi8vMTI3LjAuMC4xOjgwMDAvbWVzYXMiO319', 1759627782),
+('OkUn8r1dDAx8yHAJ5GArIFZNBIz0Wz29DKr49KPB', NULL, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', 'YTozOntzOjY6Il90b2tlbiI7czo0MDoiUzVTUFN2ZkF3QWlScjNiWXU3a2s0VHJPcFJpNEwxQTg4UUZpY0lYcCI7czo5OiJfcHJldmlvdXMiO2E6MTp7czozOiJ1cmwiO3M6MzA6Imh0dHA6Ly9sb2NhbGhvc3Q6ODAwMC9kb2NzL2FwaSI7fXM6NjoiX2ZsYXNoIjthOjI6e3M6Mzoib2xkIjthOjA6e31zOjM6Im5ldyI7YTowOnt9fX0=', 1759627109);
 
 -- --------------------------------------------------------
 
@@ -483,7 +550,7 @@ INSERT INTO `tbl_alumnos` (`id`, `dni`, `apellido`, `nombre`, `curso`, `division
 (13, '43488986', 'MuÃ±oz', 'Fernando', 0, 1, 'munozfernando264@gmail.com', '', '2645259424', NULL, 'El mundo tech necesita tu talento', '2022', 1, 0, 0, '2023-07-26 15:56:32'),
 (14, '43641793', 'Balmaceda', 'Karen', 0, 2, 'balmacedaemilce290@gmail.com', '', '2645882800', NULL, 'Tus habilidades crecen con cada desafío', '2022', 1, 0, 0, '2023-07-26 18:10:24'),
 (15, '40086620', 'Simeoni', 'Facundo', 0, 1, 'facundosimeoni1@gmail.com', '2646293463', '2646293463', NULL, 'La tecnología espera tus ideas', '2019', 1, 0, 0, '2023-07-26 18:12:53'),
-(16, '46180633', 'Areyuna', 'Ramon', 3, 1, 'ramonareyuna09@gmail.com', '2645839327', '2645839327', NULL, 'La tecnología espera tus ideas', '3', 1, 0, 0, '2023-07-26 19:45:06'),
+(16, '46180633', 'Areyuna', 'Ramon', 3, 1, 'ramonareyuna09@gmail.com', '2645839327', '2645839327', 'IES-00016', 'La tecnología espera tus ideas', '3', 1, 0, 0, '2023-07-26 19:45:06'),
 (17, '43689779', 'Molina ', 'Ricardo Nahuel', 0, 1, 'nahuelmoli270@gmail.com', '', '2646222825', NULL, 'Cada proyecto te hace más fuerte', '2023', 1, 0, 0, '2023-07-26 19:48:07'),
 (18, '44062183', 'Sarmiento', 'Mathias', 0, 1, 'mathisarmiento6@gmail.com', '2645677254', '2645677254', NULL, 'La persistencia es tu mejor algoritmo', '2023', 1, 0, 0, '2023-07-26 19:48:21'),
 (19, '45473305', 'Garibay', 'Ramiro', 0, 2, 'ramirogaribay69@gmail.com', '', '2645769672', NULL, 'Casi listo para cambiar el mundo con código', '2023', 1, 0, 0, '2023-07-26 19:48:50'),
@@ -665,7 +732,8 @@ INSERT INTO `tbl_alumnos` (`id`, `dni`, `apellido`, `nombre`, `curso`, `division
 (279, '42250342', 'Guzman Gomez', 'JuliÃ¡n Gabriel', 0, 2, 'g@gmail.com', '222', '222', NULL, 'La tecnología espera tus ideas', '2020', 1, 0, 1, '0000-00-00 00:00:00'),
 (280, '42805636', 'Malla', 'Franco Nahuel', 0, 2, 'g@gmail.com', '222', '222', NULL, 'Tu título está más cerca que nunca', '2020', 1, 0, 1, '0000-00-00 00:00:00'),
 (281, '32653148', 'Morrone Espinosa', 'Pablo Javier', 0, 2, 'g@gmail.com', '222', '222', NULL, 'Sigue así, lo estás haciendo muy bien', '2020', 1, 0, 1, '0000-00-00 00:00:00'),
-(282, '12345678', 'Alumno', 'Prueba', 2, 1, NULL, NULL, NULL, 'LEG-12345678', 'El conocimiento es tu mejor inversión', '2023', 1, 0, 1, '2025-10-01 14:23:53');
+(282, '12345678', 'Alumno', 'Prueba', 2, 1, NULL, NULL, NULL, 'LEG-12345678', 'El conocimiento es tu mejor inversión', '2023', 1, 0, 1, '2025-10-01 14:23:53'),
+(283, '87654321', 'González', 'María', 3, 1, 'maria.gonzalez@test.com', '987654321', '987654321', NULL, 'Estudiante de prueba para correlativas', '3', 1, 0, 0, '2025-10-03 13:24:41');
 
 -- --------------------------------------------------------
 
@@ -692,6 +760,17 @@ CREATE TABLE `tbl_alumnos_cursa` (
   `cursado` varchar(255) NOT NULL,
   `mesa` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci ROW_FORMAT=DYNAMIC;
+
+--
+-- Volcado de datos para la tabla `tbl_alumnos_cursa`
+--
+
+INSERT INTO `tbl_alumnos_cursa` (`id`, `dni`, `nombre`, `email`, `telefono`, `celular`, `legajo`, `anno`, `carrera`, `materia`, `turno`, `fecha`, `apellido`, `curso`, `division`, `cursado`, `mesa`) VALUES
+(16, '46180633', 'Ramon', 'ramonareyuna09@gmail.com', '2645839327', '2645839327', '', '3', 1, 23, 1, '2025-10-04 02:11:40', 'Areyuna', 3, 1, 'cursando', NULL),
+(17, '46180633', 'Ramon', 'ramonareyuna09@gmail.com', '2645839327', '2645839327', '', '3', 1, 26, 1, '2025-10-04 02:11:40', 'Areyuna', 3, 1, 'cursando', NULL),
+(18, '46180633', 'Ramon', 'ramonareyuna09@gmail.com', '2645839327', '2645839327', '', '3', 1, 27, 1, '2025-10-04 02:11:40', 'Areyuna', 3, 1, 'cursando', NULL),
+(19, '12345678', 'Prueba', '12345678@ies.edu.ar', '', '', 'LEG-12345678', '2023', 1, 17, 1, '2025-10-04 18:05:51', 'Alumno', 2, 1, 'cursando', NULL),
+(20, '12345678', 'Prueba', '12345678@ies.edu.ar', '', '', 'LEG-12345678', '2023', 1, 17, 1, '2025-10-04 20:09:14', 'Alumno', 2, 1, 'cursando', NULL);
 
 -- --------------------------------------------------------
 
@@ -1117,7 +1196,7 @@ INSERT INTO `tbl_alumnos_materias` (`Id`, `alumno`, `carrera`, `materia`, `nota`
 (440, 92, 1, 20, '8', '1', '0', 0, 0, '3', '12', '2024-12-20', NULL, NULL, '2'),
 (441, 92, 1, 21, '9', '0', '1', 0, 0, '5', '28', '2024-11-13', NULL, NULL, '2'),
 (442, 16, 1, 1, '7', '0', '1', 0, 0, '5', '3', '2023-06-28', NULL, NULL, '2'),
-(443, 16, 1, 2, '4', '1', '0', 0, 0, '3', '31', '2023-08-01', NULL, NULL, '2'),
+(443, 16, 1, 2, '4', '1', '1', 0, 0, '3', '31', '2023-08-01', NULL, NULL, '2'),
 (444, 16, 1, 3, '7', '0', '1', 0, 0, '5', '1', '2023-06-26', NULL, NULL, '2'),
 (445, 16, 1, 4, '7', '0', '1', 0, 0, '5', '8', '2023-07-04', NULL, NULL, '2'),
 (446, 16, 1, 5, '8', '0', '1', 0, 0, '5', '20', '2023-11-22', NULL, NULL, '2'),
@@ -1129,12 +1208,12 @@ INSERT INTO `tbl_alumnos_materias` (`Id`, `alumno`, `carrera`, `materia`, `nota`
 (452, 16, 1, 11, '8', '0', '1', 0, 0, '5', '17', '2023-11-21', NULL, NULL, '2'),
 (453, 16, 1, 12, '7', '0', '1', 0, 0, '5', '18', '2024-06-26', NULL, NULL, '2'),
 (454, 16, 1, 14, '10', '0', '1', 0, 0, '5', '29', '2024-11-11', NULL, NULL, '2'),
-(455, 16, 1, 15, '9', '1', '0', 0, 0, '2', '49', '2024-08-12', NULL, NULL, '2'),
+(455, 16, 1, 15, '9', '1', '1', 0, 0, '2', '49', '2024-08-12', NULL, NULL, '2'),
 (456, 16, 1, 16, '10', '0', '1', 0, 0, '5', '19', '2024-06-27', NULL, NULL, '2'),
 (457, 16, 1, 17, '7', '0', '1', 0, 0, '5', '24', '2024-07-04', NULL, NULL, '2'),
-(458, 16, 1, 18, '7', '1', '0', 0, 0, '3', '6', '2024-12-04', NULL, NULL, '2'),
+(458, 16, 1, 18, '7', '1', '1', 0, 0, '3', '6', '2024-12-04', NULL, NULL, '2'),
 (459, 16, 1, 19, '9', '0', '1', 0, 0, '5', '27', '2024-11-11', NULL, NULL, '2'),
-(460, 16, 1, 20, '8', '1', '0', 0, 0, '3', '12', '2024-12-20', NULL, NULL, '2'),
+(460, 16, 1, 20, '9', '1', '1', 0, 0, '3', '12', '2024-12-20', NULL, NULL, '2'),
 (461, 16, 1, 21, '9', '0', '1', 0, 0, '5', '28', '2024-11-13', NULL, NULL, '2'),
 (462, 205, 1, 1, '6', '0', '0', 0, 1, '2', '14', '2023-12-06', NULL, NULL, '2'),
 (463, 205, 1, 2, '8', '0', '0', 0, 1, '2', '19', '2023-12-20', NULL, NULL, '2'),
@@ -2632,19 +2711,17 @@ INSERT INTO `tbl_alumnos_materias` (`Id`, `alumno`, `carrera`, `materia`, `nota`
 (2661, 84, 1, 25, '8', '0', '1', 0, 0, '5', '1', '2023-06-29', NULL, NULL, '5'),
 (2662, 84, 1, 26, '7', '0', '1', 0, 0, '2', '46', '2023-05-07', NULL, NULL, '5'),
 (2663, 84, 1, 27, '10', '0', '1', 0, 0, '5', '5', '2023-11-15', NULL, NULL, '5'),
-(2664, 16, 1, 24, '7', '1', '1', NULL, NULL, NULL, NULL, '2025-10-01', NULL, NULL, NULL),
-(2665, 282, 1, 1, '7', '1', '1', NULL, NULL, NULL, NULL, '2024-10-01', NULL, NULL, NULL),
-(2666, 282, 1, 2, '7', '1', '1', NULL, NULL, NULL, NULL, '2024-10-01', NULL, NULL, NULL),
-(2667, 282, 1, 3, '7', '1', '1', NULL, NULL, NULL, NULL, '2024-10-01', NULL, NULL, NULL),
-(2668, 282, 1, 4, '7', '1', '1', NULL, NULL, NULL, NULL, '2024-10-01', NULL, NULL, NULL),
-(2669, 282, 1, 6, '7', '1', '1', NULL, NULL, NULL, NULL, '2024-10-01', NULL, NULL, NULL),
-(2670, 282, 1, 5, '7', '1', '1', NULL, NULL, NULL, NULL, '2025-04-01', NULL, NULL, NULL),
-(2671, 282, 1, 9, '7', '1', '1', NULL, NULL, NULL, NULL, '2025-04-01', NULL, NULL, NULL),
-(2672, 282, 1, 13, '7', '1', '1', NULL, NULL, NULL, NULL, '2025-07-01', NULL, NULL, NULL),
-(2673, 282, 1, 20, '7', '1', '1', NULL, NULL, NULL, NULL, '2025-07-01', NULL, NULL, NULL),
-(2674, 282, 1, 15, NULL, '1', '0', NULL, NULL, NULL, NULL, '2025-07-01', NULL, NULL, NULL),
-(2675, 282, 1, 16, '7', '1', '1', NULL, NULL, NULL, NULL, '2025-07-01', NULL, NULL, NULL),
-(2676, 282, 1, 17, '7', '1', '1', NULL, NULL, NULL, NULL, '2025-08-01', NULL, NULL, NULL);
+(2664, 16, 1, 24, '9', '1', '1', NULL, NULL, NULL, NULL, '2025-10-01', NULL, NULL, NULL),
+(2677, 283, 1, 11, NULL, NULL, '1', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(2678, 283, 1, 20, NULL, NULL, '1', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(2679, 282, 1, 1, '8', '1', '1', 0, 0, NULL, NULL, '2024-07-15', NULL, NULL, NULL),
+(2680, 282, 1, 2, '7', '1', '1', 0, 0, NULL, NULL, '2024-07-15', NULL, NULL, NULL),
+(2681, 282, 1, 3, '9', '1', '1', 0, 0, NULL, NULL, '2024-07-20', NULL, NULL, NULL),
+(2682, 282, 1, 6, '7', '1', '1', 0, 0, NULL, NULL, '2024-12-10', NULL, NULL, NULL),
+(2683, 282, 1, 4, NULL, '1', '0', 0, 0, NULL, NULL, '2024-12-20', NULL, NULL, NULL),
+(2684, 282, 1, 8, NULL, '1', '0', 0, 0, NULL, NULL, '2025-07-20', NULL, NULL, NULL),
+(2685, 282, 1, 5, NULL, '1', '0', 0, 0, NULL, NULL, '2025-07-20', NULL, NULL, NULL),
+(2686, 282, 1, 15, NULL, '1', '0', 0, 0, NULL, NULL, '2025-07-25', NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -2698,6 +2775,35 @@ INSERT INTO `tbl_carreras` (`Id`, `nombre`, `resolucion`) VALUES
 -- --------------------------------------------------------
 
 --
+-- Estructura de tabla para la tabla `tbl_configuracion`
+--
+
+CREATE TABLE `tbl_configuracion` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `nombre_institucion` varchar(255) NOT NULL DEFAULT 'Instituto de Educación Superior',
+  `logo_path` varchar(255) DEFAULT NULL,
+  `direccion` text DEFAULT NULL,
+  `telefono` varchar(50) DEFAULT NULL,
+  `email` varchar(100) DEFAULT NULL,
+  `sitio_web` varchar(255) DEFAULT NULL,
+  `footer_documentos` text DEFAULT NULL,
+  `firma_digital_path` varchar(255) DEFAULT NULL,
+  `cargo_firma` varchar(255) DEFAULT NULL,
+  `horarios_atencion` text DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Volcado de datos para la tabla `tbl_configuracion`
+--
+
+INSERT INTO `tbl_configuracion` (`id`, `nombre_institucion`, `logo_path`, `direccion`, `telefono`, `email`, `sitio_web`, `footer_documentos`, `firma_digital_path`, `cargo_firma`, `horarios_atencion`, `created_at`, `updated_at`) VALUES
+(1, 'Instituto de Educación Superior General Manuel Belgrano', 'configuracion/logos/qGXgRW1GJUao7RD2uxaCB9ufo9u5ompX9FlA848E.png', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-10-04 17:17:05', '2025-10-04 22:41:23');
+
+-- --------------------------------------------------------
+
+--
 -- Estructura de tabla para la tabla `tbl_cursar`
 --
 
@@ -2716,6 +2822,34 @@ CREATE TABLE `tbl_cursar` (
 
 INSERT INTO `tbl_cursar` (`id`, `mesa`, `estado`, `fecha`, `cerra_mesa`, `estado_cerra`) VALUES
 (1, 'cursar_agosto_2_semestre', '1', '2025-08-20 20:40:10', '0', '0');
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `tbl_inscripciones_mesa`
+--
+
+CREATE TABLE `tbl_inscripciones_mesa` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `mesa_id` bigint(20) UNSIGNED NOT NULL,
+  `alumno_id` int(11) NOT NULL,
+  `fecha_inscripcion` timestamp NOT NULL DEFAULT current_timestamp(),
+  `estado` enum('inscripto','presente','ausente','aprobado','desaprobado') NOT NULL DEFAULT 'inscripto',
+  `nota` decimal(4,2) DEFAULT NULL COMMENT 'Nota temporal hasta confirmar',
+  `observaciones` text DEFAULT NULL,
+  `nota_transferida` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Si la nota ya fue transferida a tbl_alumnos_materias',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Volcado de datos para la tabla `tbl_inscripciones_mesa`
+--
+
+INSERT INTO `tbl_inscripciones_mesa` (`id`, `mesa_id`, `alumno_id`, `fecha_inscripcion`, `estado`, `nota`, `observaciones`, `nota_transferida`, `created_at`, `updated_at`) VALUES
+(7, 14, 282, '2025-10-04 22:39:40', 'inscripto', NULL, NULL, 0, '2025-10-04 22:39:40', '2025-10-04 22:39:40'),
+(8, 11, 282, '2025-10-04 22:41:54', 'inscripto', NULL, NULL, 0, '2025-10-04 22:41:54', '2025-10-04 22:41:54'),
+(11, 10, 282, '2025-10-04 23:08:52', 'inscripto', NULL, NULL, 0, '2025-10-04 23:08:52', '2025-10-04 23:08:52');
 
 -- --------------------------------------------------------
 
@@ -2966,6 +3100,111 @@ INSERT INTO `tbl_mesas` (`id`, `mesa`, `estado`, `fecha`, `cerra_mesa`, `estado_
 -- --------------------------------------------------------
 
 --
+-- Estructura de tabla para la tabla `tbl_mesas_examen`
+--
+
+CREATE TABLE `tbl_mesas_examen` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `materia_id` int(11) NOT NULL,
+  `fecha_examen` date NOT NULL,
+  `fecha_inicio_inscripcion` date DEFAULT NULL,
+  `fecha_fin_inscripcion` date DEFAULT NULL,
+  `hora_examen` time NOT NULL,
+  `llamado` tinyint(4) NOT NULL COMMENT '1er, 2do o 3er llamado',
+  `periodo_id` bigint(20) UNSIGNED DEFAULT NULL,
+  `aula` varchar(100) DEFAULT NULL,
+  `presidente_id` int(11) DEFAULT NULL COMMENT 'Profesor presidente del tribunal',
+  `vocal1_id` int(11) DEFAULT NULL COMMENT 'Profesor vocal 1',
+  `vocal2_id` int(11) DEFAULT NULL COMMENT 'Profesor vocal 2',
+  `estado` enum('activa','cerrada','suspendida') NOT NULL DEFAULT 'activa',
+  `observaciones` text DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Volcado de datos para la tabla `tbl_mesas_examen`
+--
+
+INSERT INTO `tbl_mesas_examen` (`id`, `materia_id`, `fecha_examen`, `fecha_inicio_inscripcion`, `fecha_fin_inscripcion`, `hora_examen`, `llamado`, `periodo_id`, `aula`, `presidente_id`, `vocal1_id`, `vocal2_id`, `estado`, `observaciones`, `created_at`, `updated_at`) VALUES
+(7, 1, '2025-10-06', '2025-10-01', '2025-10-05', '09:00:00', 1, NULL, 'Aula 101', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(8, 2, '2025-10-07', '2025-10-01', '2025-10-05', '14:00:00', 1, NULL, 'Aula 102', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(9, 3, '2025-10-08', '2025-10-01', '2025-10-05', '16:00:00', 1, NULL, 'Aula 201', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(10, 4, '2025-10-09', '2025-10-01', '2025-10-05', '09:00:00', 1, NULL, 'Aula 202', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(11, 5, '2025-10-10', '2025-10-01', '2025-10-05', '14:00:00', 1, NULL, 'Laboratorio 1', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(12, 6, '2025-10-13', '2025-10-01', '2025-10-05', '16:00:00', 1, NULL, 'Aula 101', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(13, 7, '2025-10-14', '2025-10-01', '2025-10-05', '09:00:00', 1, NULL, 'Aula 102', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(14, 8, '2025-10-15', '2025-10-01', '2025-10-05', '14:00:00', 1, NULL, 'Aula 201', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(15, 9, '2025-10-16', '2025-10-01', '2025-10-05', '16:00:00', 1, NULL, 'Aula 202', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(16, 10, '2025-10-17', '2025-10-01', '2025-10-05', '09:00:00', 1, NULL, 'Laboratorio 1', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(17, 11, '2025-10-06', '2025-10-01', '2025-10-05', '14:00:00', 1, NULL, 'Aula 101', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(18, 12, '2025-10-07', '2025-10-01', '2025-10-05', '16:00:00', 1, NULL, 'Aula 102', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(19, 13, '2025-10-08', '2025-10-01', '2025-10-05', '09:00:00', 1, NULL, 'Aula 201', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(20, 14, '2025-10-09', '2025-10-01', '2025-10-05', '14:00:00', 1, NULL, 'Aula 202', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(21, 15, '2025-10-10', '2025-10-01', '2025-10-05', '16:00:00', 1, NULL, 'Laboratorio 1', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(22, 16, '2025-10-13', '2025-10-01', '2025-10-05', '09:00:00', 1, NULL, 'Aula 101', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(23, 17, '2025-10-14', '2025-10-01', '2025-10-05', '14:00:00', 1, NULL, 'Aula 102', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(24, 18, '2025-10-15', '2025-10-01', '2025-10-05', '16:00:00', 1, NULL, 'Aula 201', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(25, 19, '2025-10-16', '2025-10-01', '2025-10-05', '09:00:00', 1, NULL, 'Aula 202', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(26, 20, '2025-10-17', '2025-10-01', '2025-10-05', '14:00:00', 1, NULL, 'Laboratorio 1', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(27, 21, '2025-10-06', '2025-10-01', '2025-10-05', '16:00:00', 1, NULL, 'Aula 101', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(28, 22, '2025-10-07', '2025-10-01', '2025-10-05', '09:00:00', 1, NULL, 'Aula 102', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(29, 23, '2025-10-08', '2025-10-01', '2025-10-05', '14:00:00', 1, NULL, 'Aula 201', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(30, 24, '2025-10-09', '2025-10-01', '2025-10-05', '16:00:00', 1, NULL, 'Aula 202', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(31, 25, '2025-10-10', '2025-10-01', '2025-10-05', '09:00:00', 1, NULL, 'Laboratorio 1', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(32, 26, '2025-10-13', '2025-10-01', '2025-10-05', '14:00:00', 1, NULL, 'Aula 101', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(33, 27, '2025-10-14', '2025-10-01', '2025-10-05', '16:00:00', 1, NULL, 'Aula 102', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(34, 1, '2025-10-20', '2025-10-06', '2025-10-19', '14:00:00', 2, NULL, 'Aula 201', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(35, 2, '2025-10-21', '2025-10-06', '2025-10-19', '16:00:00', 2, NULL, 'Aula 202', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(36, 3, '2025-10-22', '2025-10-06', '2025-10-19', '09:00:00', 2, NULL, 'Laboratorio 1', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(37, 4, '2025-10-23', '2025-10-06', '2025-10-19', '14:00:00', 2, NULL, 'Aula 101', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(38, 5, '2025-10-24', '2025-10-06', '2025-10-19', '16:00:00', 2, NULL, 'Aula 102', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(39, 6, '2025-10-27', '2025-10-06', '2025-10-19', '09:00:00', 2, NULL, 'Aula 201', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(40, 7, '2025-10-28', '2025-10-06', '2025-10-19', '14:00:00', 2, NULL, 'Aula 202', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(41, 8, '2025-10-29', '2025-10-06', '2025-10-19', '16:00:00', 2, NULL, 'Laboratorio 1', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(42, 9, '2025-10-30', '2025-10-06', '2025-10-19', '09:00:00', 2, NULL, 'Aula 101', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(43, 10, '2025-10-31', '2025-10-06', '2025-10-19', '14:00:00', 2, NULL, 'Aula 102', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(44, 11, '2025-10-20', '2025-10-06', '2025-10-19', '16:00:00', 2, NULL, 'Aula 201', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(45, 12, '2025-10-21', '2025-10-06', '2025-10-19', '09:00:00', 2, NULL, 'Aula 202', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(46, 13, '2025-10-22', '2025-10-06', '2025-10-19', '14:00:00', 2, NULL, 'Laboratorio 1', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(47, 14, '2025-10-23', '2025-10-06', '2025-10-19', '16:00:00', 2, NULL, 'Aula 101', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(48, 15, '2025-10-24', '2025-10-06', '2025-10-19', '09:00:00', 2, NULL, 'Aula 102', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(49, 16, '2025-10-27', '2025-10-06', '2025-10-19', '14:00:00', 2, NULL, 'Aula 201', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(50, 17, '2025-10-28', '2025-10-06', '2025-10-19', '16:00:00', 2, NULL, 'Aula 202', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(51, 18, '2025-10-29', '2025-10-06', '2025-10-19', '09:00:00', 2, NULL, 'Laboratorio 1', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(52, 19, '2025-10-30', '2025-10-06', '2025-10-19', '14:00:00', 2, NULL, 'Aula 101', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(53, 20, '2025-10-31', '2025-10-06', '2025-10-19', '16:00:00', 2, NULL, 'Aula 102', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(54, 21, '2025-10-20', '2025-10-06', '2025-10-19', '09:00:00', 2, NULL, 'Aula 201', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(55, 22, '2025-10-21', '2025-10-06', '2025-10-19', '14:00:00', 2, NULL, 'Aula 202', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(56, 23, '2025-10-22', '2025-10-06', '2025-10-19', '16:00:00', 2, NULL, 'Laboratorio 1', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(57, 24, '2025-10-23', '2025-10-06', '2025-10-19', '09:00:00', 2, NULL, 'Aula 101', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(58, 25, '2025-10-24', '2025-10-06', '2025-10-19', '14:00:00', 2, NULL, 'Aula 102', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(59, 26, '2025-10-27', '2025-10-06', '2025-10-19', '16:00:00', 2, NULL, 'Aula 201', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34'),
+(60, 27, '2025-10-28', '2025-10-06', '2025-10-19', '09:00:00', 2, NULL, 'Aula 202', NULL, NULL, NULL, 'activa', NULL, '2025-10-04 20:54:34', '2025-10-04 20:54:34');
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `tbl_paises`
+--
+
+CREATE TABLE `tbl_paises` (
+  `id` int(11) NOT NULL,
+  `nombre` varchar(100) NOT NULL,
+  `codigo_iso` varchar(3) DEFAULT NULL,
+  `activo` tinyint(1) NOT NULL DEFAULT 1
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Volcado de datos para la tabla `tbl_paises`
+--
+
+INSERT INTO `tbl_paises` (`id`, `nombre`, `codigo_iso`, `activo`) VALUES
+(1, 'Argentina', 'ARG', 1);
+
+-- --------------------------------------------------------
+
+--
 -- Estructura de tabla para la tabla `tbl_periodos_inscripcion`
 --
 
@@ -2989,7 +3228,7 @@ CREATE TABLE `tbl_periodos_inscripcion` (
 
 INSERT INTO `tbl_periodos_inscripcion` (`id`, `nombre`, `cuatrimestre`, `anio`, `fecha_inicio_inscripcion`, `fecha_fin_inscripcion`, `fecha_inicio_cursada`, `fecha_fin_cursada`, `activo`, `created_at`, `updated_at`) VALUES
 (1, '1° Cuatrimestre 2025', '1', '2025', '2025-04-01', '2025-04-03', '2025-04-07', '2025-07-31', 0, '2025-10-01 05:52:21', '2025-10-01 16:03:11'),
-(2, '2° Cuatrimestre 2025', '2', '2025', '2025-09-30', '2025-10-03', '2025-08-26', '2025-12-15', 1, '2025-10-01 05:52:22', '2025-10-01 16:03:11'),
+(2, '2° Cuatrimestre 2025', '2', '2025', '2025-09-30', '2025-10-15', '2025-08-26', '2025-12-15', 1, '2025-10-01 05:52:22', '2025-10-01 16:03:11'),
 (3, '1° Cuatrimestre 2026', '1', '2026', '2026-04-01', '2026-04-03', '2026-04-06', '2026-07-31', 0, '2025-10-01 05:52:22', '2025-10-01 16:03:11');
 
 -- --------------------------------------------------------
@@ -3042,6 +3281,49 @@ INSERT INTO `tbl_profesor_tiene_materias` (`id`, `profesor`, `carrera`, `materia
 -- --------------------------------------------------------
 
 --
+-- Estructura de tabla para la tabla `tbl_provincias`
+--
+
+CREATE TABLE `tbl_provincias` (
+  `id` int(11) NOT NULL,
+  `nombre` varchar(100) NOT NULL,
+  `pais_id` int(11) NOT NULL DEFAULT 1,
+  `activo` tinyint(1) NOT NULL DEFAULT 1
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Volcado de datos para la tabla `tbl_provincias`
+--
+
+INSERT INTO `tbl_provincias` (`id`, `nombre`, `pais_id`, `activo`) VALUES
+(1, 'San Juan', 1, 1),
+(2, 'Mendoza', 1, 1),
+(3, 'San Luis', 1, 1),
+(4, 'La Rioja', 1, 1),
+(5, 'Córdoba', 1, 1),
+(6, 'Buenos Aires', 1, 1),
+(7, 'CABA', 1, 1),
+(8, 'Catamarca', 1, 1),
+(9, 'Chaco', 1, 1),
+(10, 'Chubut', 1, 1),
+(11, 'Corrientes', 1, 1),
+(12, 'Entre Ríos', 1, 1),
+(13, 'Formosa', 1, 1),
+(14, 'Jujuy', 1, 1),
+(15, 'La Pampa', 1, 1),
+(16, 'Misiones', 1, 1),
+(17, 'Neuquén', 1, 1),
+(18, 'Río Negro', 1, 1),
+(19, 'Salta', 1, 1),
+(20, 'Santa Cruz', 1, 1),
+(21, 'Santa Fe', 1, 1),
+(22, 'Santiago del Estero', 1, 1),
+(23, 'Tierra del Fuego', 1, 1),
+(24, 'Tucumán', 1, 1);
+
+-- --------------------------------------------------------
+
+--
 -- Estructura de tabla para la tabla `tbl_resoluciones`
 --
 
@@ -3064,6 +3346,27 @@ INSERT INTO `tbl_resoluciones` (`id`, `nombre`, `carrera`, `ano1`, `ano2`) VALUE
 (4, 'res-274', 1, 2016, 2016),
 (5, 'res-1515', 2, 2009, 2014),
 (6, 'res-1514', 3, 2009, 2014);
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `tbl_sexos`
+--
+
+CREATE TABLE `tbl_sexos` (
+  `id` int(11) NOT NULL,
+  `nombre` varchar(50) NOT NULL,
+  `activo` tinyint(1) NOT NULL DEFAULT 1
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Volcado de datos para la tabla `tbl_sexos`
+--
+
+INSERT INTO `tbl_sexos` (`id`, `nombre`, `activo`) VALUES
+(1, 'Masculino', 1),
+(2, 'Femenino', 1),
+(3, 'Otro', 1);
 
 -- --------------------------------------------------------
 
@@ -3094,25 +3397,82 @@ INSERT INTO `tbl_tipos_usuarios` (`id`, `nombre`) VALUES
 
 CREATE TABLE `tbl_usuarios` (
   `id` int(11) NOT NULL,
+  `dni` varchar(20) NOT NULL,
   `nombre` varchar(255) DEFAULT NULL,
   `usuario` varchar(20) DEFAULT NULL,
-  `clave` varchar(10) DEFAULT NULL,
+  `clave` varchar(255) NOT NULL,
   `email` varchar(255) DEFAULT NULL,
   `telefono` varchar(20) DEFAULT NULL,
   `tipo` int(11) NOT NULL,
-  `pais` int(11) NOT NULL,
-  `provincia` int(11) NOT NULL,
-  `sexo` int(11) NOT NULL,
-  `avatar` varchar(255) DEFAULT NULL
+  `activo` tinyint(1) NOT NULL DEFAULT 1,
+  `pais` int(11) DEFAULT NULL,
+  `provincia` int(11) DEFAULT NULL,
+  `sexo` int(11) DEFAULT NULL,
+  `avatar` varchar(255) DEFAULT NULL,
+  `remember_token` varchar(100) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `email_verified_at` timestamp NULL DEFAULT NULL,
+  `alumno_id` int(11) DEFAULT NULL,
+  `profesor_id` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci ROW_FORMAT=DYNAMIC;
 
 --
 -- Volcado de datos para la tabla `tbl_usuarios`
 --
 
-INSERT INTO `tbl_usuarios` (`id`, `nombre`, `usuario`, `clave`, `email`, `telefono`, `tipo`, `pais`, `provincia`, `sexo`, `avatar`) VALUES
-(1, 'fabian beron', 'admin', '123456', 'frberon@gmail.com', '12321', 1, 1, 1, 1, 'avatar-mini2.jpg'),
-(2, 'puesto1', 'usuario1', '123456', 'frberon@gmail.com', '121321', 2, 1, 2, 1, 'avatar-mini2.jpg');
+INSERT INTO `tbl_usuarios` (`id`, `dni`, `nombre`, `usuario`, `clave`, `email`, `telefono`, `tipo`, `activo`, `pais`, `provincia`, `sexo`, `avatar`, `remember_token`, `created_at`, `updated_at`, `email_verified_at`, `alumno_id`, `profesor_id`) VALUES
+(1, 'admin', 'fabian beron', 'admin', '$2y$12$Ovwq79oyVmh1.ycM46xnq.StgrL/Qpn6pPJQ6vrxrqdAu5W4sk6xC', 'frberon@gmail.com', '12321', 1, 1, 1, 1, 1, 'avatar-mini2.jpg', NULL, NULL, '2025-10-02 20:11:04', NULL, NULL, NULL),
+(2, 'usuario1', 'puesto1', 'usuario1', '$2y$12$oxaXzjY425bF5/rNFj3.Gej2JHvXyOnTGdg4.wqVFS5w3tq32BwZi', 'frberon@gmail.com', '121321', 2, 1, 1, 2, 1, 'avatar-mini2.jpg', NULL, NULL, '2025-10-02 17:20:40', NULL, NULL, NULL),
+(3, '', 'Admin Test', '', '$2y$12$VSwQSomtn9fff6znssiZPuAvoSSZrEhaYL6GJgTAFg4wwgrIZfcR2', 'test@ies.edu', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-09-30 17:47:03', '2025-10-02 20:11:04', NULL, NULL, NULL),
+(4, '20829266', 'Quiroga, Carlos Eduardo', '20829266', '$2y$12$pEjrKW5m0.hGRpYaUznzxeAcj3FLzYGymnXQqOlfd2SkRSwaL0NXa', 'quiedu@gmail.com', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:49:59', '2025-10-02 20:11:04', NULL, 1, NULL),
+(5, '42809162', 'Moran , Federico ', '42809162', '$2y$12$kEvENjuIWZYxMnWQPHXw.uCfQQghrmp3Z17pF/aMyQ/GugzelHJJC', 'federicojmoran@gmail.com', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:50:00', '2025-10-02 20:11:04', NULL, 2, NULL),
+(6, '45473369', 'Burgoa, Rosana', '45473369', '$2y$12$8E1av/Z0GnBA1dqrPKm6s.mz7cfOAhTy0z5GdwlANDa3HxOwYghya', 'rosanaburgoa123@gmail.com', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:50:00', '2025-10-02 20:11:04', NULL, 3, NULL),
+(7, '44316616', 'Echevarria , Carlos Leandro JesÃºs ', '44316616', '$2y$12$VNGbgfpcl.M5dIneOqQoqOgWNruZpoXtBhFvXJ2T4oZ1sGXV4mXNG', 'leandroechevarria0107@gmail.com', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:50:01', '2025-10-02 20:11:04', NULL, 4, NULL),
+(8, '29694457', 'Peralta CÃ¡ceres , Omar Ariel ', '29694457', '$2y$12$HPrfZj9YdDsfcGllBaDpX.BQt/zI0IS70HozaFtsUEPFhZxNM9Fyy', 'omarperalta1408@gmail.com', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:50:01', '2025-10-02 20:11:04', NULL, 5, NULL),
+(9, '40591552', 'AgÃ¼ero , Eugenio Ismael ', '40591552', '$2y$12$h0UbwmI0n0h5xAfBxl0fDOtTUCpm4iCmy0q3.yqZ.UnY54nd07FAa', 'ismael8aguero@gmail.com', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:50:02', '2025-10-02 20:11:04', NULL, 6, NULL),
+(10, '46726829', 'Godoy, AgustÃ­n ', '46726829', '$2y$12$2pqqYPQqy/IHAeK2LShVjerXe.0aK6OvOSfLj2SKa8clEjJBu/ywO', 'godoyagustin802@gmail.com', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:50:02', '2025-10-02 20:11:04', NULL, 7, NULL),
+(11, '40823054', 'MuÃ±oz, Angela Cecilia', '40823054', '$2y$12$jh4.4bdPLaOextavyFM9Gu8etOuLKVx8hPUVKifXsOozl2dlKu5fa', 'angiemunoz432@gmail.com', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:50:03', '2025-10-02 20:11:04', NULL, 8, NULL),
+(12, '46407762', 'AgÃ¼ero, Yamil', '46407762', '$2y$12$h2B2IjUcsmHU3SqSvnTEneKIj2LfciD0/cd9fmToDyT6sKo4h8viK', 'yaguerogil@gmail.com', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:50:03', '2025-10-02 20:11:04', NULL, 9, NULL),
+(13, '35852955', 'ArgaÃ±araz Diaz, Eliana Gabriela ', '35852955', '$2y$12$IwMGp.qFW4rpKtHaracQ0unQPTaYz.y1Y.GzCiOKO5vLCOB/Ti5x.', 'Elianaargdiaz@gmail.com', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:50:03', '2025-10-02 20:11:04', NULL, 10, NULL),
+(14, '43690003', 'Reyes , Mateo ', '43690003', '$2y$12$zeGcPcbkAcCPdfd7dR9RCuRDjtGCoWYElphRpHYul5N6e0jN75PQe', 'reyesmateo988@gmail.com', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:50:04', '2025-10-02 20:11:04', NULL, 11, NULL),
+(15, '42712320', 'Fonzalida , Melina ', '42712320', '$2y$12$vHry7LaqpRVuiMrSImpVUOCWFR2F7.8IIDJtn1RKGhX8.o6tYnSTK', 'fonzalidamelina1@gmail.com', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:50:04', '2025-10-02 20:11:04', NULL, 12, NULL),
+(16, '43488986', 'MuÃ±oz, Fernando', '43488986', '$2y$12$HcAPSArjnS2FPX8h7PJTyOivKyjDUFcJ5w/xuYwuWDs46OiaantVS', 'munozfernando264@gmail.com', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:50:05', '2025-10-02 20:11:04', NULL, 13, NULL),
+(17, '43641793', 'Balmaceda, Karen', '43641793', '$2y$12$1Qs.BvmRVxsMLEf1KTwTluL5hSdIxVDilAs5YnVqVrtVuo/yjsiFu', 'balmacedaemilce290@gmail.com', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:50:05', '2025-10-02 20:11:04', NULL, 14, NULL),
+(18, '40086620', 'Simeoni, Facundo', '40086620', '$2y$12$bus1Mx31ke8aV4ALepzybO2Io.nfTQRV4f6j8x5.ZFaZnL1OwqE1K', 'facundosimeoni1@gmail.com', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:50:06', '2025-10-02 20:11:04', NULL, 15, NULL),
+(19, '46180633', 'Areyuna, Ramon', '46180633', '$2y$12$gCS9N/P.MyST2m6iuN1jYeKZQZz40qAVRQdPokC3guw3KJBoJdemG', 'ramonareyuna09@gmail.com', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:50:06', '2025-10-05 00:58:24', NULL, 16, NULL),
+(20, '43689779', 'Molina , Ricardo Nahuel', '43689779', '$2y$12$GeTHllbxUzmiNaPxQMukQemZfp9U098vyl1wnH.lRXK5qyPbiDf1m', 'nahuelmoli270@gmail.com', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:50:06', '2025-10-02 20:11:04', NULL, 17, NULL),
+(21, '44062183', 'Sarmiento, Mathias', '44062183', '$2y$12$hb1qIkitqkZazSDZ4gVHSe6m4ZQvbG1sby3pXBrXghK/wdQKeTPC2', 'mathisarmiento6@gmail.com', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:50:07', '2025-10-02 20:11:04', NULL, 18, NULL),
+(22, '45473305', 'Garibay, Ramiro', '45473305', '$2y$12$daTwwIVeGDyzTMAO1ACU9OUwtQYTtThtMid6sovJRRXTf2mmXe0pe', 'ramirogaribay69@gmail.com', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:50:07', '2025-10-02 20:11:04', NULL, 19, NULL),
+(23, '44018317', 'Castro, Exequiel', '44018317', '$2y$12$nBBdQAXzVVvoPuVL2u500O43LFMk4OXiJ6ErkiUeJAesoeLorruKK', 'exeloc3@gmail.com', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:50:08', '2025-10-02 20:11:04', NULL, 20, NULL),
+(24, '45634862', 'Diaz, Ariana', '45634862', '$2y$12$aa0/0y.ADoiwmmnsz7maEepJM/E36XeP6x6PbU3Aoc79C9vwZP7yu', 'ad421637@gmail.com', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:50:08', '2025-10-02 20:11:04', NULL, 21, NULL),
+(25, '34100722', 'Garcia Martin , Victor Ariel', '34100722', '$2y$12$OZcf4nydXpfUMwpZO.8bvOdbaG/AraWYFOefih9ntPmUb5hU.BB3.', 'victorarielgarciamartin@hotmail.com', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:50:09', '2025-10-02 20:11:04', NULL, 22, NULL),
+(26, '45473301', 'Fernandez, Amilcar Jose Leonel', '45473301', '$2y$12$/fTF2IW0P9U7gBU7SISufektPDqJNZ1umSHEWwmpNQNbhXJLRnRWe', 'amilcarlfernandez310@gmail.com', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:50:09', '2025-10-02 20:11:04', NULL, 23, NULL),
+(27, '45635063', 'Aballay Sepeda, Eli Valentina', '45635063', '$2y$12$u9zWn/ju/Va7uN7znr9S1e1rqlZagGXF7Ai6BLzBULBprrZFAFVQS', 'eliaballay534@gmail.com', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:50:10', '2025-10-02 20:11:04', NULL, 24, NULL),
+(28, '44634748', 'Gomez Gimenez , Luis Gabriel ', '44634748', '$2y$12$OIGLwfg4cv5WFShKWSKbzOSC8WndBgQhxNSkcLBYHEbJuBLAs1wk2', 'luisgomez98654@gmail.com', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:50:10', '2025-10-02 20:11:04', NULL, 25, NULL),
+(29, '46070642', 'Vieyra, Matias', '46070642', '$2y$12$uNBgBwC.gJGFrTjOPrgP9edXqLzYtKqr97oamEMVneWPCXqBWG.Ry', 'matiashidalgo147@gmail.com', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:50:10', '2025-10-02 20:11:04', NULL, 26, NULL),
+(30, '42081141', 'Gimenez, Leandro Albano', '42081141', '$2y$12$5T4y5kXN24LywIbgPlpj8OhEvMVZSc61ueOAE8RI8aXZiALhyv2eC', 'albanogimenez062@gmail.com', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:50:11', '2025-10-02 20:11:04', NULL, 27, NULL),
+(31, '45212175', 'Bustos, Juan', '45212175', '$2y$12$zmof8AT3.IaNPYHNSEh3zuHGCbDZFL/WeFdLCrhNB1ccXoEINPHZm', 'juanixd873@gmail.com', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:50:11', '2025-10-02 20:11:04', NULL, 28, NULL),
+(32, '4521175', 'Bustos, Juan', '4521175', '$2y$12$LKV5JMDMVSv/JaeMovv0de7y2XUzWyBqMKZCj2pIHvbfAfy5oUkBi', '4521175@ies.edu.ar', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:52:03', '2025-10-02 20:11:04', NULL, 29, NULL),
+(33, '41641247', 'Ferreyra, Yamila', '41641247', '$2y$12$Doeety6.yzzNM0A5W53E..uHJAekPIrH/MaF2/F7BXbtEZXsJkJ2i', 'Yamilaferreyra444@gmail.com', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:52:03', '2025-10-02 20:11:04', NULL, 30, NULL),
+(34, '35850632', 'Ramirez, Emiliano,emanuel', '35850632', '$2y$12$NHbJMaS0kMjJgd/9qAK/TumG39B7lSHQb72DFNDVSKqO.9B3kVPK.', 'emilianoramirez2091@gmail.com', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:52:04', '2025-10-02 20:11:04', NULL, 31, NULL),
+(35, '44674217', 'rodriguez, alan', '44674217', '$2y$12$4U/PXLGwlv9RSvkEwV0GtuQVI0CDu8G4RXgBwaAd9lSgVNuIkqTHS', 'rodriguezalanm731@gmail.com', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:52:04', '2025-10-02 20:11:04', NULL, 32, NULL),
+(36, '42516938', 'Guaquinchay , AyelÃ©n RocÃ­o ', '42516938', '$2y$12$Aw.oNZZ/NPLBuRKGC2QFne4LMN2A88EmlaIeWNvNn6A/oyMOkS0Ui', 'ayelen.guaquinchay09@gmail.com', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:52:04', '2025-10-02 20:11:04', NULL, 33, NULL),
+(37, '33836289', 'Navarro , Maximiliano ', '33836289', '$2y$12$kVVlxkPVfV9xGhjonmjHM.tqNbq7rg.N/rvrOseqRimXwsMaZCbvy', 'sirmaximilian1@hotmail.com', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:52:05', '2025-10-02 20:11:04', NULL, 34, NULL),
+(38, '34609402', 'Carrizo , MatÃ­as Gabriel ', '34609402', '$2y$12$QFcd.1ZBcodI9TjVldYmxOw2jkyZNTzgdGUBdj7lwSBcNiXCOf59i', 'matias.g.carrizo11@gmail.com', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:52:05', '2025-10-02 20:11:04', NULL, 35, NULL),
+(39, '42005854', 'Cordoba, Maximiliano ', '42005854', '$2y$12$yQyl.zfS0FbH12mR.u58VOXQOfb7OmNEMzNP5JgGxFiSICNmuqLJq', 'maxcordoba100@gmail.com', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:52:06', '2025-10-02 20:11:04', NULL, 36, NULL),
+(40, '45634685', 'Garcia , Dayana', '45634685', '$2y$12$R2at9SeP3ZmY7VXUqKLZ6eHd8yoDi.ntrK7OR/RKflFrYDyE4seoO', 'dayimarilau@gmail.com', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:52:06', '2025-10-01 00:52:06', NULL, 37, NULL),
+(41, '43952965', 'Toledo, SebastiÃ¡n', '43952965', '$2y$12$9LtmH3/duEz4SmKj.q3oveA3ohNZE6rDFrF/SDwleWcpWKdNO2AYu', 'sebatoledo.sdt@gmail.com', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:52:06', '2025-10-01 00:52:06', NULL, 38, NULL),
+(42, '42187883', 'Uribi, Antonio ', '42187883', '$2y$12$NilRInxPZd16o9nivXTeJusdrUXlLqmpDVjebWrEcTSSzR7ZVmnye', 'uribeantonio078@gmail.com', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:52:07', '2025-10-01 00:52:07', NULL, 39, NULL),
+(43, '46544506', 'Moyano, Braian', '46544506', '$2y$12$WToBpfXfs/nd0jWH3WLFHukVgV5D.an62eZi96cRwpF6KrxP2E.lO', 'braiankevinmoyano@gmail.com', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:52:07', '2025-10-01 00:52:07', NULL, 40, NULL),
+(44, '43952026', 'Montenegro, Nara Fabiana', '43952026', '$2y$12$9EB6eqOjYKQe38JwKLDYFu6WWq49fVkbw4xebkcn11hpGO0uUyuLi', 'nara74578@gmail.com', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:52:08', '2025-10-01 00:52:08', NULL, 41, NULL),
+(45, '42356568', 'Castillo, Rodrigo', '42356568', '$2y$12$6f6sI5yQ1ez7.w11o235Me7DVLCirAuh/V7MEPxrWx.6qWnD/SUKO', 'rofcastillo@gmail.com', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:52:08', '2025-10-01 00:52:08', NULL, 42, NULL),
+(46, '44527380', 'Fiorelli, Santino', '44527380', '$2y$12$GymWolBnO7vlqCbqFR4xqudM8.XmJ8r6719KPCEgTRo593RwFeWJe', 'santifiorelli27@gmail.com', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 00:52:09', '2025-10-01 00:52:09', NULL, 68, NULL),
+(47, '12345678', 'Alumno, Prueba', '12345678', '$2y$12$T8YFbEM8MGa5JJEawkvfwe174zKwdTg3UDTPmOJdyIv/6uq0RCCmS', '12345678@ies.edu.ar', NULL, 4, 1, 1, 1, 1, NULL, NULL, '2025-10-01 17:23:53', '2025-10-01 17:23:53', NULL, 282, NULL),
+(51, '87654321', 'María González', '87654321', '$2y$12$VmaoB7wh9y4O2ibhTJkZEuUG6pNTHqhhSe/kk8jcrgfuZH6tUQb/K', 'maria.gonzalez@test.com', NULL, 4, 1, 1, 1, 2, NULL, NULL, '2025-10-03 16:24:41', '2025-10-03 16:24:41', NULL, 283, NULL),
+(53, '11111111', 'Admin Sistema', '11111111', '$2y$12$FDQxuByTyQGE8TdzTbCXau.jFRVnmbkT1eK5IE3CuLqSYFz7gscue', 'admin@ies.edu.ar', NULL, 1, 1, 1, 1, 1, NULL, 'aVJRfXuRsmUJ1vXZNxJzTbWf7S9ihlAfbW604ghgdqbT858VbFAgT7XG7uTB', '2025-10-04 03:50:49', '2025-10-04 03:50:49', NULL, NULL, NULL),
+(54, '22222222', 'Prof. Juan Pérez', '22222222', '$2y$12$7umtxnw3TkAeVvHYPaHWWOuJk1zKTxTwQxpFpA5iHNtW7wIU0McdW', 'juan.perez@ies.edu.ar', NULL, 3, 1, 1, 1, 1, NULL, NULL, '2025-10-04 04:26:34', '2025-10-04 04:26:34', NULL, NULL, NULL),
+(55, '42334976', 'Aciar Sanchez , Evy Lourdes', '42334976', '$2y$12$DCQ5pElo2V1YZt/8a7EYsuuvJx/aSMygBjq6ykV./AqR3L9oDgGja', 'evyaciar21@gmail.com', '2644627361', 4, 1, 1, 1, 2, NULL, NULL, '2025-10-04 13:37:26', '2025-10-04 13:37:35', NULL, 136, NULL);
 
 -- --------------------------------------------------------
 
@@ -3122,12 +3482,16 @@ INSERT INTO `tbl_usuarios` (`id`, `nombre`, `usuario`, `clave`, `email`, `telefo
 
 CREATE TABLE `users` (
   `id` bigint(20) UNSIGNED NOT NULL,
+  `usuario_legacy_id` int(11) DEFAULT NULL COMMENT 'ID de tbl_usuarios para migración',
   `dni` varchar(20) NOT NULL,
   `role` enum('admin','profesor','alumno') NOT NULL DEFAULT 'alumno',
   `alumno_id` int(11) DEFAULT NULL,
   `profesor_id` int(11) DEFAULT NULL,
   `name` varchar(255) NOT NULL,
   `email` varchar(255) DEFAULT NULL,
+  `telefono` varchar(20) DEFAULT NULL,
+  `avatar` varchar(255) DEFAULT NULL,
+  `sexo` int(11) DEFAULT NULL,
   `email_verified_at` timestamp NULL DEFAULT NULL,
   `password` varchar(255) NOT NULL,
   `remember_token` varchar(100) DEFAULT NULL,
@@ -3139,52 +3503,53 @@ CREATE TABLE `users` (
 -- Volcado de datos para la tabla `users`
 --
 
-INSERT INTO `users` (`id`, `dni`, `role`, `alumno_id`, `profesor_id`, `name`, `email`, `email_verified_at`, `password`, `remember_token`, `created_at`, `updated_at`) VALUES
-(1, '', 'alumno', NULL, NULL, 'Admin Test', 'test@ies.edu', NULL, '$2y$12$VSwQSomtn9fff6znssiZPuAvoSSZrEhaYL6GJgTAFg4wwgrIZfcR2', NULL, '2025-09-30 17:47:03', '2025-09-30 17:47:03'),
-(2, '20829266', 'alumno', 1, NULL, 'Quiroga, Carlos Eduardo', 'quiedu@gmail.com', NULL, '$2y$12$pEjrKW5m0.hGRpYaUznzxeAcj3FLzYGymnXQqOlfd2SkRSwaL0NXa', NULL, '2025-10-01 00:49:59', '2025-10-01 00:49:59'),
-(3, '42809162', 'alumno', 2, NULL, 'Moran , Federico ', 'federicojmoran@gmail.com', NULL, '$2y$12$kEvENjuIWZYxMnWQPHXw.uCfQQghrmp3Z17pF/aMyQ/GugzelHJJC', NULL, '2025-10-01 00:50:00', '2025-10-01 00:50:00'),
-(4, '45473369', 'alumno', 3, NULL, 'Burgoa, Rosana', 'rosanaburgoa123@gmail.com', NULL, '$2y$12$8E1av/Z0GnBA1dqrPKm6s.mz7cfOAhTy0z5GdwlANDa3HxOwYghya', NULL, '2025-10-01 00:50:00', '2025-10-01 00:50:00'),
-(5, '44316616', 'alumno', 4, NULL, 'Echevarria , Carlos Leandro JesÃºs ', 'leandroechevarria0107@gmail.com', NULL, '$2y$12$VNGbgfpcl.M5dIneOqQoqOgWNruZpoXtBhFvXJ2T4oZ1sGXV4mXNG', NULL, '2025-10-01 00:50:01', '2025-10-01 00:50:01'),
-(6, '29694457', 'alumno', 5, NULL, 'Peralta CÃ¡ceres , Omar Ariel ', 'omarperalta1408@gmail.com', NULL, '$2y$12$HPrfZj9YdDsfcGllBaDpX.BQt/zI0IS70HozaFtsUEPFhZxNM9Fyy', NULL, '2025-10-01 00:50:01', '2025-10-01 00:50:01'),
-(7, '40591552', 'alumno', 6, NULL, 'AgÃ¼ero , Eugenio Ismael ', 'ismael8aguero@gmail.com', NULL, '$2y$12$h0UbwmI0n0h5xAfBxl0fDOtTUCpm4iCmy0q3.yqZ.UnY54nd07FAa', NULL, '2025-10-01 00:50:02', '2025-10-01 00:50:02'),
-(8, '46726829', 'alumno', 7, NULL, 'Godoy, AgustÃ­n ', 'godoyagustin802@gmail.com', NULL, '$2y$12$2pqqYPQqy/IHAeK2LShVjerXe.0aK6OvOSfLj2SKa8clEjJBu/ywO', NULL, '2025-10-01 00:50:02', '2025-10-01 00:50:02'),
-(9, '40823054', 'alumno', 8, NULL, 'MuÃ±oz, Angela Cecilia', 'angiemunoz432@gmail.com', NULL, '$2y$12$jh4.4bdPLaOextavyFM9Gu8etOuLKVx8hPUVKifXsOozl2dlKu5fa', NULL, '2025-10-01 00:50:03', '2025-10-01 00:50:03'),
-(10, '46407762', 'alumno', 9, NULL, 'AgÃ¼ero, Yamil', 'yaguerogil@gmail.com', NULL, '$2y$12$h2B2IjUcsmHU3SqSvnTEneKIj2LfciD0/cd9fmToDyT6sKo4h8viK', NULL, '2025-10-01 00:50:03', '2025-10-01 00:50:03'),
-(11, '35852955', 'alumno', 10, NULL, 'ArgaÃ±araz Diaz, Eliana Gabriela ', 'Elianaargdiaz@gmail.com', NULL, '$2y$12$IwMGp.qFW4rpKtHaracQ0unQPTaYz.y1Y.GzCiOKO5vLCOB/Ti5x.', NULL, '2025-10-01 00:50:03', '2025-10-01 00:50:03'),
-(12, '43690003', 'alumno', 11, NULL, 'Reyes , Mateo ', 'reyesmateo988@gmail.com', NULL, '$2y$12$zeGcPcbkAcCPdfd7dR9RCuRDjtGCoWYElphRpHYul5N6e0jN75PQe', NULL, '2025-10-01 00:50:04', '2025-10-01 00:50:04'),
-(13, '42712320', 'alumno', 12, NULL, 'Fonzalida , Melina ', 'fonzalidamelina1@gmail.com', NULL, '$2y$12$vHry7LaqpRVuiMrSImpVUOCWFR2F7.8IIDJtn1RKGhX8.o6tYnSTK', NULL, '2025-10-01 00:50:04', '2025-10-01 00:50:04'),
-(14, '43488986', 'alumno', 13, NULL, 'MuÃ±oz, Fernando', 'munozfernando264@gmail.com', NULL, '$2y$12$HcAPSArjnS2FPX8h7PJTyOivKyjDUFcJ5w/xuYwuWDs46OiaantVS', NULL, '2025-10-01 00:50:05', '2025-10-01 00:50:05'),
-(15, '43641793', 'alumno', 14, NULL, 'Balmaceda, Karen', 'balmacedaemilce290@gmail.com', NULL, '$2y$12$1Qs.BvmRVxsMLEf1KTwTluL5hSdIxVDilAs5YnVqVrtVuo/yjsiFu', NULL, '2025-10-01 00:50:05', '2025-10-01 00:50:05'),
-(16, '40086620', 'alumno', 15, NULL, 'Simeoni, Facundo', 'facundosimeoni1@gmail.com', NULL, '$2y$12$bus1Mx31ke8aV4ALepzybO2Io.nfTQRV4f6j8x5.ZFaZnL1OwqE1K', NULL, '2025-10-01 00:50:06', '2025-10-01 00:50:06'),
-(17, '46180633', 'alumno', 16, NULL, 'Areyuna, Ramon', 'ramonareyuna09@gmail.com', NULL, '$2y$12$cjHlzoEHKs8LBTiwwMisou43wFeJZQqni5HNtS61m1A4xvTJGzsRy', NULL, '2025-10-01 00:50:06', '2025-10-01 00:50:06'),
-(18, '43689779', 'alumno', 17, NULL, 'Molina , Ricardo Nahuel', 'nahuelmoli270@gmail.com', NULL, '$2y$12$GeTHllbxUzmiNaPxQMukQemZfp9U098vyl1wnH.lRXK5qyPbiDf1m', NULL, '2025-10-01 00:50:06', '2025-10-01 00:50:06'),
-(19, '44062183', 'alumno', 18, NULL, 'Sarmiento, Mathias', 'mathisarmiento6@gmail.com', NULL, '$2y$12$hb1qIkitqkZazSDZ4gVHSe6m4ZQvbG1sby3pXBrXghK/wdQKeTPC2', NULL, '2025-10-01 00:50:07', '2025-10-01 00:50:07'),
-(20, '45473305', 'alumno', 19, NULL, 'Garibay, Ramiro', 'ramirogaribay69@gmail.com', NULL, '$2y$12$daTwwIVeGDyzTMAO1ACU9OUwtQYTtThtMid6sovJRRXTf2mmXe0pe', NULL, '2025-10-01 00:50:07', '2025-10-01 00:50:07'),
-(21, '44018317', 'alumno', 20, NULL, 'Castro, Exequiel', 'exeloc3@gmail.com', NULL, '$2y$12$nBBdQAXzVVvoPuVL2u500O43LFMk4OXiJ6ErkiUeJAesoeLorruKK', NULL, '2025-10-01 00:50:08', '2025-10-01 00:50:08'),
-(22, '45634862', 'alumno', 21, NULL, 'Diaz, Ariana', 'ad421637@gmail.com', NULL, '$2y$12$aa0/0y.ADoiwmmnsz7maEepJM/E36XeP6x6PbU3Aoc79C9vwZP7yu', NULL, '2025-10-01 00:50:08', '2025-10-01 00:50:08'),
-(23, '34100722', 'alumno', 22, NULL, 'Garcia Martin , Victor Ariel', 'victorarielgarciamartin@hotmail.com', NULL, '$2y$12$OZcf4nydXpfUMwpZO.8bvOdbaG/AraWYFOefih9ntPmUb5hU.BB3.', NULL, '2025-10-01 00:50:09', '2025-10-01 00:50:09'),
-(24, '45473301', 'alumno', 23, NULL, 'Fernandez, Amilcar Jose Leonel', 'amilcarlfernandez310@gmail.com', NULL, '$2y$12$/fTF2IW0P9U7gBU7SISufektPDqJNZ1umSHEWwmpNQNbhXJLRnRWe', NULL, '2025-10-01 00:50:09', '2025-10-01 00:50:09'),
-(25, '45635063', 'alumno', 24, NULL, 'Aballay Sepeda, Eli Valentina', 'eliaballay534@gmail.com', NULL, '$2y$12$u9zWn/ju/Va7uN7znr9S1e1rqlZagGXF7Ai6BLzBULBprrZFAFVQS', NULL, '2025-10-01 00:50:10', '2025-10-01 00:50:10'),
-(26, '44634748', 'alumno', 25, NULL, 'Gomez Gimenez , Luis Gabriel ', 'luisgomez98654@gmail.com', NULL, '$2y$12$OIGLwfg4cv5WFShKWSKbzOSC8WndBgQhxNSkcLBYHEbJuBLAs1wk2', NULL, '2025-10-01 00:50:10', '2025-10-01 00:50:10'),
-(27, '46070642', 'alumno', 26, NULL, 'Vieyra, Matias', 'matiashidalgo147@gmail.com', NULL, '$2y$12$uNBgBwC.gJGFrTjOPrgP9edXqLzYtKqr97oamEMVneWPCXqBWG.Ry', NULL, '2025-10-01 00:50:10', '2025-10-01 00:50:10'),
-(28, '42081141', 'alumno', 27, NULL, 'Gimenez, Leandro Albano', 'albanogimenez062@gmail.com', NULL, '$2y$12$5T4y5kXN24LywIbgPlpj8OhEvMVZSc61ueOAE8RI8aXZiALhyv2eC', NULL, '2025-10-01 00:50:11', '2025-10-01 00:50:11'),
-(29, '45212175', 'alumno', 28, NULL, 'Bustos, Juan', 'juanixd873@gmail.com', NULL, '$2y$12$zmof8AT3.IaNPYHNSEh3zuHGCbDZFL/WeFdLCrhNB1ccXoEINPHZm', NULL, '2025-10-01 00:50:11', '2025-10-01 00:50:11'),
-(31, '4521175', 'alumno', 29, NULL, 'Bustos, Juan', '4521175@ies.edu.ar', NULL, '$2y$12$LKV5JMDMVSv/JaeMovv0de7y2XUzWyBqMKZCj2pIHvbfAfy5oUkBi', NULL, '2025-10-01 00:52:03', '2025-10-01 00:52:03'),
-(32, '41641247', 'alumno', 30, NULL, 'Ferreyra, Yamila', 'Yamilaferreyra444@gmail.com', NULL, '$2y$12$Doeety6.yzzNM0A5W53E..uHJAekPIrH/MaF2/F7BXbtEZXsJkJ2i', NULL, '2025-10-01 00:52:03', '2025-10-01 00:52:03'),
-(33, '35850632', 'alumno', 31, NULL, 'Ramirez, Emiliano,emanuel', 'emilianoramirez2091@gmail.com', NULL, '$2y$12$NHbJMaS0kMjJgd/9qAK/TumG39B7lSHQb72DFNDVSKqO.9B3kVPK.', NULL, '2025-10-01 00:52:04', '2025-10-01 00:52:04'),
-(34, '44674217', 'alumno', 32, NULL, 'rodriguez, alan', 'rodriguezalanm731@gmail.com', NULL, '$2y$12$tNgCdkSXGXEGUq40l2DMKuKk5SQN.MpzJfoX5p5iT0WFInuloAzhO', NULL, '2025-10-01 00:52:04', '2025-10-01 00:52:04'),
-(35, '42516938', 'alumno', 33, NULL, 'Guaquinchay , AyelÃ©n RocÃ­o ', 'ayelen.guaquinchay09@gmail.com', NULL, '$2y$12$Aw.oNZZ/NPLBuRKGC2QFne4LMN2A88EmlaIeWNvNn6A/oyMOkS0Ui', NULL, '2025-10-01 00:52:04', '2025-10-01 00:52:04'),
-(36, '33836289', 'alumno', 34, NULL, 'Navarro , Maximiliano ', 'sirmaximilian1@hotmail.com', NULL, '$2y$12$kVVlxkPVfV9xGhjonmjHM.tqNbq7rg.N/rvrOseqRimXwsMaZCbvy', NULL, '2025-10-01 00:52:05', '2025-10-01 00:52:05'),
-(37, '34609402', 'alumno', 35, NULL, 'Carrizo , MatÃ­as Gabriel ', 'matias.g.carrizo11@gmail.com', NULL, '$2y$12$QFcd.1ZBcodI9TjVldYmxOw2jkyZNTzgdGUBdj7lwSBcNiXCOf59i', NULL, '2025-10-01 00:52:05', '2025-10-01 00:52:05'),
-(38, '42005854', 'alumno', 36, NULL, 'Cordoba, Maximiliano ', 'maxcordoba100@gmail.com', NULL, '$2y$12$yQyl.zfS0FbH12mR.u58VOXQOfb7OmNEMzNP5JgGxFiSICNmuqLJq', NULL, '2025-10-01 00:52:06', '2025-10-01 00:52:06'),
-(39, '45634685', 'alumno', 37, NULL, 'Garcia , Dayana', 'dayimarilau@gmail.com', NULL, '$2y$12$R2at9SeP3ZmY7VXUqKLZ6eHd8yoDi.ntrK7OR/RKflFrYDyE4seoO', NULL, '2025-10-01 00:52:06', '2025-10-01 00:52:06'),
-(40, '43952965', 'alumno', 38, NULL, 'Toledo, SebastiÃ¡n', 'sebatoledo.sdt@gmail.com', NULL, '$2y$12$9LtmH3/duEz4SmKj.q3oveA3ohNZE6rDFrF/SDwleWcpWKdNO2AYu', NULL, '2025-10-01 00:52:06', '2025-10-01 00:52:06'),
-(41, '42187883', 'alumno', 39, NULL, 'Uribi, Antonio ', 'uribeantonio078@gmail.com', NULL, '$2y$12$NilRInxPZd16o9nivXTeJusdrUXlLqmpDVjebWrEcTSSzR7ZVmnye', NULL, '2025-10-01 00:52:07', '2025-10-01 00:52:07'),
-(42, '46544506', 'alumno', 40, NULL, 'Moyano, Braian', 'braiankevinmoyano@gmail.com', NULL, '$2y$12$WToBpfXfs/nd0jWH3WLFHukVgV5D.an62eZi96cRwpF6KrxP2E.lO', NULL, '2025-10-01 00:52:07', '2025-10-01 00:52:07'),
-(43, '43952026', 'alumno', 41, NULL, 'Montenegro, Nara Fabiana', 'nara74578@gmail.com', NULL, '$2y$12$9EB6eqOjYKQe38JwKLDYFu6WWq49fVkbw4xebkcn11hpGO0uUyuLi', NULL, '2025-10-01 00:52:08', '2025-10-01 00:52:08'),
-(44, '42356568', 'alumno', 42, NULL, 'Castillo, Rodrigo', 'rofcastillo@gmail.com', NULL, '$2y$12$6f6sI5yQ1ez7.w11o235Me7DVLCirAuh/V7MEPxrWx.6qWnD/SUKO', NULL, '2025-10-01 00:52:08', '2025-10-01 00:52:08'),
-(45, '44527380', 'alumno', 68, NULL, 'Fiorelli, Santino', 'santifiorelli27@gmail.com', NULL, '$2y$12$GymWolBnO7vlqCbqFR4xqudM8.XmJ8r6719KPCEgTRo593RwFeWJe', NULL, '2025-10-01 00:52:09', '2025-10-01 00:52:09'),
-(47, '12345678', 'alumno', 282, NULL, 'Alumno, Prueba', '12345678@ies.edu.ar', NULL, '$2y$12$AWcJ5KB9zotu2OfN6G/YbOFMCFvmKXCTtfU6o3qGy.YhQ/TucmsO.', NULL, '2025-10-01 17:23:53', '2025-10-01 17:23:53');
+INSERT INTO `users` (`id`, `usuario_legacy_id`, `dni`, `role`, `alumno_id`, `profesor_id`, `name`, `email`, `telefono`, `avatar`, `sexo`, `email_verified_at`, `password`, `remember_token`, `created_at`, `updated_at`) VALUES
+(1, NULL, '', 'alumno', NULL, NULL, 'Admin Test', 'test@ies.edu', NULL, NULL, NULL, NULL, '$2y$12$VSwQSomtn9fff6znssiZPuAvoSSZrEhaYL6GJgTAFg4wwgrIZfcR2', NULL, '2025-09-30 17:47:03', '2025-09-30 17:47:03'),
+(2, NULL, '20829266', 'alumno', 1, NULL, 'Quiroga, Carlos Eduardo', 'quiedu@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$pEjrKW5m0.hGRpYaUznzxeAcj3FLzYGymnXQqOlfd2SkRSwaL0NXa', NULL, '2025-10-01 00:49:59', '2025-10-01 00:49:59'),
+(3, NULL, '42809162', 'alumno', 2, NULL, 'Moran , Federico ', 'federicojmoran@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$kEvENjuIWZYxMnWQPHXw.uCfQQghrmp3Z17pF/aMyQ/GugzelHJJC', NULL, '2025-10-01 00:50:00', '2025-10-01 00:50:00'),
+(4, NULL, '45473369', 'alumno', 3, NULL, 'Burgoa, Rosana', 'rosanaburgoa123@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$8E1av/Z0GnBA1dqrPKm6s.mz7cfOAhTy0z5GdwlANDa3HxOwYghya', NULL, '2025-10-01 00:50:00', '2025-10-01 00:50:00'),
+(5, NULL, '44316616', 'alumno', 4, NULL, 'Echevarria , Carlos Leandro JesÃºs ', 'leandroechevarria0107@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$VNGbgfpcl.M5dIneOqQoqOgWNruZpoXtBhFvXJ2T4oZ1sGXV4mXNG', NULL, '2025-10-01 00:50:01', '2025-10-01 00:50:01'),
+(6, NULL, '29694457', 'alumno', 5, NULL, 'Peralta CÃ¡ceres , Omar Ariel ', 'omarperalta1408@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$HPrfZj9YdDsfcGllBaDpX.BQt/zI0IS70HozaFtsUEPFhZxNM9Fyy', NULL, '2025-10-01 00:50:01', '2025-10-01 00:50:01'),
+(7, NULL, '40591552', 'alumno', 6, NULL, 'AgÃ¼ero , Eugenio Ismael ', 'ismael8aguero@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$h0UbwmI0n0h5xAfBxl0fDOtTUCpm4iCmy0q3.yqZ.UnY54nd07FAa', NULL, '2025-10-01 00:50:02', '2025-10-01 00:50:02'),
+(8, NULL, '46726829', 'alumno', 7, NULL, 'Godoy, AgustÃ­n ', 'godoyagustin802@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$2pqqYPQqy/IHAeK2LShVjerXe.0aK6OvOSfLj2SKa8clEjJBu/ywO', NULL, '2025-10-01 00:50:02', '2025-10-01 00:50:02'),
+(9, NULL, '40823054', 'alumno', 8, NULL, 'MuÃ±oz, Angela Cecilia', 'angiemunoz432@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$jh4.4bdPLaOextavyFM9Gu8etOuLKVx8hPUVKifXsOozl2dlKu5fa', NULL, '2025-10-01 00:50:03', '2025-10-01 00:50:03'),
+(10, NULL, '46407762', 'alumno', 9, NULL, 'AgÃ¼ero, Yamil', 'yaguerogil@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$h2B2IjUcsmHU3SqSvnTEneKIj2LfciD0/cd9fmToDyT6sKo4h8viK', NULL, '2025-10-01 00:50:03', '2025-10-01 00:50:03'),
+(11, NULL, '35852955', 'alumno', 10, NULL, 'ArgaÃ±araz Diaz, Eliana Gabriela ', 'Elianaargdiaz@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$IwMGp.qFW4rpKtHaracQ0unQPTaYz.y1Y.GzCiOKO5vLCOB/Ti5x.', NULL, '2025-10-01 00:50:03', '2025-10-01 00:50:03'),
+(12, NULL, '43690003', 'alumno', 11, NULL, 'Reyes , Mateo ', 'reyesmateo988@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$zeGcPcbkAcCPdfd7dR9RCuRDjtGCoWYElphRpHYul5N6e0jN75PQe', NULL, '2025-10-01 00:50:04', '2025-10-01 00:50:04'),
+(13, NULL, '42712320', 'alumno', 12, NULL, 'Fonzalida , Melina ', 'fonzalidamelina1@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$vHry7LaqpRVuiMrSImpVUOCWFR2F7.8IIDJtn1RKGhX8.o6tYnSTK', NULL, '2025-10-01 00:50:04', '2025-10-01 00:50:04'),
+(14, NULL, '43488986', 'alumno', 13, NULL, 'MuÃ±oz, Fernando', 'munozfernando264@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$HcAPSArjnS2FPX8h7PJTyOivKyjDUFcJ5w/xuYwuWDs46OiaantVS', NULL, '2025-10-01 00:50:05', '2025-10-01 00:50:05'),
+(15, NULL, '43641793', 'alumno', 14, NULL, 'Balmaceda, Karen', 'balmacedaemilce290@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$1Qs.BvmRVxsMLEf1KTwTluL5hSdIxVDilAs5YnVqVrtVuo/yjsiFu', NULL, '2025-10-01 00:50:05', '2025-10-01 00:50:05'),
+(16, NULL, '40086620', 'alumno', 15, NULL, 'Simeoni, Facundo', 'facundosimeoni1@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$bus1Mx31ke8aV4ALepzybO2Io.nfTQRV4f6j8x5.ZFaZnL1OwqE1K', NULL, '2025-10-01 00:50:06', '2025-10-01 00:50:06'),
+(17, NULL, '46180633', 'alumno', 16, NULL, 'Areyuna, Ramon', 'ramonareyuna09@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$cjHlzoEHKs8LBTiwwMisou43wFeJZQqni5HNtS61m1A4xvTJGzsRy', NULL, '2025-10-01 00:50:06', '2025-10-01 00:50:06'),
+(18, NULL, '43689779', 'alumno', 17, NULL, 'Molina , Ricardo Nahuel', 'nahuelmoli270@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$GeTHllbxUzmiNaPxQMukQemZfp9U098vyl1wnH.lRXK5qyPbiDf1m', NULL, '2025-10-01 00:50:06', '2025-10-01 00:50:06'),
+(19, NULL, '44062183', 'alumno', 18, NULL, 'Sarmiento, Mathias', 'mathisarmiento6@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$hb1qIkitqkZazSDZ4gVHSe6m4ZQvbG1sby3pXBrXghK/wdQKeTPC2', NULL, '2025-10-01 00:50:07', '2025-10-01 00:50:07'),
+(20, NULL, '45473305', 'alumno', 19, NULL, 'Garibay, Ramiro', 'ramirogaribay69@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$daTwwIVeGDyzTMAO1ACU9OUwtQYTtThtMid6sovJRRXTf2mmXe0pe', NULL, '2025-10-01 00:50:07', '2025-10-01 00:50:07'),
+(21, NULL, '44018317', 'alumno', 20, NULL, 'Castro, Exequiel', 'exeloc3@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$nBBdQAXzVVvoPuVL2u500O43LFMk4OXiJ6ErkiUeJAesoeLorruKK', NULL, '2025-10-01 00:50:08', '2025-10-01 00:50:08'),
+(22, NULL, '45634862', 'alumno', 21, NULL, 'Diaz, Ariana', 'ad421637@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$aa0/0y.ADoiwmmnsz7maEepJM/E36XeP6x6PbU3Aoc79C9vwZP7yu', NULL, '2025-10-01 00:50:08', '2025-10-01 00:50:08'),
+(23, NULL, '34100722', 'alumno', 22, NULL, 'Garcia Martin , Victor Ariel', 'victorarielgarciamartin@hotmail.com', NULL, NULL, NULL, NULL, '$2y$12$OZcf4nydXpfUMwpZO.8bvOdbaG/AraWYFOefih9ntPmUb5hU.BB3.', NULL, '2025-10-01 00:50:09', '2025-10-01 00:50:09'),
+(24, NULL, '45473301', 'alumno', 23, NULL, 'Fernandez, Amilcar Jose Leonel', 'amilcarlfernandez310@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$/fTF2IW0P9U7gBU7SISufektPDqJNZ1umSHEWwmpNQNbhXJLRnRWe', NULL, '2025-10-01 00:50:09', '2025-10-01 00:50:09'),
+(25, NULL, '45635063', 'alumno', 24, NULL, 'Aballay Sepeda, Eli Valentina', 'eliaballay534@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$u9zWn/ju/Va7uN7znr9S1e1rqlZagGXF7Ai6BLzBULBprrZFAFVQS', NULL, '2025-10-01 00:50:10', '2025-10-01 00:50:10'),
+(26, NULL, '44634748', 'alumno', 25, NULL, 'Gomez Gimenez , Luis Gabriel ', 'luisgomez98654@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$OIGLwfg4cv5WFShKWSKbzOSC8WndBgQhxNSkcLBYHEbJuBLAs1wk2', NULL, '2025-10-01 00:50:10', '2025-10-01 00:50:10'),
+(27, NULL, '46070642', 'alumno', 26, NULL, 'Vieyra, Matias', 'matiashidalgo147@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$uNBgBwC.gJGFrTjOPrgP9edXqLzYtKqr97oamEMVneWPCXqBWG.Ry', NULL, '2025-10-01 00:50:10', '2025-10-01 00:50:10'),
+(28, NULL, '42081141', 'alumno', 27, NULL, 'Gimenez, Leandro Albano', 'albanogimenez062@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$5T4y5kXN24LywIbgPlpj8OhEvMVZSc61ueOAE8RI8aXZiALhyv2eC', NULL, '2025-10-01 00:50:11', '2025-10-01 00:50:11'),
+(29, NULL, '45212175', 'alumno', 28, NULL, 'Bustos, Juan', 'juanixd873@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$zmof8AT3.IaNPYHNSEh3zuHGCbDZFL/WeFdLCrhNB1ccXoEINPHZm', NULL, '2025-10-01 00:50:11', '2025-10-01 00:50:11'),
+(31, NULL, '4521175', 'alumno', 29, NULL, 'Bustos, Juan', '4521175@ies.edu.ar', NULL, NULL, NULL, NULL, '$2y$12$LKV5JMDMVSv/JaeMovv0de7y2XUzWyBqMKZCj2pIHvbfAfy5oUkBi', NULL, '2025-10-01 00:52:03', '2025-10-01 00:52:03'),
+(32, NULL, '41641247', 'alumno', 30, NULL, 'Ferreyra, Yamila', 'Yamilaferreyra444@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$Doeety6.yzzNM0A5W53E..uHJAekPIrH/MaF2/F7BXbtEZXsJkJ2i', NULL, '2025-10-01 00:52:03', '2025-10-01 00:52:03'),
+(33, NULL, '35850632', 'alumno', 31, NULL, 'Ramirez, Emiliano,emanuel', 'emilianoramirez2091@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$NHbJMaS0kMjJgd/9qAK/TumG39B7lSHQb72DFNDVSKqO.9B3kVPK.', NULL, '2025-10-01 00:52:04', '2025-10-01 00:52:04'),
+(34, NULL, '44674217', 'alumno', 32, NULL, 'rodriguez, alan', 'rodriguezalanm731@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$tNgCdkSXGXEGUq40l2DMKuKk5SQN.MpzJfoX5p5iT0WFInuloAzhO', NULL, '2025-10-01 00:52:04', '2025-10-01 00:52:04'),
+(35, NULL, '42516938', 'alumno', 33, NULL, 'Guaquinchay , AyelÃ©n RocÃ­o ', 'ayelen.guaquinchay09@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$Aw.oNZZ/NPLBuRKGC2QFne4LMN2A88EmlaIeWNvNn6A/oyMOkS0Ui', NULL, '2025-10-01 00:52:04', '2025-10-01 00:52:04'),
+(36, NULL, '33836289', 'alumno', 34, NULL, 'Navarro , Maximiliano ', 'sirmaximilian1@hotmail.com', NULL, NULL, NULL, NULL, '$2y$12$kVVlxkPVfV9xGhjonmjHM.tqNbq7rg.N/rvrOseqRimXwsMaZCbvy', NULL, '2025-10-01 00:52:05', '2025-10-01 00:52:05'),
+(37, NULL, '34609402', 'alumno', 35, NULL, 'Carrizo , MatÃ­as Gabriel ', 'matias.g.carrizo11@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$QFcd.1ZBcodI9TjVldYmxOw2jkyZNTzgdGUBdj7lwSBcNiXCOf59i', NULL, '2025-10-01 00:52:05', '2025-10-01 00:52:05'),
+(38, NULL, '42005854', 'alumno', 36, NULL, 'Cordoba, Maximiliano ', 'maxcordoba100@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$yQyl.zfS0FbH12mR.u58VOXQOfb7OmNEMzNP5JgGxFiSICNmuqLJq', NULL, '2025-10-01 00:52:06', '2025-10-01 00:52:06'),
+(39, NULL, '45634685', 'alumno', 37, NULL, 'Garcia , Dayana', 'dayimarilau@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$R2at9SeP3ZmY7VXUqKLZ6eHd8yoDi.ntrK7OR/RKflFrYDyE4seoO', NULL, '2025-10-01 00:52:06', '2025-10-01 00:52:06'),
+(40, NULL, '43952965', 'alumno', 38, NULL, 'Toledo, SebastiÃ¡n', 'sebatoledo.sdt@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$9LtmH3/duEz4SmKj.q3oveA3ohNZE6rDFrF/SDwleWcpWKdNO2AYu', NULL, '2025-10-01 00:52:06', '2025-10-01 00:52:06'),
+(41, NULL, '42187883', 'alumno', 39, NULL, 'Uribi, Antonio ', 'uribeantonio078@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$NilRInxPZd16o9nivXTeJusdrUXlLqmpDVjebWrEcTSSzR7ZVmnye', NULL, '2025-10-01 00:52:07', '2025-10-01 00:52:07'),
+(42, NULL, '46544506', 'alumno', 40, NULL, 'Moyano, Braian', 'braiankevinmoyano@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$WToBpfXfs/nd0jWH3WLFHukVgV5D.an62eZi96cRwpF6KrxP2E.lO', NULL, '2025-10-01 00:52:07', '2025-10-01 00:52:07'),
+(43, NULL, '43952026', 'alumno', 41, NULL, 'Montenegro, Nara Fabiana', 'nara74578@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$9EB6eqOjYKQe38JwKLDYFu6WWq49fVkbw4xebkcn11hpGO0uUyuLi', NULL, '2025-10-01 00:52:08', '2025-10-01 00:52:08'),
+(44, NULL, '42356568', 'alumno', 42, NULL, 'Castillo, Rodrigo', 'rofcastillo@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$6f6sI5yQ1ez7.w11o235Me7DVLCirAuh/V7MEPxrWx.6qWnD/SUKO', NULL, '2025-10-01 00:52:08', '2025-10-01 00:52:08'),
+(45, NULL, '44527380', 'alumno', 68, NULL, 'Fiorelli, Santino', 'santifiorelli27@gmail.com', NULL, NULL, NULL, NULL, '$2y$12$GymWolBnO7vlqCbqFR4xqudM8.XmJ8r6719KPCEgTRo593RwFeWJe', NULL, '2025-10-01 00:52:09', '2025-10-01 00:52:09'),
+(47, NULL, '12345678', 'alumno', 282, NULL, 'Alumno, Prueba', '12345678@ies.edu.ar', NULL, NULL, NULL, NULL, '$2y$12$AWcJ5KB9zotu2OfN6G/YbOFMCFvmKXCTtfU6o3qGy.YhQ/TucmsO.', NULL, '2025-10-01 17:23:53', '2025-10-01 17:23:53'),
+(48, 1, 'admin', 'admin', NULL, NULL, 'fabian beron', 'frberon@gmail.com', '12321', 'avatar-mini2.jpg', 1, NULL, '$2y$12$AV4H/QwtHfo8iO9dh3vWRerBfSa5N8sywaHs5hCFNR1xymDrC5tpa', NULL, '2025-10-02 17:17:58', '2025-10-02 17:17:58');
 
 --
 -- Índices para tablas volcadas
@@ -3208,6 +3573,17 @@ ALTER TABLE `cache_locks`
 ALTER TABLE `failed_jobs`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `failed_jobs_uuid_unique` (`uuid`);
+
+--
+-- Indices de la tabla `inscripciones`
+--
+ALTER TABLE `inscripciones`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `unique_inscripcion` (`alumno_id`,`materia_id`,`periodo_id`),
+  ADD KEY `inscripciones_alumno_id_index` (`alumno_id`),
+  ADD KEY `inscripciones_materia_id_index` (`materia_id`),
+  ADD KEY `inscripciones_periodo_id_index` (`periodo_id`),
+  ADD KEY `inscripciones_estado_index` (`estado`);
 
 --
 -- Indices de la tabla `jobs`
@@ -3291,10 +3667,26 @@ ALTER TABLE `tbl_carreras`
   ADD PRIMARY KEY (`Id`) USING BTREE;
 
 --
+-- Indices de la tabla `tbl_configuracion`
+--
+ALTER TABLE `tbl_configuracion`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indices de la tabla `tbl_cursar`
 --
 ALTER TABLE `tbl_cursar`
   ADD PRIMARY KEY (`id`) USING BTREE;
+
+--
+-- Indices de la tabla `tbl_inscripciones_mesa`
+--
+ALTER TABLE `tbl_inscripciones_mesa`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `tbl_inscripciones_mesa_mesa_id_alumno_id_unique` (`mesa_id`,`alumno_id`),
+  ADD KEY `tbl_inscripciones_mesa_mesa_id_index` (`mesa_id`),
+  ADD KEY `tbl_inscripciones_mesa_alumno_id_index` (`alumno_id`),
+  ADD KEY `tbl_inscripciones_mesa_estado_index` (`estado`);
 
 --
 -- Indices de la tabla `tbl_materias`
@@ -3327,6 +3719,25 @@ ALTER TABLE `tbl_mesas`
   ADD PRIMARY KEY (`id`) USING BTREE;
 
 --
+-- Indices de la tabla `tbl_mesas_examen`
+--
+ALTER TABLE `tbl_mesas_examen`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `tbl_mesas_examen_presidente_id_foreign` (`presidente_id`),
+  ADD KEY `tbl_mesas_examen_vocal1_id_foreign` (`vocal1_id`),
+  ADD KEY `tbl_mesas_examen_vocal2_id_foreign` (`vocal2_id`),
+  ADD KEY `tbl_mesas_examen_materia_id_index` (`materia_id`),
+  ADD KEY `tbl_mesas_examen_fecha_examen_index` (`fecha_examen`),
+  ADD KEY `tbl_mesas_examen_periodo_id_index` (`periodo_id`),
+  ADD KEY `tbl_mesas_examen_estado_index` (`estado`);
+
+--
+-- Indices de la tabla `tbl_paises`
+--
+ALTER TABLE `tbl_paises`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indices de la tabla `tbl_periodos_inscripcion`
 --
 ALTER TABLE `tbl_periodos_inscripcion`
@@ -3345,10 +3756,23 @@ ALTER TABLE `tbl_profesor_tiene_materias`
   ADD PRIMARY KEY (`id`) USING BTREE;
 
 --
+-- Indices de la tabla `tbl_provincias`
+--
+ALTER TABLE `tbl_provincias`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `tbl_provincias_pais_id_foreign` (`pais_id`);
+
+--
 -- Indices de la tabla `tbl_resoluciones`
 --
 ALTER TABLE `tbl_resoluciones`
   ADD PRIMARY KEY (`id`) USING BTREE;
+
+--
+-- Indices de la tabla `tbl_sexos`
+--
+ALTER TABLE `tbl_sexos`
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indices de la tabla `tbl_tipos_usuarios`
@@ -3360,7 +3784,13 @@ ALTER TABLE `tbl_tipos_usuarios`
 -- Indices de la tabla `tbl_usuarios`
 --
 ALTER TABLE `tbl_usuarios`
-  ADD PRIMARY KEY (`id`) USING BTREE;
+  ADD PRIMARY KEY (`id`) USING BTREE,
+  ADD UNIQUE KEY `tbl_usuarios_dni_unique` (`dni`),
+  ADD KEY `tbl_usuarios_alumno_id_foreign` (`alumno_id`),
+  ADD KEY `tbl_usuarios_profesor_id_foreign` (`profesor_id`),
+  ADD KEY `tbl_usuarios_pais_foreign` (`pais`),
+  ADD KEY `tbl_usuarios_provincia_foreign` (`provincia`),
+  ADD KEY `tbl_usuarios_sexo_foreign` (`sexo`);
 
 --
 -- Indices de la tabla `users`
@@ -3381,6 +3811,12 @@ ALTER TABLE `failed_jobs`
   MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT de la tabla `inscripciones`
+--
+ALTER TABLE `inscripciones`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+
+--
 -- AUTO_INCREMENT de la tabla `jobs`
 --
 ALTER TABLE `jobs`
@@ -3390,37 +3826,37 @@ ALTER TABLE `jobs`
 -- AUTO_INCREMENT de la tabla `migrations`
 --
 ALTER TABLE `migrations`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
 
 --
 -- AUTO_INCREMENT de la tabla `personal_access_tokens`
 --
 ALTER TABLE `personal_access_tokens`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT de la tabla `reglas_correlativas`
 --
 ALTER TABLE `reglas_correlativas`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
 
 --
 -- AUTO_INCREMENT de la tabla `tbl_alumnos`
 --
 ALTER TABLE `tbl_alumnos`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=283;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=284;
 
 --
 -- AUTO_INCREMENT de la tabla `tbl_alumnos_cursa`
 --
 ALTER TABLE `tbl_alumnos_cursa`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
 -- AUTO_INCREMENT de la tabla `tbl_alumnos_materias`
 --
 ALTER TABLE `tbl_alumnos_materias`
-  MODIFY `Id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2677;
+  MODIFY `Id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2687;
 
 --
 -- AUTO_INCREMENT de la tabla `tbl_alumnos_mesa`
@@ -3435,10 +3871,22 @@ ALTER TABLE `tbl_carreras`
   MODIFY `Id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
+-- AUTO_INCREMENT de la tabla `tbl_configuracion`
+--
+ALTER TABLE `tbl_configuracion`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
 -- AUTO_INCREMENT de la tabla `tbl_cursar`
 --
 ALTER TABLE `tbl_cursar`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT de la tabla `tbl_inscripciones_mesa`
+--
+ALTER TABLE `tbl_inscripciones_mesa`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT de la tabla `tbl_materias`
@@ -3471,6 +3919,18 @@ ALTER TABLE `tbl_mesas`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
+-- AUTO_INCREMENT de la tabla `tbl_mesas_examen`
+--
+ALTER TABLE `tbl_mesas_examen`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=61;
+
+--
+-- AUTO_INCREMENT de la tabla `tbl_paises`
+--
+ALTER TABLE `tbl_paises`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
 -- AUTO_INCREMENT de la tabla `tbl_periodos_inscripcion`
 --
 ALTER TABLE `tbl_periodos_inscripcion`
@@ -3489,10 +3949,22 @@ ALTER TABLE `tbl_profesor_tiene_materias`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
+-- AUTO_INCREMENT de la tabla `tbl_provincias`
+--
+ALTER TABLE `tbl_provincias`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
+
+--
 -- AUTO_INCREMENT de la tabla `tbl_resoluciones`
 --
 ALTER TABLE `tbl_resoluciones`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+
+--
+-- AUTO_INCREMENT de la tabla `tbl_sexos`
+--
+ALTER TABLE `tbl_sexos`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT de la tabla `tbl_tipos_usuarios`
@@ -3504,13 +3976,50 @@ ALTER TABLE `tbl_tipos_usuarios`
 -- AUTO_INCREMENT de la tabla `tbl_usuarios`
 --
 ALTER TABLE `tbl_usuarios`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=56;
 
 --
 -- AUTO_INCREMENT de la tabla `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=48;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=50;
+
+--
+-- Restricciones para tablas volcadas
+--
+
+--
+-- Filtros para la tabla `tbl_inscripciones_mesa`
+--
+ALTER TABLE `tbl_inscripciones_mesa`
+  ADD CONSTRAINT `tbl_inscripciones_mesa_alumno_id_foreign` FOREIGN KEY (`alumno_id`) REFERENCES `tbl_alumnos` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `tbl_inscripciones_mesa_mesa_id_foreign` FOREIGN KEY (`mesa_id`) REFERENCES `tbl_mesas_examen` (`id`) ON DELETE CASCADE;
+
+--
+-- Filtros para la tabla `tbl_mesas_examen`
+--
+ALTER TABLE `tbl_mesas_examen`
+  ADD CONSTRAINT `tbl_mesas_examen_materia_id_foreign` FOREIGN KEY (`materia_id`) REFERENCES `tbl_materias` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `tbl_mesas_examen_periodo_id_foreign` FOREIGN KEY (`periodo_id`) REFERENCES `tbl_periodos_inscripcion` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `tbl_mesas_examen_presidente_id_foreign` FOREIGN KEY (`presidente_id`) REFERENCES `tbl_profesores` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `tbl_mesas_examen_vocal1_id_foreign` FOREIGN KEY (`vocal1_id`) REFERENCES `tbl_profesores` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `tbl_mesas_examen_vocal2_id_foreign` FOREIGN KEY (`vocal2_id`) REFERENCES `tbl_profesores` (`id`) ON DELETE SET NULL;
+
+--
+-- Filtros para la tabla `tbl_provincias`
+--
+ALTER TABLE `tbl_provincias`
+  ADD CONSTRAINT `tbl_provincias_pais_id_foreign` FOREIGN KEY (`pais_id`) REFERENCES `tbl_paises` (`id`) ON DELETE CASCADE;
+
+--
+-- Filtros para la tabla `tbl_usuarios`
+--
+ALTER TABLE `tbl_usuarios`
+  ADD CONSTRAINT `tbl_usuarios_alumno_id_foreign` FOREIGN KEY (`alumno_id`) REFERENCES `tbl_alumnos` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `tbl_usuarios_pais_foreign` FOREIGN KEY (`pais`) REFERENCES `tbl_paises` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `tbl_usuarios_profesor_id_foreign` FOREIGN KEY (`profesor_id`) REFERENCES `tbl_profesores` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `tbl_usuarios_provincia_foreign` FOREIGN KEY (`provincia`) REFERENCES `tbl_provincias` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `tbl_usuarios_sexo_foreign` FOREIGN KEY (`sexo`) REFERENCES `tbl_sexos` (`id`) ON DELETE SET NULL;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
