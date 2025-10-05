@@ -2,7 +2,9 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Configuracion;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -29,10 +31,23 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $configuracion = Configuracion::get();
+
         return [
             ...parent::share($request),
             'auth' => [
                 'user' => $request->user(),
+            ],
+            'configuracion' => [
+                'nombre_institucion' => $configuracion->nombre_institucion,
+                'logo_url' => $configuracion->logo_path ? Storage::url($configuracion->logo_path) : null,
+                'telefono' => $configuracion->telefono,
+                'email' => $configuracion->email,
+                'sitio_web' => $configuracion->sitio_web,
+                'direccion' => $configuracion->direccion,
+                'footer_documentos' => $configuracion->footer_documentos,
+                'firma_digital_url' => $configuracion->firma_digital_path ? Storage::url($configuracion->firma_digital_path) : null,
+                'cargo_firma' => $configuracion->cargo_firma,
             ],
         ];
     }

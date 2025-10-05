@@ -36,26 +36,26 @@ const updatePassword = () => {
 <template>
     <section>
         <header>
-            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
-                Actualizar Contraseña
+            <h2 class="text-base md:text-lg font-semibold text-gray-900 dark:text-gray-100">
+                <i class="bx bx-lock-alt text-blue-600 mr-2"></i>
+                Cambiar Contraseña
             </h2>
 
-            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                Asegúrate de que tu cuenta esté usando una contraseña larga y
-                aleatoria para mantenerla segura.
+            <p class="mt-1 text-xs md:text-sm text-gray-600 dark:text-gray-400">
+                Asegúrate de usar una contraseña segura para proteger tu cuenta
             </p>
         </header>
 
-        <form @submit.prevent="updatePassword" class="mt-6 space-y-6">
+        <form @submit.prevent="updatePassword" class="mt-4 md:mt-6 space-y-4 md:space-y-6">
             <div>
-                <InputLabel for="current_password" value="Contraseña actual" />
+                <InputLabel for="current_password" value="Contraseña Actual" />
 
                 <TextInput
                     id="current_password"
                     ref="currentPasswordInput"
                     v-model="form.current_password"
                     type="password"
-                    class="mt-1 block w-full"
+                    class="mt-1 block w-full text-sm md:text-base"
                     autocomplete="current-password"
                 />
 
@@ -66,14 +66,14 @@ const updatePassword = () => {
             </div>
 
             <div>
-                <InputLabel for="password" value="Nueva Password" />
+                <InputLabel for="password" value="Nueva Contraseña" />
 
                 <TextInput
                     id="password"
                     ref="passwordInput"
                     v-model="form.password"
                     type="password"
-                    class="mt-1 block w-full"
+                    class="mt-1 block w-full text-sm md:text-base"
                     autocomplete="new-password"
                 />
 
@@ -83,14 +83,14 @@ const updatePassword = () => {
             <div>
                 <InputLabel
                     for="password_confirmation"
-                    value="Confirmar Contraseña"
+                    value="Confirmar Nueva Contraseña"
                 />
 
                 <TextInput
                     id="password_confirmation"
                     v-model="form.password_confirmation"
                     type="password"
-                    class="mt-1 block w-full"
+                    class="mt-1 block w-full text-sm md:text-base"
                     autocomplete="new-password"
                 />
 
@@ -100,8 +100,11 @@ const updatePassword = () => {
                 />
             </div>
 
-            <div class="flex items-center gap-4">
-                <PrimaryButton :disabled="form.processing">Save</PrimaryButton>
+            <div class="flex items-center gap-3 md:gap-4 pt-2 md:pt-4">
+                <PrimaryButton :disabled="form.processing" class="text-sm md:text-base">
+                    <i class="bx bx-save mr-2"></i>
+                    Cambiar Contraseña
+                </PrimaryButton>
 
                 <Transition
                     enter-active-class="transition ease-in-out"
@@ -111,9 +114,10 @@ const updatePassword = () => {
                 >
                     <p
                         v-if="form.recentlySuccessful"
-                        class="text-sm text-gray-600 dark:text-gray-400"
+                        class="text-xs md:text-sm text-green-600 font-medium flex items-center gap-1 dark:text-green-400"
                     >
-                        Guardado.
+                        <i class="bx bx-check-circle"></i>
+                        Contraseña actualizada correctamente
                     </p>
                 </Transition>
             </div>

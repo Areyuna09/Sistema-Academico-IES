@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Círculo de fondo principal -->
+  <circle cx="100" cy="100" r="90" fill="#0D9488" />
+
+  <!-- Círculo interior -->
+  <circle cx="100" cy="100" r="75" fill="#14B8A6" />
+
+  <!-- Texto IES -->
+  <text x="100" y="115" text-anchor="middle" fill="white" font-size="60" font-weight="bold" font-family="Arial, sans-serif">
+    IES
+  </text>
+
+  <!-- Borde decorativo -->
+  <circle cx="100" cy="100" r="90" fill="none" stroke="white" stroke-width="3" opacity="0.5" />
+</svg>

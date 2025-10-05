@@ -1,13 +1,19 @@
 <script setup>
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import ApplicationLogo from "@/Components/ApplicationLogo.vue";
 import Dropdown from "@/Components/Dropdown.vue";
 import DropdownLink from "@/Components/DropdownLink.vue";
 import NavLink from "@/Components/NavLink.vue";
 import ResponsiveNavLink from "@/Components/ResponsiveNavLink.vue";
-import { Link } from "@inertiajs/vue3";
+import { Link, usePage } from "@inertiajs/vue3";
 
 const showingNavigationDropdown = ref(false);
+const page = usePage();
+
+// Verificar si el usuario es admin o profesor
+const isAdminOrProfesor = computed(() => {
+    return [1, 3].includes(page.props.auth.user?.tipo);
+});
 </script>
 
 <template>
@@ -39,6 +45,59 @@ const showingNavigationDropdown = ref(false);
                                 >
                                     Dashboard
                                 </NavLink>
+
+                                <!-- Enlaces para Alumnos -->
+                                <NavLink
+                                    v-if="$page.props.auth.user.tipo === 4"
+                                    :href="route('inscripciones.index')"
+                                    :active="route().current('inscripciones.*')"
+                                >
+                                    Inscripciones
+                                </NavLink>
+
+                                <NavLink
+                                    v-if="$page.props.auth.user.tipo === 4"
+                                    :href="route('expediente.index')"
+                                    :active="route().current('expediente.*')"
+                                >
+                                    Mi Expediente
+                                </NavLink>
+
+                                <!-- Dropdown Parámetros para Admin y Profesores -->
+                                <div v-if="isAdminOrProfesor" class="hidden sm:flex sm:items-center sm:ms-6">
+                                    <Dropdown align="right" width="48">
+                                        <template #trigger>
+                                            <button
+                                                type="button"
+                                                class="inline-flex items-center px-3 py-2 text-sm font-medium leading-4 text-gray-700 transition duration-150 ease-in-out hover:text-gray-900 focus:outline-none"
+                                                :class="{ 'text-gray-900': route().current('admin.*') }"
+                                            >
+                                                <i class="bx bx-cog text-lg mr-1"></i>
+                                                Parámetros
+                                                <svg
+                                                    class="ms-2 -me-0.5 h-4 w-4"
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    viewBox="0 0 20 20"
+                                                    fill="currentColor"
+                                                >
+                                                    <path
+                                                        fill-rule="evenodd"
+                                                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                                                        clip-rule="evenodd"
+                                                    />
+                                                </svg>
+                                            </button>
+                                        </template>
+
+                                        <template #content>
+                                            <DropdownLink :href="route('admin.correlativas.index')">
+                                                <i class="bx bx-git-branch mr-2"></i>
+                                                Correlativas
+                                            </DropdownLink>
+                                            <!-- Aquí irán más opciones futuras -->
+                                        </template>
+                                    </Dropdown>
+                                </div>
                             </div>
                         </div>
 
@@ -146,6 +205,38 @@ const showingNavigationDropdown = ref(false);
                         >
                             Dashboard
                         </ResponsiveNavLink>
+
+                        <!-- Enlaces para Alumnos -->
+                        <ResponsiveNavLink
+                            v-if="$page.props.auth.user.tipo === 4"
+                            :href="route('inscripciones.index')"
+                            :active="route().current('inscripciones.*')"
+                        >
+                            Inscripciones
+                        </ResponsiveNavLink>
+
+                        <ResponsiveNavLink
+                            v-if="$page.props.auth.user.tipo === 4"
+                            :href="route('expediente.index')"
+                            :active="route().current('expediente.*')"
+                        >
+                            Mi Expediente
+                        </ResponsiveNavLink>
+
+                        <!-- Sección Parámetros para Admin y Profesores -->
+                        <div v-if="isAdminOrProfesor" class="pt-2 pb-1 border-t border-gray-200">
+                            <div class="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                                Parámetros
+                            </div>
+                            <ResponsiveNavLink
+                                :href="route('admin.correlativas.index')"
+                                :active="route().current('admin.correlativas.*')"
+                            >
+                                <i class="bx bx-git-branch mr-2"></i>
+                                Correlativas
+                            </ResponsiveNavLink>
+                            <!-- Aquí irán más opciones futuras -->
+                        </div>
                     </div>
 
                     <!-- Responsive Settings Options -->
