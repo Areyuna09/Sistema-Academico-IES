@@ -22,3 +22,14 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Archivos de test y desarrollo
+test_*.php
+crear_*.php
+verificar_*.php
+arreglar_*.php
+buscar_*.php
+cambiar_*.php
+check_*.php
+resetear_*.php
+asignar_*.php
