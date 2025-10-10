@@ -73,7 +73,8 @@ class InscripcionesController extends Controller
 
         // Obtener materias del cuatrimestre activo con profesores
         // Filtrar por: año del alumno, cuatrimestre activo, y excluir materias aprobadas
-        $materias = Materia::with('profesores')
+        // Optimización: Eager loading de profesores para evitar N+1
+        $materias = Materia::with(['profesores:id,dni,apellido,nombre'])
             ->deCarrera($carreraId)
             ->where('anno', $anioAlumno) // Solo materias del año que cursa
             ->where('semestre', $periodoActivo->cuatrimestre)
@@ -87,8 +88,11 @@ class InscripcionesController extends Controller
             ->pluck('materia_id')
             ->toArray();
 
+        // Crear mapa de materias por ID para búsquedas rápidas
+        $materiasMap = $materias->keyBy('id');
+
         // Para cada materia, validar si el alumno puede cursarla
-        $materiasConEstado = $materias->map(function ($materia) use ($alumno, $carreraId, $materias, $materiasInscritasIds) {
+        $materiasConEstado = $materias->map(function ($materia) use ($alumno, $carreraId, $materiasMap, $materiasInscritasIds) {
             // Verificar si ya está inscrito
             $yaInscrito = in_array($materia->id, $materiasInscritasIds);
 
@@ -104,14 +108,14 @@ class InscripcionesController extends Controller
                 return $profesor->nombre_completo;
             })->toArray();
 
-            // Obtener nombres de correlativas necesarias
+            // Obtener nombres de correlativas necesarias usando el mapa para búsqueda O(1)
             $correlativasNecesarias = [];
             if (!empty($materia->paracursar_regular) || !empty($materia->paracursar_rendido)) {
                 $idsRegular = !empty($materia->paracursar_regular) ? explode(':', $materia->paracursar_regular) : [];
                 $idsRendido = !empty($materia->paracursar_rendido) ? explode(':', $materia->paracursar_rendido) : [];
 
                 foreach ($idsRegular as $id) {
-                    $correlativa = $materias->firstWhere('id', $id);
+                    $correlativa = $materiasMap->get($id);
                     if ($correlativa) {
                         $correlativasNecesarias[] = [
                             'id' => $correlativa->id,
@@ -122,7 +126,7 @@ class InscripcionesController extends Controller
                 }
 
                 foreach ($idsRendido as $id) {
-                    $correlativa = $materias->firstWhere('id', $id);
+                    $correlativa = $materiasMap->get($id);
                     if ($correlativa && !in_array($id, $idsRegular)) {
                         $correlativasNecesarias[] = [
                             'id' => $correlativa->id,
@@ -313,21 +317,23 @@ class InscripcionesController extends Controller
                     ->whereIn('materia_id', $validated['materias'])
                     ->get();
 
-                // Enviar email de comprobante
+                // Enviar email de comprobante en segundo plano (cola)
                 try {
-                    // Usar email del alumno si existe, sino usar email del usuario
                     $emailDestino = $alumno->email ?? $user->email;
 
                     if ($emailDestino) {
-                        $this->enviarComprobanteEmail($emailDestino, $alumno, $inscripcionesCreadas, $periodoActivo);
-                    } else {
-                        \Log::warning('No se pudo enviar comprobante: alumno sin email', [
-                            'alumno_id' => $alumno->id,
-                            'usuario_email' => $user->email,
-                        ]);
+                        // Despachar a cola para no bloquear la respuesta
+                        \Mail::to($emailDestino)->queue(
+                            new \App\Mail\ComprobanteInscripcion(
+                                $alumno,
+                                $inscripcionesCreadas,
+                                $periodoActivo
+                            )
+                        );
+                        \Log::info('Email de comprobante encolado', ['email' => $emailDestino]);
                     }
                 } catch (\Exception $e) {
-                    \Log::error('Error al enviar email de comprobante: ' . $e->getMessage());
+                    \Log::error('Error al encolar email de comprobante: ' . $e->getMessage());
                     // No fallar la inscripción por error en email
                 }
 

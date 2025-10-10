@@ -1,9 +1,13 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import Sidebar from '@/Components/Layout/Sidebar.vue';
 import Navbar from '@/Components/Layout/Navbar.vue';
 
-const sidebarOpen = ref(false);
+// Función para detectar si estamos en desktop (>= 1024px = lg breakpoint de Tailwind)
+const isDesktop = () => window.innerWidth >= 1024;
+
+// Inicializar sidebar expandido en desktop, colapsado en móvil
+const sidebarOpen = ref(isDesktop());
 
 defineProps({
     user: {
@@ -19,6 +23,27 @@ const toggleSidebar = () => {
 const closeSidebar = () => {
     sidebarOpen.value = false;
 };
+
+// Manejar resize de ventana para ajustar estado inicial
+const handleResize = () => {
+    // Solo auto-expandir en desktop si el sidebar está colapsado
+    // Esto respeta la decisión del usuario si manualmente colapsó el sidebar en desktop
+    if (isDesktop() && !sidebarOpen.value) {
+        sidebarOpen.value = true;
+    }
+    // En móvil, siempre colapsar
+    if (!isDesktop() && sidebarOpen.value) {
+        sidebarOpen.value = false;
+    }
+};
+
+onMounted(() => {
+    window.addEventListener('resize', handleResize);
+});
+
+onUnmounted(() => {
+    window.removeEventListener('resize', handleResize);
+});
 </script>
 
 <template>

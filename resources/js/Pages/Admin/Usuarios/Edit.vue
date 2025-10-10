@@ -177,7 +177,10 @@ const getTipoBadge = (tipo) => {
                                     v-model="form.dni"
                                     type="text"
                                     required
+                                    pattern="[0-9]+"
+                                    inputmode="numeric"
                                     class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
+                                    title="Solo se permiten números"
                                 />
                                 <p v-if="form.errors.dni" class="text-red-600 text-sm mt-1">{{ form.errors.dni }}</p>
                             </div>
@@ -238,7 +241,11 @@ const getTipoBadge = (tipo) => {
                                 <input
                                     v-model="form.telefono"
                                     type="text"
+                                    pattern="[0-9]*"
+                                    inputmode="numeric"
+                                    maxlength="20"
                                     class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
+                                    title="Solo se permiten números"
                                 />
                                 <p v-if="form.errors.telefono" class="text-red-600 text-sm mt-1">{{ form.errors.telefono }}</p>
                             </div>

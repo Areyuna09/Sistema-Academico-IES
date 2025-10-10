@@ -33,7 +33,15 @@ class InscripcionesMesaController extends Controller
         $alumno = $user->alumno;
 
         // Obtener mesas disponibles (activas, futuras, y dentro del período de inscripción)
-        $mesasQuery = MesaExamen::with(['materia.carrera', 'periodo', 'presidente', 'vocal1', 'vocal2'])
+        // Optimización: Eager loading con select específico para reducir datos
+        $mesasQuery = MesaExamen::with([
+                'materia:id,nombre,anno,carrera',
+                'materia.carrera:Id,nombre',
+                'periodo:id,nombre',
+                'presidente:id,dni,apellido,nombre',
+                'vocal1:id,dni,apellido,nombre',
+                'vocal2:id,dni,apellido,nombre'
+            ])
             ->where('estado', 'activa')
             ->whereDate('fecha_examen', '>=', now())
             ->where(function($q) {
@@ -65,11 +73,15 @@ class InscripcionesMesaController extends Controller
             ];
         }
 
-        $mesas = $mesasQuery->map(function ($mesa) use ($alumno) {
-                // Verificar si el alumno ya está inscripto
-                $inscripcion = InscripcionMesa::where('mesa_id', $mesa->id)
-                    ->where('alumno_id', $alumno->id)
-                    ->first();
+        // Optimización: Obtener todas las inscripciones del alumno de una sola vez
+        $inscripcionesAlumno = InscripcionMesa::where('alumno_id', $alumno->id)
+            ->whereIn('mesa_id', $mesasQuery->pluck('id'))
+            ->get()
+            ->keyBy('mesa_id');
+
+        $mesas = $mesasQuery->map(function ($mesa) use ($alumno, $inscripcionesAlumno) {
+                // Verificar si el alumno ya está inscripto (usando el mapa precargado)
+                $inscripcion = $inscripcionesAlumno->get($mesa->id);
 
                 // Validar correlativas para esta materia
                 $validacion = $this->motorCorrelativas->validarCorrelativasParaExamen(
@@ -207,11 +219,14 @@ class InscripcionesMesaController extends Controller
             'fecha_inscripcion' => now(),
         ]);
 
-        // Enviar email con comprobante (opcional, en segundo plano)
+        // Enviar email con comprobante en cola (no bloqueante)
         try {
-            \Mail::to($alumno->email)->send(new \App\Mail\ComprobanteMesaExamen($alumno, $mesa, $inscripcion));
+            if ($alumno->email) {
+                \Mail::to($alumno->email)->queue(new \App\Mail\ComprobanteMesaExamen($alumno, $mesa, $inscripcion));
+                \Log::info('Email de comprobante de mesa encolado', ['email' => $alumno->email]);
+            }
         } catch (\Exception $e) {
-            \Log::error('Error al enviar email de comprobante de mesa: ' . $e->getMessage());
+            \Log::error('Error al encolar email de comprobante de mesa: ' . $e->getMessage());
         }
 
         return redirect()->route('mesas.confirmacion', ['inscripcion' => $inscripcion->id])

@@ -23,7 +23,7 @@ class MesasExamenController extends Controller
         // Filtros
         if ($request->filled('carrera_id')) {
             $query->whereHas('materia', function ($q) use ($request) {
-                $q->where('carrera_id', $request->carrera_id);
+                $q->where('carrera', $request->carrera_id);
             });
         }
 
@@ -93,7 +93,7 @@ class MesasExamenController extends Controller
         $validated = $request->validate([
             'materia_id' => 'required|exists:tbl_materias,id',
             'fecha_examen' => 'required|date|after_or_equal:today',
-            'hora_examen' => 'required|date_format:H:i',
+            'hora_examen' => ['required', 'regex:/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/'],
             'llamado' => 'required|integer|min:1|max:3',
             'periodo_id' => 'nullable|exists:tbl_periodos_inscripcion,id',
             'aula' => 'nullable|string|max:100',
@@ -152,7 +152,7 @@ class MesasExamenController extends Controller
         $validated = $request->validate([
             'materia_id' => 'required|exists:tbl_materias,id',
             'fecha_examen' => 'required|date',
-            'hora_examen' => 'required|date_format:H:i',
+            'hora_examen' => ['required', 'regex:/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/'],
             'llamado' => 'required|integer|min:1|max:3',
             'periodo_id' => 'nullable|exists:tbl_periodos_inscripcion,id',
             'aula' => 'nullable|string|max:100',

@@ -1,6 +1,6 @@
 <script setup>
 import { useForm } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
 import { Link } from '@inertiajs/vue3';
 
@@ -25,6 +25,48 @@ const form = useForm({
     estado: props.mesa.estado,
     observaciones: props.mesa.observaciones || '',
 });
+
+// Filtros locales
+const filtroCarrera = ref('');
+const filtroAnio = ref('');
+
+// Materias filtradas según los filtros seleccionados
+const materiasFiltradas = computed(() => {
+    let filtradas = props.materias;
+
+    if (filtroCarrera.value) {
+        filtradas = filtradas.filter(m => m.carrera?.Id == filtroCarrera.value);
+    }
+
+    if (filtroAnio.value) {
+        filtradas = filtradas.filter(m => m.anno == filtroAnio.value);
+    }
+
+    return filtradas;
+});
+
+// Obtener años únicos de las materias
+const aniosDisponibles = computed(() => {
+    const anios = [...new Set(props.materias.map(m => m.anno))].filter(Boolean);
+    return anios.sort((a, b) => a - b);
+});
+
+// Validar que no sea fin de semana
+const validarNoFinDeSemana = (fecha) => {
+    if (!fecha) return;
+
+    const date = new Date(fecha + 'T00:00:00');
+    const dayOfWeek = date.getDay();
+
+    // 0 = Domingo, 6 = Sábado
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+        alert('No se pueden seleccionar sábados ni domingos para exámenes');
+        form.fecha_examen = '';
+    }
+};
+
+// Watcher para validar fecha de examen
+watch(() => form.fecha_examen, (valor) => validarNoFinDeSemana(valor));
 
 const submit = () => {
     form.put(route('admin.mesas.update', props.mesa.id));
@@ -58,6 +100,41 @@ const submit = () => {
                             Información de la Mesa
                         </h3>
 
+                        <!-- Filtros -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    <i class="bx bx-filter mr-1"></i>
+                                    Filtrar por Carrera
+                                </label>
+                                <select
+                                    v-model="filtroCarrera"
+                                    class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
+                                >
+                                    <option value="">Todas las carreras</option>
+                                    <option v-for="carrera in carreras" :key="carrera.Id" :value="carrera.Id">
+                                        {{ carrera.nombre }}
+                                    </option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    <i class="bx bx-filter mr-1"></i>
+                                    Filtrar por Año
+                                </label>
+                                <select
+                                    v-model="filtroAnio"
+                                    class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
+                                >
+                                    <option value="">Todos los años</option>
+                                    <option v-for="anio in aniosDisponibles" :key="anio" :value="anio">
+                                        {{ anio }}° Año
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <!-- Materia -->
                             <div class="md:col-span-2">
@@ -70,17 +147,18 @@ const submit = () => {
                                     class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
                                 >
                                     <option value="">Seleccione una materia</option>
-                                    <optgroup v-for="carrera in carreras" :key="carrera.Id" :label="carrera.nombre">
-                                        <option
-                                            v-for="materia in materias.filter(m => m.carrera?.Id === carrera.Id)"
-                                            :key="materia.id"
-                                            :value="materia.id"
-                                        >
-                                            {{ materia.nombre }} - {{ materia.anno }}° Año
-                                        </option>
-                                    </optgroup>
+                                    <option
+                                        v-for="materia in materiasFiltradas"
+                                        :key="materia.id"
+                                        :value="materia.id"
+                                    >
+                                        {{ materia.nombre }} - {{ materia.anno }}° Año - {{ materia.carrera?.nombre }}
+                                    </option>
                                 </select>
                                 <p v-if="form.errors.materia_id" class="text-red-600 text-sm mt-1">{{ form.errors.materia_id }}</p>
+                                <p class="text-xs text-gray-500 mt-1">
+                                    Mostrando {{ materiasFiltradas.length }} de {{ materias.length }} materias
+                                </p>
                             </div>
 
                             <!-- Fecha -->
@@ -105,10 +183,12 @@ const submit = () => {
                                 <input
                                     v-model="form.hora_examen"
                                     type="time"
+                                    min="17:30"
                                     required
                                     class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
                                 />
                                 <p v-if="form.errors.hora_examen" class="text-red-600 text-sm mt-1">{{ form.errors.hora_examen }}</p>
+                                <p class="text-xs text-gray-500 mt-1">Horario mínimo: 17:30 (inicio de clases)</p>
                             </div>
 
                             <!-- Llamado -->
@@ -126,18 +206,6 @@ const submit = () => {
                                     <option :value="3">3° Llamado</option>
                                 </select>
                                 <p v-if="form.errors.llamado" class="text-red-600 text-sm mt-1">{{ form.errors.llamado }}</p>
-                            </div>
-
-                            <!-- Aula -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Aula</label>
-                                <input
-                                    v-model="form.aula"
-                                    type="text"
-                                    placeholder="Ej: Aula 101"
-                                    class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
-                                />
-                                <p v-if="form.errors.aula" class="text-red-600 text-sm mt-1">{{ form.errors.aula }}</p>
                             </div>
 
                             <!-- Estado -->
@@ -179,7 +247,9 @@ const submit = () => {
                         <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b flex items-center">
                             <i class="bx bx-group text-xl mr-2 text-blue-600"></i>
                             Tribunal Evaluador
+                            <span class="ml-2 text-sm font-normal text-gray-500">(Opcional)</span>
                         </h3>
+                        <p class="text-sm text-gray-600 mb-4">El tribunal puede ser asignado más adelante si es necesario</p>
 
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <!-- Presidente -->

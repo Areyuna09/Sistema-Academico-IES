@@ -20,9 +20,10 @@ class PasswordController extends Controller
             'password' => ['required', Password::defaults(), 'confirmed'],
         ]);
 
-        // Actualizar directamente el campo 'clave' para evitar doble hash
-        $request->user()->clave = Hash::make($validated['password']);
-        $request->user()->save();
+        // Actualizar usando updateQuietly para evitar el mutator que causa doble hash
+        $request->user()->updateQuietly([
+            'clave' => Hash::make($validated['password'])
+        ]);
 
         return back()->with('status', 'password-updated');
     }

@@ -156,7 +156,11 @@ const submit = () => {
                                     v-model="form.telefono"
                                     type="text"
                                     class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
-                                    placeholder="264-1234567"
+                                    placeholder="2644123456"
+                                    pattern="[0-9]*"
+                                    inputmode="numeric"
+                                    maxlength="20"
+                                    title="Solo se permiten números"
                                 />
                                 <p v-if="form.errors.telefono" class="text-red-600 text-sm mt-1">{{ form.errors.telefono }}</p>
                             </div>

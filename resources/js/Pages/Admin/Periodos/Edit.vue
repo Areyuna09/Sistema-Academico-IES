@@ -1,5 +1,6 @@
 <script setup>
 import { useForm, Link } from '@inertiajs/vue3';
+import { watch } from 'vue';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
 
 const props = defineProps({
@@ -16,6 +17,26 @@ const form = useForm({
     fecha_fin_cursada: props.periodo.fecha_fin_cursada,
     activo: props.periodo.activo,
 });
+
+// Validar que no sea fin de semana
+const validarNoFinDeSemana = (fecha, campo) => {
+    if (!fecha) return;
+
+    const date = new Date(fecha + 'T00:00:00');
+    const dayOfWeek = date.getDay();
+
+    // 0 = Domingo, 6 = Sábado
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+        alert('No se pueden seleccionar sábados ni domingos');
+        form[campo] = '';
+    }
+};
+
+// Watchers para validar fechas
+watch(() => form.fecha_inicio_inscripcion, (valor) => validarNoFinDeSemana(valor, 'fecha_inicio_inscripcion'));
+watch(() => form.fecha_fin_inscripcion, (valor) => validarNoFinDeSemana(valor, 'fecha_fin_inscripcion'));
+watch(() => form.fecha_inicio_cursada, (valor) => validarNoFinDeSemana(valor, 'fecha_inicio_cursada'));
+watch(() => form.fecha_fin_cursada, (valor) => validarNoFinDeSemana(valor, 'fecha_fin_cursada'));
 
 const submit = () => {
     form.put(route('admin.periodos.update', props.periodo.id));

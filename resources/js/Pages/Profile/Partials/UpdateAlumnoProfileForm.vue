@@ -90,8 +90,12 @@ const submit = () => {
                     type="text"
                     class="mt-1 block w-full text-sm md:text-base"
                     v-model="form.telefono"
-                    placeholder="Ej: 011-1234-5678"
+                    placeholder="Ej: 2644123456"
                     autocomplete="tel"
+                    pattern="[0-9]*"
+                    inputmode="numeric"
+                    maxlength="20"
+                    title="Solo se permiten números"
                 />
                 <InputError class="mt-2" :message="form.errors.telefono" />
             </div>
@@ -104,8 +108,12 @@ const submit = () => {
                     type="text"
                     class="mt-1 block w-full text-sm md:text-base"
                     v-model="form.celular"
-                    placeholder="Ej: +54 9 11 1234-5678"
+                    placeholder="Ej: 2644567890"
                     autocomplete="tel"
+                    pattern="[0-9]*"
+                    inputmode="numeric"
+                    maxlength="20"
+                    title="Solo se permiten números"
                 />
                 <InputError class="mt-2" :message="form.errors.celular" />
             </div>
