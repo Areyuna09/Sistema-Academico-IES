@@ -30,6 +30,8 @@ const moduloActual = computed(() => {
     const url = page.url;
     if (url.startsWith("/inscripciones")) return "Inscripciones";
     if (url.startsWith("/expediente")) return "Expediente";
+    if (url.startsWith("/profesor/mis-materias")) return "Mis Materias";
+    if (url.startsWith("/profesor/")) return "Profesor";
     if (url.startsWith("/mesas")) return "Mesas";
     if (url.startsWith("/admin")) return "Administración";
     if (url.startsWith("/profile")) return "Mi Perfil";
@@ -48,6 +50,11 @@ onMounted(() => {
 // Verificar si el usuario es admin o profesor
 const isAdminOrProfesor = computed(() => {
     return [1, 3].includes(page.props.auth.user?.tipo);
+});
+
+// Verificar si es profesor
+const isProfesor = computed(() => {
+    return page.props.auth.user?.tipo === 3;
 });
 
 // Menú items con íconos de Boxicons
@@ -71,7 +78,6 @@ const menuItems = computed(() => {
             route: "expediente",
             icon: "bx-folder-open",
             path: "/expediente",
-            onlyAlumno: true,
         },
         {
             name: "Mesas",
@@ -95,12 +101,15 @@ const menuItems = computed(() => {
 
     // Filtrar items según tipo de usuario
     if (page.props.auth.user?.tipo === 4) {
-        // Alumno: mostrar solo items de alumno
+        // Alumno: mostrar items de alumno y comunes
         return baseItems.filter(
             (item) => item.onlyAlumno || !item.hasOwnProperty("onlyAlumno")
         );
+    } else if (page.props.auth.user?.tipo === 3) {
+        // Profesor: mostrar inicio, expediente y parámetros
+        return baseItems.filter((item) => !item.onlyAlumno);
     } else {
-        // Admin/Profesor: mostrar solo inicio y parámetros
+        // Admin: mostrar solo inicio, expediente y parámetros
         return baseItems.filter((item) => !item.onlyAlumno);
     }
 });

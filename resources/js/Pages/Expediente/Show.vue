@@ -6,7 +6,16 @@ import SidebarLayout from '@/Layouts/SidebarLayout.vue';
 const props = defineProps({
     alumno: Object,
     historialPorAnio: Object,
-    estadisticas: Object,
+    estadisticas: {
+        type: Object,
+        default: () => ({
+            total_materias: 0,
+            aprobadas: 0,
+            regulares: 0,
+            promedio: 0,
+            porcentaje_avance: 0
+        })
+    },
 });
 
 // Usuarios especiales con estilo VIP (dorado)

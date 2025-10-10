@@ -23,9 +23,9 @@ Route::get('/', function () {
 });
 
 // Dashboard después de iniciar sesión
-Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'index'])
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard');
 
 // Rutas protegidas con autenticación
 Route::middleware('auth')->group(function () {
@@ -42,6 +42,12 @@ Route::middleware('auth')->group(function () {
     // Rutas de expediente
     Route::get('/expediente', [ExpedienteController::class, 'index'])->name('expediente.index');
     Route::get('/expediente/{id}', [ExpedienteController::class, 'show'])->name('expediente.show');
+    Route::post('/expediente/buscar-dni', [ExpedienteController::class, 'buscarPorDni'])->name('expediente.buscar-dni');
+    Route::get('/expediente/alumnos/profesor', [ExpedienteController::class, 'obtenerAlumnosProfesor'])->name('expediente.alumnos-profesor');
+    Route::post('/expediente/asistencia/guardar', [ExpedienteController::class, 'guardarAsistencia'])->name('expediente.guardar-asistencia');
+    Route::post('/expediente/asistencia/guardar-final', [ExpedienteController::class, 'guardarAsistenciaFinal'])->name('expediente.guardar-asistencia-final');
+    Route::post('/expediente/notas/guardar', [ExpedienteController::class, 'guardarNotas'])->name('expediente.guardar-notas');
+    Route::post('/expediente/notas/guardar-finales', [ExpedienteController::class, 'guardarNotasFinales'])->name('expediente.guardar-notas-finales');
 
     // Rutas de mesas de examen (alumnos)
     Route::get('/mesas', [InscripcionesMesaController::class, 'index'])->name('mesas.index');
@@ -119,6 +125,31 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 
     // Importación masiva
     Route::post('/correlativas/importar', [CorrelativasController::class, 'importar'])->name('correlativas.importar');
+});
+
+// Rutas de Profesores (asistencias y materias)
+Route::middleware(['auth'])->prefix('profesor')->name('profesor.')->group(function () {
+
+    // Mis materias
+    Route::get('/mis-materias', [\App\Http\Controllers\Profesor\MisMateriasController::class, 'index'])
+        ->name('mis-materias.index');
+    Route::get('/mis-materias/{profesorMateria}', [\App\Http\Controllers\Profesor\MisMateriasController::class, 'show'])
+        ->name('mis-materias.show');
+
+    // Historial de asistencias
+    Route::get('/materia/{profesorMateria}/asistencias',
+        [\App\Http\Controllers\Profesor\AsistenciasController::class, 'index'])
+        ->name('asistencias.index');
+
+    // Formulario para tomar asistencia
+    Route::get('/materia/{profesorMateria}/asistencias/crear',
+        [\App\Http\Controllers\Profesor\AsistenciasController::class, 'create'])
+        ->name('asistencias.create');
+
+    // Guardar asistencias
+    Route::post('/materia/{profesorMateria}/asistencias',
+        [\App\Http\Controllers\Profesor\AsistenciasController::class, 'store'])
+        ->name('asistencias.store');
 });
 
 // Rutas de autenticación (login, register, logout, reset password, etc.)
