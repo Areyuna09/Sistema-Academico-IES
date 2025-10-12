@@ -11,6 +11,8 @@ use App\Http\Controllers\Admin\MateriasController;
 use App\Http\Controllers\Admin\PeriodosController;
 use App\Http\Controllers\Admin\ConfiguracionController;
 use App\Http\Controllers\Admin\MesasExamenController;
+use App\Http\Controllers\Admin\PlanAdminController;
+use App\Http\Controllers\Academic\PlanEstudioController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -42,6 +44,15 @@ Route::middleware('auth')->group(function () {
     // Rutas de expediente
     Route::get('/expediente', [ExpedienteController::class, 'index'])->name('expediente.index');
     Route::get('/expediente/{id}', [ExpedienteController::class, 'show'])->name('expediente.show');
+
+    // Plan de Estudio (vista del alumno)
+    Route::get('/mi/plan-estudio', function () {
+        return Inertia::render('PlanDeEstudio');
+    })->name('plan-estudio.index');
+
+    // Datos del Plan de Estudio (web guard, usa sesión)
+    Route::get('/alumnos/{alumno}/plan-estudio', [PlanEstudioController::class, 'showAlumnoPlan'])
+        ->name('alumnos.plan-estudio');
 
     // Rutas de mesas de examen (alumnos)
     Route::get('/mesas', [InscripcionesMesaController::class, 'index'])->name('mesas.index');
@@ -119,6 +130,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 
     // Importación masiva
     Route::post('/correlativas/importar', [CorrelativasController::class, 'importar'])->name('correlativas.importar');
+
+    // Asignar Plan de Estudio a alumno
+    Route::post('/asignar-plan', [PlanAdminController::class, 'asignarPlan'])->name('plan.asignar');
 });
 
 // Rutas de autenticación (login, register, logout, reset password, etc.)

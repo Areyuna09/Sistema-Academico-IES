@@ -12,6 +12,12 @@ const props = defineProps({
     sexos: Array,
 });
 
+// Carreras para asignar plan de estudio
+import axios from 'axios';
+const carreras = ref([])
+const carreraId = ref(props.usuario.alumno?.carrera_id || '')
+axios.get('/api/carreras').then(({ data }) => { carreras.value = data || [] })
+
 const form = useForm({
     dni: props.usuario.dni,
     nombre: props.usuario.nombre,
@@ -148,6 +154,27 @@ const getTipoBadge = (tipo) => {
                             </option>
                         </select>
                         <p v-if="form.errors.alumno_id" class="text-red-600 text-sm mt-1">{{ form.errors.alumno_id }}</p>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 items-end gap-3 mt-4">
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Carrera (Plan de Estudio)</label>
+                                <select v-model="carreraId" class="w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring focus:ring-green-200">
+                                    <option value="">Seleccione carrera</option>
+                                    <option v-for="c in carreras" :key="c.id" :value="c.id">{{ c.nombre }}</option>
+                                </select>
+                                <p class="text-xs text-gray-500 mt-1">Asigna o cambia la carrera del alumno vinculado.</p>
+                            </div>
+                            <div>
+                                <button
+                                    type="button"
+                                    class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg w-full"
+                                    :disabled="!form.alumno_id || !carreraId"
+                                    @click="() => axios.post('/admin/asignar-plan', { alumno_id: form.alumno_id, carrera_id: carreraId }).then(() => location.reload())"
+                                >
+                                    Asignar Plan
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Vinculación con Profesor (si tipo = Profesor) -->

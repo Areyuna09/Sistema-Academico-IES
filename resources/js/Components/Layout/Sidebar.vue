@@ -60,6 +60,12 @@ const menuItems = computed(() => {
             path: "/dashboard",
         },
         {
+            name: "Plan de Estudio",
+            route: "mi/plan-estudio",
+            icon: "bx-book-open",
+            path: "/mi/plan-estudio",
+        },
+        {
             name: "Inscripciones",
             route: "inscripciones",
             icon: "bx-clipboard",

@@ -1,0 +1,30 @@
+### Autenticación (obtener token Sanctum si aplica)
+# POST http://localhost/api/login
+# Content-Type: application/json
+# {
+#   "dni": "12345678",
+#   "password": "secret"
+# }
+
+### Ver plan de estudio del alumno autenticado (reemplazar {alumnoId})
+GET http://localhost/api/alumnos/{$alumnoId}/plan-estudio
+Accept: application/json
+Authorization: Bearer {{token}}
+
+### Actualizar estado de una materia del alumno
+PATCH http://localhost/api/alumnos/{$alumnoId}/materias/{$materiaId}
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{token}}
+
+{
+  "estado": "regularizada",
+  "nota": 8,
+  "fecha_estado": "2025-01-15 00:00:00"
+}
+
+### Ver plan base de una carrera (admin)
+GET http://localhost/api/carreras/{$carreraId}/plan
+Accept: application/json
+Authorization: Bearer {{token}}
+

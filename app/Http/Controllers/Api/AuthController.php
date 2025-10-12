@@ -6,6 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use App\Services\JwtService;
+use Carbon\CarbonImmutable;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -24,6 +29,7 @@ class AuthController extends Controller
         $request->validate([
             'dni' => 'required|string',
             'password' => 'required|string',
+            'device_name' => 'sometimes|string'
         ]);
 
         $user = User::where('dni', $request->dni)->first();
@@ -34,15 +40,19 @@ class AuthController extends Controller
             ]);
         }
 
-        // Eliminar tokens anteriores del mismo dispositivo
-        $user->tokens()->where('name', $request->device_name ?? 'web')->delete();
+        if (!$user->activo) {
+            throw ValidationException::withMessages([
+                'dni' => ['El usuario está inactivo.'],
+            ]);
+        }
 
-        // Crear nuevo token
-        $token = $user->createToken($request->device_name ?? 'web')->plainTextToken;
+        $jwt = app(JwtService::class);
+        $issued = $jwt->issueToken($user, $request->device_name ?? 'web');
 
         return response()->json([
             'success' => true,
-            'token' => $token,
+            'token' => $issued['token'],
+            'expires_at' => $issued['expires_at'],
             'user' => [
                 'id' => $user->id,
                 'dni' => $user->dni,
@@ -50,6 +60,8 @@ class AuthController extends Controller
                 'email' => $user->email,
                 'tipo' => $user->tipo,
                 'role' => $user->role,
+                'alumno_id' => $user->alumno_id,
+                'profesor_id' => $user->profesor_id,
             ],
         ]);
     }
@@ -64,7 +76,17 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        $payload = $request->attributes->get('jwt_payload');
+        if (!$payload) {
+            return response()->json(['success' => false, 'message' => 'Token inválido'], 401);
+        }
+
+        $jti = $payload['jti'] ?? null;
+        $exp = $payload['exp'] ?? null;
+
+        if ($jti && $exp) {
+            app(JwtService::class)->blacklist($jti, (int) $exp);
+        }
 
         return response()->json([
             'success' => true,

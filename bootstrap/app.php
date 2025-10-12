@@ -20,8 +20,17 @@ return Application::configure(basePath: dirname(__DIR__))
         // Registrar middleware de admin
         $middleware->alias([
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
+            'jwt' => \App\Http\Middleware\JwtAuthenticate::class,
+        ]);
+
+        // Middleware API: log detallado de requests/responses
+        $middleware->api(prepend: [
+            \App\Http\Middleware\ApiRequestLogger::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
     })->create();
+
+
+

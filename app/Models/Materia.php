@@ -108,7 +108,8 @@ class Materia extends Model
      */
     public function scopeDeCarrera($query, $carreraId)
     {
-        return $query->where('carrera', $carreraId);
+        // Calificar el nombre de la columna para evitar ambigüedad cuando hay joins
+        return $query->where($this->getTable() . '.carrera', $carreraId);
     }
 
     /**
