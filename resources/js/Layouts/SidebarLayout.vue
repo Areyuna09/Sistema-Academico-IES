@@ -13,8 +13,14 @@ defineProps({
     user: {
         type: Object,
         required: false
+    },
+    showHelpButton: {
+        type: Boolean,
+        default: false
     }
 });
+
+const emit = defineEmits(['showHelp']);
 
 const toggleSidebar = () => {
     sidebarOpen.value = !sidebarOpen.value;
@@ -76,7 +82,9 @@ onUnmounted(() => {
             <!-- Navbar Component -->
             <Navbar
                 :sidebar-open="sidebarOpen"
+                :show-help-button="showHelpButton"
                 @toggle-sidebar="toggleSidebar"
+                @show-help="emit('showHelp')"
             >
                 <template #header>
                     <slot name="header" />

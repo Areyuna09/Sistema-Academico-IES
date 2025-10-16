@@ -41,6 +41,7 @@ class HandleInertiaRequests extends Middleware
             'configuracion' => [
                 'nombre_institucion' => $configuracion->nombre_institucion,
                 'logo_url' => $configuracion->logo_path ? Storage::url($configuracion->logo_path) : null,
+                'logo_dark_url' => $configuracion->logo_dark_path ? Storage::url($configuracion->logo_dark_path) : null,
                 'telefono' => $configuracion->telefono,
                 'email' => $configuracion->email,
                 'sitio_web' => $configuracion->sitio_web,

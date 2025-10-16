@@ -14,7 +14,20 @@ class ProfesorMateria extends Model
         'carrera',
         'materia',
         'cursado',
-        'division'
+        'division',
+        'nota_minima_promocion',
+        'nota_minima_regularidad',
+        'permite_promocion',
+        'porcentaje_asistencia_minimo',
+        'criterios_evaluacion',
+        'configuracion_completa'
+    ];
+
+    protected $casts = [
+        'nota_minima_promocion' => 'decimal:2',
+        'nota_minima_regularidad' => 'decimal:2',
+        'permite_promocion' => 'boolean',
+        'configuracion_completa' => 'boolean',
     ];
 
     // AGREGAR ESTE MÉTODO

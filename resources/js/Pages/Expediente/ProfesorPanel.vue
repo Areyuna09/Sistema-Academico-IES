@@ -2,8 +2,16 @@
 import { Head } from '@inertiajs/vue3';
 import { ref, onMounted } from 'vue';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
+import Dialog from '@/Components/Dialog.vue';
 import axios from 'axios';
+import { useProfesorOnboarding } from '@/Composables/useOnboarding';
+import { useDialog } from '@/Composables/useDialog';
 
+// Onboarding tour
+const { startTourIfFirstTime, startTour } = useProfesorOnboarding();
+
+// Dialog
+const { alert: showAlert } = useDialog();
 
 // Tab activo
 const tabActivo = ref('materias');
@@ -42,6 +50,17 @@ const asistencias = ref({});
 const tipoEvaluacion = ref('');
 const fechaNotas = ref(new Date().toISOString().split('T')[0]);
 const notas = ref({});
+
+// Variables para configuración académica
+const modalConfiguracionAbierto = ref(false);
+const guardandoConfiguracion = ref(false);
+const configuracionActual = ref({
+    nota_minima_promocion: 7.00,
+    nota_minima_regularidad: 4.00,
+    permite_promocion: true,
+    porcentaje_asistencia_minimo: 75,
+    criterios_evaluacion: ''
+});
 
 const opciones = [
     {
@@ -190,7 +209,7 @@ const cerrarModalAsistencia = () => {
 
 const guardarAsistenciaDiaria = async () => {
     if (!materiaActual.value || !fechaAsistencia.value) {
-        alert('Por favor completa todos los campos requeridos');
+        await showAlert('Por favor completa todos los campos requeridos', 'Atención');
         return;
     }
 
@@ -210,14 +229,14 @@ const guardarAsistenciaDiaria = async () => {
             asistencias: asistenciasArray
         });
 
-        alert(response.data.message);
+        await showAlert(response.data.message, 'Éxito');
         cerrarModalAsistencia();
     } catch (error) {
         console.error(error);
         if (error.response && error.response.data && error.response.data.message) {
-            alert('Error: ' + error.response.data.message);
+            await showAlert('Error: ' + error.response.data.message, 'Error');
         } else {
-            alert('Error al guardar la asistencia');
+            await showAlert('Error al guardar la asistencia', 'Error');
         }
     } finally {
         guardandoAsistencia.value = false;
@@ -250,7 +269,7 @@ const cerrarModalNotas = () => {
 
 const guardarNotasTemporales = async () => {
     if (!materiaActual.value || !fechaNotas.value || !tipoEvaluacion.value) {
-        alert('Por favor completa el tipo de evaluación y la fecha');
+        await showAlert('Por favor completa el tipo de evaluación y la fecha', 'Atención');
         return;
     }
 
@@ -264,7 +283,7 @@ const guardarNotasTemporales = async () => {
         }));
 
     if (notasIngresadas.length === 0) {
-        alert('Debes ingresar al menos una nota');
+        await showAlert('Debes ingresar al menos una nota', 'Atención');
         return;
     }
 
@@ -278,30 +297,95 @@ const guardarNotasTemporales = async () => {
             notas: notasIngresadas
         });
 
-        alert(response.data.message);
+        await showAlert(response.data.message, 'Éxito');
         cerrarModalNotas();
     } catch (error) {
         console.error(error);
         if (error.response && error.response.data && error.response.data.message) {
-            alert('Error: ' + error.response.data.message);
+            await showAlert('Error: ' + error.response.data.message, 'Error');
         } else {
-            alert('Error al guardar las notas');
+            await showAlert('Error al guardar las notas', 'Error');
         }
     } finally {
         guardandoNotas.value = false;
     }
 };
 
+// Funciones para modal de configuración académica
+const abrirModalConfiguracion = (materia) => {
+    materiaActual.value = materia;
+
+    // Cargar configuración existente
+    const config = materia.configuracion || {};
+    configuracionActual.value = {
+        nota_minima_promocion: config.nota_minima_promocion || 7.00,
+        nota_minima_regularidad: config.nota_minima_regularidad || 4.00,
+        permite_promocion: config.permite_promocion !== undefined ? config.permite_promocion : true,
+        porcentaje_asistencia_minimo: config.porcentaje_asistencia_minimo || 75,
+        criterios_evaluacion: config.criterios_evaluacion || ''
+    };
+
+    modalConfiguracionAbierto.value = true;
+};
+
+const cerrarModalConfiguracion = () => {
+    modalConfiguracionAbierto.value = false;
+    materiaActual.value = null;
+};
+
+const guardarConfiguracionAcademica = async () => {
+    if (!materiaActual.value) {
+        await showAlert('No se seleccionó ninguna materia', 'Error');
+        return;
+    }
+
+    guardandoConfiguracion.value = true;
+
+    try {
+        const response = await axios.post(
+            route('expediente.configurar-parametros', materiaActual.value.materia_id),
+            configuracionActual.value
+        );
+
+        await showAlert(response.data.message, 'Éxito');
+
+        // Recargar materias para obtener la configuración actualizada
+        await cargarMaterias();
+
+        cerrarModalConfiguracion();
+    } catch (error) {
+        console.error(error);
+        if (error.response && error.response.data && error.response.data.error) {
+            await showAlert('Error: ' + error.response.data.error, 'Error');
+        } else {
+            await showAlert('Error al guardar la configuración', 'Error');
+        }
+    } finally {
+        guardandoConfiguracion.value = false;
+    }
+};
+
+// Función para mostrar el tour de ayuda
+const mostrarAyuda = () => {
+    startTour();
+};
+
 // Cargar materias al montar el componente (ya que materias es el tab por defecto)
 onMounted(() => {
     cargarMaterias();
+    // Iniciar tour si es la primera vez
+    startTourIfFirstTime();
 });
 </script>
 
 <template>
     <Head title="Expediente Académico" />
 
-    <SidebarLayout :user="$page.props.auth.user">
+    <SidebarLayout
+        :user="$page.props.auth.user"
+        :show-help-button="true"
+        @show-help="mostrarAyuda"
+    >
         <template #header>
             <div>
                 <h1 class="text-xl font-semibold text-white">Expediente Académico</h1>
@@ -311,12 +395,16 @@ onMounted(() => {
 
         <div class="p-8 max-w-7xl mx-auto">
             <!-- Grid de opciones / Tabs -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+            <div class="onboarding-tabs grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                 <div
                     v-for="(opcion, index) in opciones"
                     :key="index"
                     @click="cambiarTab(opcion.id)"
-                    class="group cursor-pointer"
+                    :class="[
+                        'group cursor-pointer',
+                        opcion.id === 'alumnos' ? 'onboarding-tab-alumnos' : '',
+                        opcion.id === 'legajos' ? 'onboarding-tab-legajos' : ''
+                    ]"
                 >
                     <div :class="[
                         'bg-white border-2 rounded-lg p-5 hover:shadow-md transition-all duration-200',
@@ -369,9 +457,9 @@ onMounted(() => {
 
                     <!-- Lista de materias -->
                     <div v-else-if="materiasData && materiasData.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div v-for="materia in materiasData" :key="materia.materia_id" class="bg-white border-2 border-gray-200 rounded-lg p-5 hover:border-orange-400 hover:shadow-md transition-all">
+                        <div v-for="materia in materiasData" :key="materia.materia_id" class="onboarding-materia-card bg-white border-2 border-gray-200 rounded-lg p-5 hover:border-orange-400 hover:shadow-md transition-all">
                             <!-- Header de la materia -->
-                            <div class="flex items-start justify-between mb-4">
+                            <div class="flex items-start justify-between mb-3">
                                 <div class="flex-1">
                                     <h3 class="text-lg font-semibold text-gray-900 mb-1">{{ materia.materia }}</h3>
                                     <p class="text-sm text-gray-600">{{ materia.carrera }}</p>
@@ -379,6 +467,14 @@ onMounted(() => {
                                 <span class="bg-orange-100 text-orange-700 text-xs font-medium px-3 py-1 rounded-full">
                                     {{ materia.total_alumnos }} alumnos
                                 </span>
+                            </div>
+
+                            <!-- Advertencia de configuración pendiente -->
+                            <div v-if="!materia.configuracion?.configuracion_completa" class="mb-3 p-2 bg-yellow-50 border border-yellow-300 rounded-lg">
+                                <div class="flex items-center text-yellow-800 text-xs">
+                                    <i class="bx bx-warning mr-2 text-base"></i>
+                                    <span><strong>Configuración pendiente:</strong> Define los parámetros académicos</span>
+                                </div>
                             </div>
 
                             <!-- Detalles de la materia -->
@@ -393,8 +489,30 @@ onMounted(() => {
                                 </div>
                             </div>
 
+                            <!-- Parámetros configurados (si existe configuración) -->
+                            <div v-if="materia.configuracion?.configuracion_completa" class="mb-3 p-2 bg-green-50 border border-green-200 rounded-lg">
+                                <div class="grid grid-cols-2 gap-2 text-xs text-gray-700">
+                                    <div class="flex items-center">
+                                        <i class="bx bx-medal text-green-600 mr-1"></i>
+                                        <span>Promoción: <strong>{{ materia.configuracion.nota_minima_promocion }}</strong></span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <i class="bx bx-check text-green-600 mr-1"></i>
+                                        <span>Regular: <strong>{{ materia.configuracion.nota_minima_regularidad }}</strong></span>
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Botones de acción -->
                             <div class="flex gap-2 pt-3 border-t border-gray-200">
+                                <button
+                                    @click="abrirModalConfiguracion(materia)"
+                                    class="px-3 py-2 text-sm bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors flex items-center justify-center"
+                                    title="Configurar parámetros académicos"
+                                >
+                                    <i class="bx bx-cog mr-1"></i>
+                                    Configurar
+                                </button>
                                 <a
                                     :href="route('profesor.mis-materias.show', materia.materia_id)"
                                     class="flex-1 px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-center"
@@ -403,7 +521,7 @@ onMounted(() => {
                                     Ver detalle
                                 </a>
                                 <button
-                                    class="flex-1 px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                                    class="px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                                     title="Cargar asistencia final del cuatrimestre"
                                 >
                                     <i class="bx bx-check-circle mr-1"></i>
@@ -473,7 +591,7 @@ onMounted(() => {
                                     <div class="flex gap-2">
                                         <button
                                             @click="abrirModalAsistencia(materia)"
-                                            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+                                            class="onboarding-btn-asistencia px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
                                             title="Registrar asistencia del día"
                                         >
                                             <i class="bx bx-calendar-check mr-2"></i>
@@ -481,7 +599,7 @@ onMounted(() => {
                                         </button>
                                         <button
                                             @click="abrirModalNotas(materia)"
-                                            class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center"
+                                            class="onboarding-btn-notas px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center"
                                             title="Cargar notas temporales"
                                         >
                                             <i class="bx bx-edit mr-2"></i>
@@ -850,12 +968,15 @@ onMounted(() => {
                     </div>
 
                     <!-- Nota informativa -->
-                    <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                        <div class="flex items-start text-yellow-800">
-                            <i class="bx bx-info-circle mr-2 text-xl"></i>
-                            <div class="text-sm">
-                                <strong>Importante:</strong> Las notas quedarán en estado "Pendiente" hasta que sean aprobadas por el administrador o bedel.
-                                Solo necesitas cargar las notas de los alumnos que desees evaluar.
+                    <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div class="flex items-start text-blue-800">
+                            <i class="bx bx-info-circle mr-2 text-xl flex-shrink-0"></i>
+                            <div class="text-sm space-y-1">
+                                <p><strong>Importante:</strong></p>
+                                <ul class="list-disc list-inside space-y-1 ml-2">
+                                    <li><strong>Notas de Parciales/Prácticos:</strong> Se aprueban y transfieren automáticamente al legajo. El sistema calcula si el alumno promociona, queda regular o libre según tu configuración.</li>
+                                    <li><strong>Notas de Final:</strong> Quedan pendientes de aprobación por el administrador o bedel antes de transferirse al legajo oficial.</li>
+                                </ul>
                             </div>
                         </div>
                     </div>
@@ -880,5 +1001,165 @@ onMounted(() => {
                 </div>
             </div>
         </div>
+
+        <!-- Modal de Configuración Académica -->
+        <div v-if="modalConfiguracionAbierto" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+                <!-- Header del modal -->
+                <div class="bg-amber-600 text-white px-6 py-4 flex items-center justify-between">
+                    <div>
+                        <h3 class="text-xl font-semibold">Configuración Académica</h3>
+                        <p class="text-sm text-amber-100 mt-1" v-if="materiaActual">
+                            {{ materiaActual.materia }} - {{ materiaActual.carrera }}
+                        </p>
+                    </div>
+                    <button @click="cerrarModalConfiguracion" class="text-white hover:text-gray-200">
+                        <i class="bx bx-x text-3xl"></i>
+                    </button>
+                </div>
+
+                <!-- Contenido del modal -->
+                <div class="flex-1 overflow-y-auto p-6 space-y-5">
+                    <!-- Información introductoria -->
+                    <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div class="flex items-start text-blue-800">
+                            <i class="bx bx-info-circle mr-2 text-xl flex-shrink-0"></i>
+                            <div class="text-sm">
+                                <p><strong>Define los parámetros académicos</strong> para esta materia. Estos valores se usarán para calcular automáticamente si los alumnos promocionan, quedan regulares o libres.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Nota mínima de promoción -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="bx bx-medal text-amber-600 mr-1"></i>
+                            Nota mínima para Promoción
+                        </label>
+                        <input
+                            v-model.number="configuracionActual.nota_minima_promocion"
+                            type="number"
+                            min="1"
+                            max="10"
+                            step="0.01"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                            placeholder="Ejemplo: 7.00"
+                        />
+                        <p class="mt-1 text-xs text-gray-500">El alumno promociona la materia sin rendir final si obtiene esta nota o superior.</p>
+                    </div>
+
+                    <!-- Nota mínima de regularidad -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="bx bx-check text-green-600 mr-1"></i>
+                            Nota mínima para Regularidad
+                        </label>
+                        <input
+                            v-model.number="configuracionActual.nota_minima_regularidad"
+                            type="number"
+                            min="1"
+                            max="10"
+                            step="0.01"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                            placeholder="Ejemplo: 4.00"
+                        />
+                        <p class="mt-1 text-xs text-gray-500">El alumno queda regular si obtiene esta nota o superior (debe rendir final). Si saca menos, queda libre.</p>
+                    </div>
+
+                    <!-- Permite promoción -->
+                    <div>
+                        <label class="flex items-center cursor-pointer">
+                            <input
+                                v-model="configuracionActual.permite_promocion"
+                                type="checkbox"
+                                class="w-5 h-5 text-amber-600 border-gray-300 rounded focus:ring-amber-500 focus:ring-2"
+                            />
+                            <span class="ml-3 text-sm font-semibold text-gray-700">
+                                <i class="bx bx-trending-up text-amber-600 mr-1"></i>
+                                Permite promoción directa
+                            </span>
+                        </label>
+                        <p class="mt-1 text-xs text-gray-500 ml-8">Si está desmarcado, todos los alumnos deberán rendir final obligatoriamente (sin importar la nota de cursada).</p>
+                    </div>
+
+                    <!-- Porcentaje de asistencia -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="bx bx-calendar-check text-blue-600 mr-1"></i>
+                            Porcentaje mínimo de Asistencia (%)
+                        </label>
+                        <input
+                            v-model.number="configuracionActual.porcentaje_asistencia_minimo"
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="1"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                            placeholder="Ejemplo: 75"
+                        />
+                        <p class="mt-1 text-xs text-gray-500">Porcentaje mínimo de asistencia requerido para regularizar la materia.</p>
+                    </div>
+
+                    <!-- Criterios de evaluación -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="bx bx-list-ul text-purple-600 mr-1"></i>
+                            Criterios de Evaluación (Opcional)
+                        </label>
+                        <textarea
+                            v-model="configuracionActual.criterios_evaluacion"
+                            rows="3"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent resize-none"
+                            placeholder="Ejemplo: 2 parciales + trabajos prácticos. Cada parcial vale 40% y los prácticos 20%."
+                        ></textarea>
+                        <p class="mt-1 text-xs text-gray-500">Describe cómo se compone la nota final de la materia (opcional, solo informativo).</p>
+                    </div>
+
+                    <!-- Resumen visual -->
+                    <div class="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                        <h4 class="text-sm font-semibold text-gray-700 mb-2">Resumen de configuración:</h4>
+                        <ul class="text-sm text-gray-600 space-y-1">
+                            <li class="flex items-center">
+                                <i class="bx bx-medal text-amber-600 mr-2"></i>
+                                <span>Nota ≥ <strong>{{ configuracionActual.nota_minima_promocion }}</strong> → Promociona ({{ configuracionActual.permite_promocion ? 'sin final' : 'debe rendir final' }})</span>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="bx bx-check text-green-600 mr-2"></i>
+                                <span>Nota ≥ <strong>{{ configuracionActual.nota_minima_regularidad }}</strong> → Regular (debe rendir final)</span>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="bx bx-x text-red-600 mr-2"></i>
+                                <span>Nota < <strong>{{ configuracionActual.nota_minima_regularidad }}</strong> → Libre</span>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="bx bx-calendar-check text-blue-600 mr-2"></i>
+                                <span>Asistencia mínima: <strong>{{ configuracionActual.porcentaje_asistencia_minimo }}%</strong></span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Footer del modal -->
+                <div class="bg-gray-100 px-6 py-4 flex justify-end gap-3">
+                    <button
+                        @click="cerrarModalConfiguracion"
+                        class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        @click="guardarConfiguracionAcademica"
+                        :disabled="guardandoConfiguracion"
+                        class="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                    >
+                        <i :class="['bx mr-2', guardandoConfiguracion ? 'bx-loader-alt animate-spin' : 'bx-save']"></i>
+                        {{ guardandoConfiguracion ? 'Guardando...' : 'Guardar Configuración' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dialog component -->
+        <Dialog />
     </SidebarLayout>
 </template>

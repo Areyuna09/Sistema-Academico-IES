@@ -3,10 +3,14 @@ defineProps({
     sidebarOpen: {
         type: Boolean,
         default: false
+    },
+    showHelpButton: {
+        type: Boolean,
+        default: false
     }
 });
 
-const emit = defineEmits(['toggleSidebar']);
+const emit = defineEmits(['toggleSidebar', 'showHelp']);
 </script>
 
 <template>
@@ -24,8 +28,19 @@ const emit = defineEmits(['toggleSidebar']);
                 <slot name="header" />
             </div>
 
-            <!-- Notifications -->
+            <!-- Actions -->
             <div class="flex items-center space-x-2">
+                <!-- Botón de ayuda/tutorial (solo visible si showHelpButton=true) -->
+                <button
+                    v-if="showHelpButton"
+                    @click="emit('showHelp')"
+                    class="onboarding-help-button p-2 text-gray-400 hover:bg-blue-600 hover:text-white rounded-lg transition-all duration-200"
+                    title="Ver tutorial del sistema"
+                >
+                    <i class="bx bx-help-circle text-lg"></i>
+                </button>
+
+                <!-- Notifications -->
                 <button class="relative p-2 text-gray-400 hover:bg-gray-700 hover:text-white rounded-lg transition-all duration-200">
                     <i class="bx bx-bell text-lg"></i>
                     <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>

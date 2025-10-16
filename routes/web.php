@@ -43,11 +43,15 @@ Route::middleware('auth')->group(function () {
     Route::get('/expediente', [ExpedienteController::class, 'index'])->name('expediente.index');
     Route::get('/expediente/{id}', [ExpedienteController::class, 'show'])->name('expediente.show');
     Route::post('/expediente/buscar-dni', [ExpedienteController::class, 'buscarPorDni'])->name('expediente.buscar-dni');
+    Route::put('/expediente/materia/{alumnoMateriaId}', [ExpedienteController::class, 'actualizarEstadoMateria'])->name('expediente.actualizar-estado-materia');
     Route::get('/expediente/alumnos/profesor', [ExpedienteController::class, 'obtenerAlumnosProfesor'])->name('expediente.alumnos-profesor');
     Route::post('/expediente/asistencia/guardar', [ExpedienteController::class, 'guardarAsistencia'])->name('expediente.guardar-asistencia');
     Route::post('/expediente/asistencia/guardar-final', [ExpedienteController::class, 'guardarAsistenciaFinal'])->name('expediente.guardar-asistencia-final');
     Route::post('/expediente/notas/guardar', [ExpedienteController::class, 'guardarNotas'])->name('expediente.guardar-notas');
     Route::post('/expediente/notas/guardar-finales', [ExpedienteController::class, 'guardarNotasFinales'])->name('expediente.guardar-notas-finales');
+    Route::post('/expediente/aprobar-nota/{id}', [ExpedienteController::class, 'aprobarNota'])->name('expediente.aprobar-nota');
+    Route::post('/expediente/rechazar-nota/{id}', [ExpedienteController::class, 'rechazarNota'])->name('expediente.rechazar-nota');
+    Route::post('/expediente/configurar-parametros/{profesorMateriaId}', [ExpedienteController::class, 'configurarParametrosAcademicos'])->name('expediente.configurar-parametros');
 
     // Rutas de mesas de examen (alumnos)
     Route::get('/mesas', [InscripcionesMesaController::class, 'index'])->name('mesas.index');
@@ -100,6 +104,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/configuracion/editar', [ConfiguracionController::class, 'edit'])->name('configuracion.edit');
     Route::post('/configuracion', [ConfiguracionController::class, 'update'])->name('configuracion.update');
     Route::delete('/configuracion/logo', [ConfiguracionController::class, 'deleteLogo'])->name('configuracion.delete-logo');
+    Route::delete('/configuracion/logo-dark', [ConfiguracionController::class, 'deleteLogoDark'])->name('configuracion.delete-logo-dark');
     Route::delete('/configuracion/firma', [ConfiguracionController::class, 'deleteFirma'])->name('configuracion.delete-firma');
 
     // Gestión de Mesas de Examen

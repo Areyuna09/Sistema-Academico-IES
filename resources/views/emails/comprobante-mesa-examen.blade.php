@@ -182,8 +182,12 @@
     <div class="page">
         <!-- Header -->
         <div class="header">
-            @if($configuracion->logo_path)
-                <img src="{{ public_path('storage/' . $configuracion->logo_path) }}" alt="Logo {{ $configuracion->nombre_institucion }}" class="logo">
+            @php
+                // Para PDFs con fondo blanco, usar logo oscuro (con letras negras) si está disponible
+                $logoPath = $configuracion->logo_dark_path ?? $configuracion->logo_path;
+            @endphp
+            @if($logoPath)
+                <img src="{{ public_path('storage/' . $logoPath) }}" alt="Logo {{ $configuracion->nombre_institucion }}" class="logo">
             @else
                 <img src="{{ public_path('images/logo-ies-original.png') }}" alt="Logo IES" class="logo">
             @endif

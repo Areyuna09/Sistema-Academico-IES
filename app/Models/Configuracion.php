@@ -11,6 +11,7 @@ class Configuracion extends Model
     protected $fillable = [
         'nombre_institucion',
         'logo_path',
+        'logo_dark_path',
         'direccion',
         'telefono',
         'email',

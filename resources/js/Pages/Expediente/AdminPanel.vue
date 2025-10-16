@@ -1,8 +1,12 @@
 <script setup>
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
+import Dialog from '@/Components/Dialog.vue';
+import { useDialog } from '@/Composables/useDialog';
 import axios from 'axios';
+
+const { confirm: dialogConfirm, alert: dialogAlert, prompt: dialogPrompt } = useDialog();
 
 const props = defineProps({
     materias: {
@@ -16,6 +20,10 @@ const props = defineProps({
     usuarios: {
         type: Object,
         default: () => ({ data: [], links: [] })
+    },
+    notasPendientes: {
+        type: Array,
+        default: () => []
     },
     filtrosMaterias: {
         type: Object,
@@ -38,7 +46,37 @@ const dniBusqueda = ref('');
 const buscando = ref(false);
 const alumnoEncontrado = ref(null);
 const historialAcademico = ref(null);
+const historialOriginal = ref(null);
 const errorBusqueda = ref('');
+const guardando = ref(false);
+
+// Computed para saber si hay cambios pendientes
+const hayCambiosPendientes = computed(() => {
+    if (!historialAcademico.value || !historialOriginal.value) return false;
+
+    for (const anno in historialAcademico.value) {
+        const materias = historialAcademico.value[anno];
+        const materiasOriginales = historialOriginal.value[anno];
+
+        if (!materiasOriginales) continue;
+
+        for (let i = 0; i < materias.length; i++) {
+            const materia = materias[i];
+            const original = materiasOriginales[i];
+
+            if (!original) continue;
+
+            if (materia.cursada_value !== original.cursada_value ||
+                materia.rendida_value !== original.rendida_value ||
+                materia.libre_value !== original.libre_value ||
+                materia.equivalencia_value !== original.equivalencia_value) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+});
 
 // Forms para filtros
 const formMaterias = useForm({
@@ -94,6 +132,17 @@ const opciones = [
         activeBg: 'bg-green-50'
     },
     {
+        id: 'notas',
+        titulo: 'Notas Pendientes',
+        descripcion: 'Aprobación de notas',
+        icono: 'bx-check-circle',
+        bgColor: 'bg-red-100',
+        iconColor: 'text-red-600',
+        hoverBorder: 'hover:border-red-400',
+        activeBorder: 'border-red-500',
+        activeBg: 'bg-red-50'
+    },
+    {
         id: 'legajos',
         titulo: 'Legajos',
         descripcion: 'Expedientes académicos',
@@ -129,8 +178,13 @@ const limpiarFiltrosMaterias = () => {
     formMaterias.get(route('expediente.index'));
 };
 
-const eliminarMateria = (materia) => {
-    if (confirm(`¿Está seguro de eliminar la materia "${materia.nombre}"?`)) {
+const eliminarMateria = async (materia) => {
+    const confirmacion = await dialogConfirm(
+        `¿Está seguro de eliminar la materia "${materia.nombre}"?`,
+        'Eliminar materia'
+    );
+
+    if (confirmacion) {
         router.delete(route('admin.materias.destroy', materia.id), {
             onSuccess: () => {
                 formMaterias.get(route('expediente.index'), {
@@ -143,9 +197,13 @@ const eliminarMateria = (materia) => {
 };
 
 const getSemestreBadge = (semestre) => {
-    return semestre === 1
-        ? { text: '1° Sem', class: 'bg-blue-100 text-blue-800' }
-        : { text: '2° Sem', class: 'bg-purple-100 text-purple-800' };
+    if (semestre === 1) {
+        return { text: '1° Sem', class: 'bg-blue-100 text-blue-800' };
+    } else if (semestre === 2) {
+        return { text: '2° Sem', class: 'bg-purple-100 text-purple-800' };
+    } else {
+        return { text: 'Sin asignar', class: 'bg-gray-100 text-gray-600' };
+    }
 };
 
 // Funciones para Profesores
@@ -177,16 +235,26 @@ const limpiarFiltrosAlumnos = () => {
     formAlumnos.get(route('expediente.index'));
 };
 
-const toggleActivo = (usuario) => {
-    if (confirm(`¿Está seguro de ${usuario.activo ? 'desactivar' : 'activar'} este usuario?`)) {
+const toggleActivo = async (usuario) => {
+    const confirmacion = await dialogConfirm(
+        `¿Está seguro de ${usuario.activo ? 'desactivar' : 'activar'} este usuario?`,
+        `${usuario.activo ? 'Desactivar' : 'Activar'} usuario`
+    );
+
+    if (confirmacion) {
         router.post(route('admin.usuarios.toggle', usuario.id), {}, {
             preserveScroll: true,
         });
     }
 };
 
-const eliminarUsuario = (usuario) => {
-    if (confirm(`¿Está seguro de eliminar el usuario de ${usuario.nombre}? Esta acción no se puede deshacer.`)) {
+const eliminarUsuario = async (usuario) => {
+    const confirmacion = await dialogConfirm(
+        `¿Está seguro de eliminar el usuario de ${usuario.nombre}? Esta acción no se puede deshacer.`,
+        'Eliminar usuario'
+    );
+
+    if (confirmacion) {
         router.delete(route('admin.usuarios.destroy', usuario.id), {
             preserveScroll: true,
         });
@@ -204,6 +272,7 @@ const buscarAlumno = async () => {
     errorBusqueda.value = '';
     alumnoEncontrado.value = null;
     historialAcademico.value = null;
+    historialOriginal.value = null;
 
     try {
         const response = await axios.post(route('expediente.buscar-dni'), {
@@ -212,6 +281,8 @@ const buscarAlumno = async () => {
 
         alumnoEncontrado.value = response.data.alumno;
         historialAcademico.value = response.data.historial;
+        // Guardar copia del original para comparar cambios
+        historialOriginal.value = JSON.parse(JSON.stringify(response.data.historial));
     } catch (error) {
         if (error.response && error.response.status === 404) {
             errorBusqueda.value = 'No se encontró ningún alumno con ese DNI';
@@ -227,12 +298,224 @@ const limpiarBusqueda = () => {
     dniBusqueda.value = '';
     alumnoEncontrado.value = null;
     historialAcademico.value = null;
+    historialOriginal.value = null;
     errorBusqueda.value = '';
+};
+
+// Función para toggle del checkbox (solo modifica el estado local)
+const toggleCheckbox = (materiaId, campo) => {
+    // Buscar la materia en el historial
+    for (const anno in historialAcademico.value) {
+        const materia = historialAcademico.value[anno].find(m => m.id === materiaId);
+        if (materia) {
+            if (campo === 'cursada') {
+                // Toggle Regular (R): solo cursada, sin rendida
+                if (materia.cursada_value && !materia.rendida_value) {
+                    // Ya está marcado Regular, desmarcarlo
+                    materia.cursada_value = false;
+                } else {
+                    // Marcarlo como Regular
+                    materia.cursada_value = true;
+                    materia.rendida_value = false;
+                    materia.libre_value = false;
+                }
+            } else if (campo === 'rendida') {
+                // Toggle Promocional (P): cursada Y rendida
+                if (materia.cursada_value && materia.rendida_value) {
+                    // Ya está marcado Promocional, desmarcarlo
+                    materia.rendida_value = false;
+                } else {
+                    // Marcarlo como Promocional
+                    materia.cursada_value = true;
+                    materia.rendida_value = true;
+                    materia.libre_value = false;
+                }
+            } else if (campo === 'equivalencia') {
+                // Toggle Equivalencia (E)
+                materia.equivalencia_value = !materia.equivalencia_value;
+            } else if (campo === 'libre') {
+                // Toggle Libre (L)
+                if (materia.libre_value) {
+                    materia.libre_value = false;
+                } else {
+                    materia.libre_value = true;
+                    materia.cursada_value = false;
+                    materia.rendida_value = false;
+                }
+            }
+            break;
+        }
+    }
+};
+
+// Función para guardar todos los cambios
+const guardarCambios = async () => {
+    const confirmacion = await dialogConfirm(
+        '¿Desea guardar todos los cambios realizados en el legajo?',
+        'Guardar cambios'
+    );
+
+    if (!confirmacion) return;
+
+    guardando.value = true;
+
+    try {
+        // Recopilar todas las materias con cambios
+        const cambios = [];
+
+        for (const anno in historialAcademico.value) {
+            const materias = historialAcademico.value[anno];
+            const materiasOriginales = historialOriginal.value[anno];
+
+            if (!materiasOriginales) continue;
+
+            for (let i = 0; i < materias.length; i++) {
+                const materia = materias[i];
+                const original = materiasOriginales[i];
+
+                if (!original) continue;
+
+                // Verificar si hubo cambios
+                if (materia.cursada_value !== original.cursada_value ||
+                    materia.rendida_value !== original.rendida_value ||
+                    materia.libre_value !== original.libre_value ||
+                    materia.equivalencia_value !== original.equivalencia_value) {
+
+                    cambios.push({
+                        id: materia.id,
+                        cursada: materia.cursada_value ? '1' : '0',
+                        rendida: materia.rendida_value ? '1' : '0',
+                        libre: materia.libre_value ? 1 : 0,
+                        equivalencia: materia.equivalencia_value ? 1 : 0
+                    });
+                }
+            }
+        }
+
+        if (cambios.length === 0) {
+            await dialogAlert('No hay cambios para guardar', 'Sin cambios');
+            return;
+        }
+
+        // Guardar cada cambio
+        let errores = 0;
+        for (const cambio of cambios) {
+            try {
+                await axios.put(route('expediente.actualizar-estado-materia', cambio.id), {
+                    cursada: cambio.cursada,
+                    rendida: cambio.rendida,
+                    libre: cambio.libre,
+                    equivalencia: cambio.equivalencia
+                });
+            } catch (error) {
+                errores++;
+                console.error('Error al guardar cambio:', error);
+            }
+        }
+
+        if (errores === 0) {
+            await dialogAlert(
+                `Se guardaron exitosamente ${cambios.length} cambio(s) en el legajo`,
+                'Cambios guardados'
+            );
+            // Recargar datos
+            await buscarAlumno();
+        } else {
+            await dialogAlert(
+                `Se guardaron ${cambios.length - errores} cambio(s). ${errores} error(es) ocurrieron.`,
+                'Guardado parcial'
+            );
+            await buscarAlumno();
+        }
+
+    } catch (error) {
+        await dialogAlert(
+            'Ocurrió un error al guardar los cambios: ' + (error.response?.data?.error || error.message),
+            'Error'
+        );
+    } finally {
+        guardando.value = false;
+    }
+};
+
+// Función para descartar cambios
+const descartarCambios = async () => {
+    const confirmacion = await dialogConfirm(
+        '¿Desea descartar todos los cambios no guardados?',
+        'Descartar cambios'
+    );
+
+    if (!confirmacion) return;
+
+    // Restaurar desde el original
+    historialAcademico.value = JSON.parse(JSON.stringify(historialOriginal.value));
+};
+
+// Funciones para Notas Pendientes
+const aprobarNota = async (notaId) => {
+    const confirmacion = await dialogConfirm(
+        '¿Está seguro de aprobar esta nota? Se transferirá al legajo oficial del alumno.',
+        'Aprobar nota'
+    );
+
+    if (!confirmacion) return;
+
+    try {
+        await axios.post(route('expediente.aprobar-nota', notaId));
+
+        // Recargar la página para actualizar la lista
+        router.reload({ preserveScroll: true });
+
+        await dialogAlert('Nota aprobada y transferida al legajo exitosamente', 'Nota aprobada');
+    } catch (error) {
+        await dialogAlert(
+            'Error al aprobar la nota: ' + (error.response?.data?.message || error.message),
+            'Error'
+        );
+    }
+};
+
+const rechazarNota = async (notaId) => {
+    const motivo = await dialogPrompt(
+        'Ingrese el motivo del rechazo:',
+        'Rechazar nota',
+        'Motivo del rechazo...'
+    );
+
+    if (!motivo) return;
+
+    try {
+        await axios.post(route('expediente.rechazar-nota', notaId), {
+            observaciones: motivo
+        });
+
+        // Recargar la página para actualizar la lista
+        router.reload({ preserveScroll: true });
+
+        await dialogAlert('Nota rechazada correctamente', 'Nota rechazada');
+    } catch (error) {
+        await dialogAlert(
+            'Error al rechazar la nota: ' + (error.response?.data?.message || error.message),
+            'Error'
+        );
+    }
+};
+
+const getEstadoBadge = (estado) => {
+    const badges = {
+        'pendiente': { text: 'Pendiente', class: 'bg-yellow-100 text-yellow-800' },
+        'aprobada': { text: 'Aprobada', class: 'bg-green-100 text-green-800' },
+        'rechazada': { text: 'Rechazada', class: 'bg-red-100 text-red-800' },
+    };
+    return badges[estado] || { text: estado, class: 'bg-gray-100 text-gray-800' };
 };
 </script>
 
 <template>
     <Head title="Panel de Administración - Expediente" />
+
+    <!-- Componente de diálogo global -->
+    <Dialog />
 
     <SidebarLayout :user="$page.props.auth.user">
         <template #header>
@@ -767,6 +1050,117 @@ const limpiarBusqueda = () => {
                     </div>
                 </div>
 
+                <!-- Tab Notas Pendientes -->
+                <div v-if="tabActivo === 'notas'">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center">
+                            <i class="bx bx-check-circle text-3xl text-red-600 mr-3"></i>
+                            <div>
+                                <h2 class="text-2xl font-bold text-gray-900">Notas Pendientes de Aprobación</h2>
+                                <p class="text-sm text-gray-600">Aprobar notas temporales para transferir a legajos oficiales</p>
+                            </div>
+                        </div>
+                        <div class="text-sm text-gray-600">
+                            <span class="font-semibold">{{ notasPendientes.length }}</span> notas pendientes
+                        </div>
+                    </div>
+
+                    <!-- Tabla de notas pendientes -->
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alumno</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Materia</th>
+                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Nota</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Registrado por</th>
+                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <tr v-for="nota in notasPendientes" :key="nota.id" class="hover:bg-gray-50">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm font-medium text-gray-900">{{ nota.alumno }}</div>
+                                        <div class="text-xs text-gray-500">DNI: {{ nota.dni }}</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="text-sm text-gray-900">{{ nota.materia }}</div>
+                                        <div class="text-xs text-gray-500">{{ nota.carrera }}</div>
+                                    </td>
+                                    <td class="px-6 py-4 text-center">
+                                        <span class="text-lg font-bold text-gray-900">{{ nota.nota }}</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                            {{ nota.tipo_evaluacion }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        {{ nota.fecha }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        {{ nota.registrado_por }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-center">
+                                        <span :class="['inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium', getEstadoBadge(nota.estado).class]">
+                                            {{ getEstadoBadge(nota.estado).text }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <div class="flex items-center justify-end gap-2">
+                                            <button
+                                                v-if="nota.estado === 'pendiente'"
+                                                @click="aprobarNota(nota.id)"
+                                                class="text-green-600 hover:text-green-900"
+                                                title="Aprobar y transferir al legajo"
+                                            >
+                                                <i class="bx bx-check-circle text-lg"></i>
+                                            </button>
+                                            <button
+                                                v-if="nota.estado === 'pendiente'"
+                                                @click="rechazarNota(nota.id)"
+                                                class="text-red-600 hover:text-red-900"
+                                                title="Rechazar"
+                                            >
+                                                <i class="bx bx-x-circle text-lg"></i>
+                                            </button>
+                                            <span v-if="nota.estado !== 'pendiente'" class="text-gray-400">
+                                                {{ nota.estado === 'aprobada' ? 'Aprobada' : 'Rechazada' }}
+                                            </span>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr v-if="notasPendientes.length === 0">
+                                    <td colspan="8" class="px-6 py-8 text-center text-gray-500">
+                                        <i class="bx bx-check-shield text-5xl mb-2"></i>
+                                        <p class="text-lg">No hay notas pendientes de aprobación</p>
+                                        <p class="text-sm mt-1">Todas las notas han sido procesadas</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Info adicional -->
+                    <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div class="flex items-start">
+                            <i class="bx bx-info-circle text-blue-600 text-xl mr-3 mt-0.5"></i>
+                            <div class="text-sm text-blue-800">
+                                <p class="font-semibold mb-1">Información importante:</p>
+                                <ul class="list-disc list-inside space-y-1">
+                                    <li>Al aprobar una nota, se transferirá automáticamente al legajo oficial del alumno</li>
+                                    <li>Las notas aprobadas se registrarán en la tabla de materias cursadas (tbl_alumnos_materias)</li>
+                                    <li>Se guardará la trazabilidad completa: quién aprobó y cuándo</li>
+                                    <li>Las notas rechazadas quedarán registradas pero no se transferirán al legajo</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Tab Legajos -->
                 <div v-if="tabActivo === 'legajos'">
                     <div class="flex items-center justify-between mb-6">
@@ -785,6 +1179,17 @@ const limpiarBusqueda = () => {
                             <i class="bx bx-x mr-2"></i>
                             Limpiar
                         </button>
+                    </div>
+
+                    <!-- Info de uso -->
+                    <div class="mb-6 bg-orange-50 border border-orange-200 rounded-lg p-4">
+                        <div class="flex items-start">
+                            <i class="bx bx-info-circle text-orange-600 text-xl mr-3 mt-0.5"></i>
+                            <div class="text-sm text-orange-800">
+                                <p class="font-semibold mb-1">Edición de legajos</p>
+                                <p>Los checkboxes <strong>R</strong> (Regular), <strong>P</strong> (Promocional), <strong>E</strong> (Equivalencia) y <strong>L</strong> (Libre) son editables. Haga clic en ellos para modificar el estado de cada materia en el legajo del alumno.</p>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Formulario de búsqueda por DNI -->
@@ -820,9 +1225,40 @@ const limpiarBusqueda = () => {
 
                     <!-- Resultados de la búsqueda -->
                     <div v-if="alumnoEncontrado">
+                        <!-- Botones de guardar/descartar (solo si hay cambios) -->
+                        <div v-if="hayCambiosPendientes" class="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <i class="bx bx-info-circle text-yellow-600 text-2xl mr-3"></i>
+                                    <div>
+                                        <p class="text-sm font-semibold text-yellow-800">Cambios pendientes</p>
+                                        <p class="text-xs text-yellow-700">Hay modificaciones sin guardar en el legajo</p>
+                                    </div>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button
+                                        @click="descartarCambios"
+                                        :disabled="guardando"
+                                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                                    >
+                                        <i class="bx bx-x mr-1"></i>
+                                        Descartar
+                                    </button>
+                                    <button
+                                        @click="guardarCambios"
+                                        :disabled="guardando"
+                                        class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center"
+                                    >
+                                        <i :class="['bx mr-1', guardando ? 'bx-loader-alt animate-spin' : 'bx-save']"></i>
+                                        {{ guardando ? 'Guardando...' : 'Guardar cambios' }}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Datos del alumno -->
                         <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                            <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                            <div class="grid grid-cols-2 md:grid-cols-6 gap-4">
                                 <div>
                                     <label class="block text-xs font-medium text-gray-600 mb-1">DNI</label>
                                     <p class="text-sm font-semibold text-gray-900">{{ alumnoEncontrado.dni }}</p>
@@ -837,7 +1273,11 @@ const limpiarBusqueda = () => {
                                 </div>
                                 <div>
                                     <label class="block text-xs font-medium text-gray-600 mb-1">Año Ingr.</label>
-                                    <p class="text-sm font-semibold text-gray-900">{{ alumnoEncontrado.anio_ingreso }}</p>
+                                    <p class="text-sm font-semibold text-gray-900">{{ alumnoEncontrado.anno }}</p>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-1">Curso</label>
+                                    <p class="text-sm font-semibold text-gray-900">{{ alumnoEncontrado.curso > 0 ? alumnoEncontrado.curso + '°' : '-' }}</p>
                                 </div>
                                 <div>
                                     <label class="block text-xs font-medium text-gray-600 mb-1">Carrera</label>
@@ -869,10 +1309,46 @@ const limpiarBusqueda = () => {
                                     <tbody>
                                         <tr v-for="(materia, index) in materias" :key="index" class="border-b border-gray-200 hover:bg-gray-50">
                                             <td class="px-4 py-2 text-sm text-gray-900 border-r">{{ materia.materia }}</td>
-                                            <td class="px-2 py-2 text-center text-sm text-gray-900 border-r">{{ materia.regular }}</td>
-                                            <td class="px-2 py-2 text-center text-sm text-gray-900 border-r">{{ materia.promocional }}</td>
-                                            <td class="px-2 py-2 text-center text-sm text-gray-900 border-r">{{ materia.equivalencia }}</td>
-                                            <td class="px-2 py-2 text-center text-sm text-gray-900 border-r">{{ materia.libre }}</td>
+                                            <!-- R: Regular (cursada) -->
+                                            <td class="px-2 py-2 text-center text-sm border-r">
+                                                <input
+                                                    type="checkbox"
+                                                    :checked="materia.cursada_value && !materia.rendida_value"
+                                                    @click="toggleCheckbox(materia.id, 'cursada')"
+                                                    class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                                                    :title="'Regular: ' + (materia.cursada_value && !materia.rendida_value ? 'Sí' : 'No')"
+                                                />
+                                            </td>
+                                            <!-- P: Promocional (cursada + rendida) -->
+                                            <td class="px-2 py-2 text-center text-sm border-r">
+                                                <input
+                                                    type="checkbox"
+                                                    :checked="materia.cursada_value && materia.rendida_value"
+                                                    @click="toggleCheckbox(materia.id, 'rendida')"
+                                                    class="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 cursor-pointer"
+                                                    :title="'Promocional: ' + (materia.cursada_value && materia.rendida_value ? 'Sí' : 'No')"
+                                                />
+                                            </td>
+                                            <!-- E: Equivalencia -->
+                                            <td class="px-2 py-2 text-center text-sm border-r">
+                                                <input
+                                                    type="checkbox"
+                                                    :checked="materia.equivalencia_value"
+                                                    @click="toggleCheckbox(materia.id, 'equivalencia')"
+                                                    class="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 rounded focus:ring-purple-500 cursor-pointer"
+                                                    :title="'Equivalencia: ' + (materia.equivalencia_value ? 'Sí' : 'No')"
+                                                />
+                                            </td>
+                                            <!-- L: Libre -->
+                                            <td class="px-2 py-2 text-center text-sm border-r">
+                                                <input
+                                                    type="checkbox"
+                                                    :checked="materia.libre_value"
+                                                    @click="toggleCheckbox(materia.id, 'libre')"
+                                                    class="w-4 h-4 text-orange-600 bg-gray-100 border-gray-300 rounded focus:ring-orange-500 cursor-pointer"
+                                                    :title="'Libre: ' + (materia.libre_value ? 'Sí' : 'No')"
+                                                />
+                                            </td>
                                             <td class="px-3 py-2 text-center text-sm font-semibold text-gray-900 border-r">{{ materia.nota }}</td>
                                             <td class="px-3 py-2 text-center text-sm text-gray-900 border-r">{{ materia.fecha }}</td>
                                             <td class="px-3 py-2 text-center text-sm text-gray-900 border-r">{{ materia.libro }}</td>

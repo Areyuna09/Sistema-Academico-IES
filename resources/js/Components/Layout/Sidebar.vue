@@ -132,12 +132,6 @@ const parametrosItems = computed(() => {
             path: "/admin/carreras",
         },
         {
-            name: "Materias",
-            route: "admin.materias.index",
-            icon: "bx-book",
-            path: "/admin/materias",
-        },
-        {
             name: "Períodos Lectivos",
             route: "admin.periodos.index",
             icon: "bx-calendar",

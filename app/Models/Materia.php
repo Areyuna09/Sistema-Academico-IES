@@ -36,6 +36,15 @@ class Materia extends Model
     ];
 
     /**
+     * Casting de atributos
+     */
+    protected $casts = [
+        'semestre' => 'integer',
+        'anno' => 'integer',
+        'carrera' => 'integer',
+    ];
+
+    /**
      * Relación: Carrera a la que pertenece
      */
     public function carrera()

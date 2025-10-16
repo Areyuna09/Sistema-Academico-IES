@@ -23,6 +23,8 @@ class ConfiguracionController extends Controller
                 'nombre_institucion' => $configuracion->nombre_institucion,
                 'logo_path' => $configuracion->logo_path,
                 'logo_url' => $configuracion->logo_path ? Storage::url($configuracion->logo_path) : null,
+                'logo_dark_path' => $configuracion->logo_dark_path,
+                'logo_dark_url' => $configuracion->logo_dark_path ? Storage::url($configuracion->logo_dark_path) : null,
                 'direccion' => $configuracion->direccion,
                 'telefono' => $configuracion->telefono,
                 'email' => $configuracion->email,
@@ -49,6 +51,8 @@ class ConfiguracionController extends Controller
                 'nombre_institucion' => $configuracion->nombre_institucion,
                 'logo_path' => $configuracion->logo_path,
                 'logo_url' => $configuracion->logo_path ? Storage::url($configuracion->logo_path) : null,
+                'logo_dark_path' => $configuracion->logo_dark_path,
+                'logo_dark_url' => $configuracion->logo_dark_path ? Storage::url($configuracion->logo_dark_path) : null,
                 'direccion' => $configuracion->direccion,
                 'telefono' => $configuracion->telefono,
                 'email' => $configuracion->email,
@@ -79,6 +83,7 @@ class ConfiguracionController extends Controller
             'cargo_firma' => 'nullable|string|max:100',
             'horarios_atencion' => 'nullable|string',
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,svg|max:2048',
+            'logo_dark' => 'nullable|image|mimes:jpeg,png,jpg,svg|max:2048',
             'firma_digital' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
@@ -91,6 +96,17 @@ class ConfiguracionController extends Controller
 
             $logoPath = $request->file('logo')->store('configuracion/logos', 'public');
             $validated['logo_path'] = $logoPath;
+        }
+
+        // Subir logo oscuro si se proporcionó
+        if ($request->hasFile('logo_dark')) {
+            // Eliminar logo oscuro anterior si existe
+            if ($configuracion->logo_dark_path) {
+                Storage::disk('public')->delete($configuracion->logo_dark_path);
+            }
+
+            $logoDarkPath = $request->file('logo_dark')->store('configuracion/logos', 'public');
+            $validated['logo_dark_path'] = $logoDarkPath;
         }
 
         // Subir firma digital si se proporcionó
@@ -123,6 +139,21 @@ class ConfiguracionController extends Controller
         }
 
         return back()->with('success', 'Logo eliminado exitosamente.');
+    }
+
+    /**
+     * Eliminar logo oscuro
+     */
+    public function deleteLogoDark()
+    {
+        $configuracion = Configuracion::get();
+
+        if ($configuracion->logo_dark_path) {
+            Storage::disk('public')->delete($configuracion->logo_dark_path);
+            $configuracion->update(['logo_dark_path' => null]);
+        }
+
+        return back()->with('success', 'Logo oscuro eliminado exitosamente.');
     }
 
     /**
