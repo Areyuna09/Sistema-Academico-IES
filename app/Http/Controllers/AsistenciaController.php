@@ -9,7 +9,7 @@ use Carbon\Carbon;
 
 class AsistenciaController extends Controller
 {
-    // Materias del profesor logueado (busca por email del user)
+    
     public function materiasDelProfesor(Request $req)
     {
         $user = auth()->user();
@@ -28,7 +28,7 @@ class AsistenciaController extends Controller
         return response()->json($materias);
     }
 
-    // Alumnos inscriptos en una materia (usa tbl_materias_alumno -> alumno (dni) -> tbl_alumnos)
+    
     public function alumnosPorMateria($materiaId)
     {
         $inscriptos = DB::table('tbl_materias_alumno')
@@ -44,7 +44,7 @@ class AsistenciaController extends Controller
         return response()->json($alumnos);
     }
 
-    // Listar asistencias por materia y fecha
+    
     public function listarPorMateriaFecha(Request $req)
     {
         $fecha = Carbon::parse($req->fecha)->format('Y-m-d');
@@ -55,7 +55,7 @@ class AsistenciaController extends Controller
         return response()->json($asistencias);
     }
 
-    // Guardar o actualizar asistencias en batch
+    
     public function guardarBatch(Request $req)
     {
         $profesor = DB::table('tbl_profesores')->where('email', auth()->user()->email)->first();
@@ -79,7 +79,7 @@ class AsistenciaController extends Controller
         return response()->json(['status' => 'ok']);
     }
 
-    // Eliminar asistencia
+   
     public function destroy($id)
     {
         Asistencia::findOrFail($id)->delete();

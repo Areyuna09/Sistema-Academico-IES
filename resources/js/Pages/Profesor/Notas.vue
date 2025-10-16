@@ -38,7 +38,7 @@ async function guardar() {
     }))
   };
   await axios.post('/notas/guardar', payload);
-  alert('Notas temporales guardadas ✅');
+  alert('Notas temporales guardadas');
 }
 
 async function aprobar(id) {

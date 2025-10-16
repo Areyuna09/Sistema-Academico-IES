@@ -30,7 +30,7 @@ Route::get('/panel-profesor', function () {
     return Inertia::render('Profesor/Panel');
 })->name('panel.profesor');
 
-// Endpoints para asistencias (usamos web routes)
+// asistencias
 Route::get('/profesor/materias', [\App\Http\Controllers\AsistenciaController::class, 'materiasDelProfesor']);
 Route::get('/materias/{materiaId}/alumnos', [\App\Http\Controllers\AsistenciaController::class, 'alumnosPorMateria']);
 Route::get('/asistencias', [\App\Http\Controllers\AsistenciaController::class, 'listarPorMateriaFecha']);
@@ -38,7 +38,7 @@ Route::post('/asistencias/guardar', [\App\Http\Controllers\AsistenciaController:
 Route::delete('/asistencias/{id}', [\App\Http\Controllers\AsistenciaController::class, 'destroy']);
 
 
-// --- NOTAS TEMPORALES (Panel del Profesor) ---
+// --- NOTAS TEMPORALES ---
 Route::get('/panel-profesor/notas', function () {
     return Inertia::render('Profesor/Notas');
 })->middleware(['auth'])->name('panel.profesor.notas');

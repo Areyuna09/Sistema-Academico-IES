@@ -47,7 +47,7 @@ async function guardar(){
     }))
   };
   await axios.post('/asistencias/guardar', payload);
-  alert('Asistencias guardadas correctamente ✅');
+  alert('Asistencias guardadas correctamente');
 }
 
 cargarMaterias();

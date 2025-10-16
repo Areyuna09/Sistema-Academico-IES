@@ -70,7 +70,7 @@ class NotaController extends Controller
         $profesor = DB::table('tbl_profesores')->where('email', $user->email)->first();
         $fecha = now();
 
-        // 🔹 Obtener solo los alumnos de esa materia
+        
         $dniAlumnos = DB::table('tbl_materias_alumno')
             ->where('materia', $req->materia_id)
             ->pluck('alumno')
@@ -85,15 +85,15 @@ class NotaController extends Controller
         foreach ($req->asignaciones as $a) {
             $alumnoId = (int)$a['alumno_id'];
 
-            // 🔹 Verificar que el alumno realmente esté en la materia
+            
             if (!in_array($alumnoId, $idsAlumnosMateria)) {
-                continue; // ❌ se salta este alumno
+                continue; 
             }
 
             $nota = $a['nota'] ?? null;
             $observacion = $a['observacion'] ?? null;
 
-            // 🔹 Solo guardar si hay alguna nota u observación
+           
             if ($nota === null && $observacion === null) {
                 continue;
             }
