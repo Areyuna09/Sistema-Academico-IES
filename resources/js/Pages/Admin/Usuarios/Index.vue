@@ -2,6 +2,8 @@
 import { ref, computed } from 'vue';
 import { Link, router, useForm } from '@inertiajs/vue3';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
+import Dialog from '@/Components/Dialog.vue';
+import { useDialog } from '@/Composables/useDialog';
 
 const props = defineProps({
     usuarios: Object,
@@ -32,16 +34,29 @@ const limpiarFiltros = () => {
     router.get(route('admin.usuarios.index'));
 };
 
-const toggleActivo = (usuario) => {
-    if (confirm(`¿Está seguro de ${usuario.activo ? 'desactivar' : 'activar'} este usuario?`)) {
+const { confirm: showConfirm } = useDialog();
+
+const toggleActivo = async (usuario) => {
+    const action = usuario.activo ? 'desactivar' : 'activar';
+    const confirmed = await showConfirm(
+        `¿Está seguro de ${action} el usuario de ${usuario.nombre}?`,
+        `Confirmar ${action}`
+    );
+
+    if (confirmed) {
         router.post(route('admin.usuarios.toggle', usuario.id), {}, {
             preserveScroll: true,
         });
     }
 };
 
-const eliminarUsuario = (usuario) => {
-    if (confirm(`¿Está seguro de eliminar el usuario de ${usuario.nombre}? Esta acción no se puede deshacer.`)) {
+const eliminarUsuario = async (usuario) => {
+    const confirmed = await showConfirm(
+        `¿Está seguro de eliminar el usuario de ${usuario.nombre}? Esta acción no se puede deshacer y eliminará permanentemente todos los datos asociados.`,
+        'Confirmar eliminación'
+    );
+
+    if (confirmed) {
         router.delete(route('admin.usuarios.destroy', usuario.id), {
             preserveScroll: true,
         });
@@ -259,5 +274,8 @@ const getTipoBadge = (tipo) => {
                 </div>
             </div>
         </div>
+
+        <!-- Dialog component -->
+        <Dialog />
     </SidebarLayout>
 </template>

@@ -2,6 +2,8 @@
 import { ref, watch } from 'vue';
 import { router, Link } from '@inertiajs/vue3';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
+import Dialog from '@/Components/Dialog.vue';
+import { useDialog } from '@/Composables/useDialog';
 
 const props = defineProps({
     mesas: Object,
@@ -34,8 +36,15 @@ const limpiarFiltros = () => {
     aplicarFiltros();
 };
 
-const eliminarMesa = (mesa) => {
-    if (confirm(`¿Está seguro de eliminar la mesa de ${mesa.materia.nombre}?`)) {
+const { confirm: showConfirm } = useDialog();
+
+const eliminarMesa = async (mesa) => {
+    const confirmed = await showConfirm(
+        `¿Está seguro de eliminar la mesa de "${mesa.materia.nombre}"? Esta acción eliminará todos los datos asociados, incluyendo inscripciones y calificaciones.`,
+        'Confirmar eliminación'
+    );
+
+    if (confirmed) {
         router.delete(route('admin.mesas.destroy', mesa.id), {
             preserveScroll: true,
         });
@@ -309,5 +318,8 @@ const getLlamadoTexto = (llamado) => {
                 </div>
             </div>
         </div>
+
+        <!-- Dialog component -->
+        <Dialog />
     </SidebarLayout>
 </template>

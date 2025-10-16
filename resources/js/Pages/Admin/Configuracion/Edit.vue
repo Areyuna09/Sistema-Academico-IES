@@ -2,6 +2,8 @@
 import { ref } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
+import Dialog from '@/Components/Dialog.vue';
+import { useDialog } from '@/Composables/useDialog';
 
 const props = defineProps({
     configuracion: Object,
@@ -17,11 +19,15 @@ const form = useForm({
     cargo_firma: props.configuracion.cargo_firma,
     horarios_atencion: props.configuracion.horarios_atencion,
     logo: null,
+    logo_dark: null,
     firma_digital: null,
 });
 
 const logoPreview = ref(props.configuracion.logo_url);
+const logoDarkPreview = ref(props.configuracion.logo_dark_url);
 const firmaPreview = ref(props.configuracion.firma_digital_url);
+
+const { confirm: showConfirm } = useDialog();
 
 const onLogoChange = (event) => {
     const file = event.target.files[0];
@@ -30,6 +36,18 @@ const onLogoChange = (event) => {
         const reader = new FileReader();
         reader.onload = (e) => {
             logoPreview.value = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+};
+
+const onLogoDarkChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+        form.logo_dark = file;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            logoDarkPreview.value = e.target.result;
         };
         reader.readAsDataURL(file);
     }
@@ -47,8 +65,13 @@ const onFirmaChange = (event) => {
     }
 };
 
-const deleteLogo = () => {
-    if (confirm('¿Está seguro de eliminar el logo?')) {
+const deleteLogo = async () => {
+    const confirmed = await showConfirm(
+        '¿Está seguro de eliminar el logo? Esta acción no se puede deshacer.',
+        'Confirmar eliminación'
+    );
+
+    if (confirmed) {
         router.delete(route('admin.configuracion.delete-logo'), {
             onSuccess: () => {
                 logoPreview.value = null;
@@ -57,8 +80,28 @@ const deleteLogo = () => {
     }
 };
 
-const deleteFirma = () => {
-    if (confirm('¿Está seguro de eliminar la firma digital?')) {
+const deleteLogoDark = async () => {
+    const confirmed = await showConfirm(
+        '¿Está seguro de eliminar el logo oscuro? Esta acción no se puede deshacer.',
+        'Confirmar eliminación'
+    );
+
+    if (confirmed) {
+        router.delete(route('admin.configuracion.delete-logo-dark'), {
+            onSuccess: () => {
+                logoDarkPreview.value = null;
+            }
+        });
+    }
+};
+
+const deleteFirma = async () => {
+    const confirmed = await showConfirm(
+        '¿Está seguro de eliminar la firma digital? Esta acción no se puede deshacer.',
+        'Confirmar eliminación'
+    );
+
+    if (confirmed) {
         router.delete(route('admin.configuracion.delete-firma'), {
             onSuccess: () => {
                 firmaPreview.value = null;
@@ -105,12 +148,17 @@ const submit = () => {
                                 <p v-if="form.errors.nombre_institucion" class="text-red-600 text-sm mt-1">{{ form.errors.nombre_institucion }}</p>
                             </div>
 
-                            <!-- Logo -->
+                            <!-- Logo Claro (para fondos oscuros) -->
                             <div class="md:col-span-2">
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Logo de la Institución</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    Logo de la Institución (Claro)
+                                    <span class="text-xs text-gray-500 font-normal ml-1">- Para fondos oscuros (con letras blancas)</span>
+                                </label>
                                 <div class="flex items-start gap-4">
                                     <div v-if="logoPreview" class="flex-shrink-0">
-                                        <img :src="logoPreview" alt="Logo" class="h-24 w-24 object-contain border rounded-lg p-2">
+                                        <div class="bg-gray-800 p-3 rounded-lg">
+                                            <img :src="logoPreview" alt="Logo Claro" class="h-24 w-24 object-contain">
+                                        </div>
                                         <button
                                             type="button"
                                             @click="deleteLogo"
@@ -130,6 +178,42 @@ const submit = () => {
                                     </div>
                                 </div>
                                 <p v-if="form.errors.logo" class="text-red-600 text-sm mt-1">{{ form.errors.logo }}</p>
+                            </div>
+
+                            <!-- Logo Oscuro (para fondos claros) -->
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    Logo de la Institución (Oscuro)
+                                    <span class="text-xs text-gray-500 font-normal ml-1">- Para fondos claros (con letras negras)</span>
+                                </label>
+                                <div class="flex items-start gap-4">
+                                    <div v-if="logoDarkPreview" class="flex-shrink-0">
+                                        <div class="bg-white p-3 rounded-lg border-2 border-gray-200">
+                                            <img :src="logoDarkPreview" alt="Logo Oscuro" class="h-24 w-24 object-contain">
+                                        </div>
+                                        <button
+                                            type="button"
+                                            @click="deleteLogoDark"
+                                            class="mt-2 text-sm text-red-600 hover:text-red-800"
+                                        >
+                                            Eliminar logo oscuro
+                                        </button>
+                                    </div>
+                                    <div class="flex-1">
+                                        <input
+                                            type="file"
+                                            @change="onLogoDarkChange"
+                                            accept="image/jpeg,image/png,image/jpg,image/svg+xml"
+                                            class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                                        />
+                                        <p class="text-xs text-gray-500 mt-1">Formatos: JPG, PNG, SVG. Tamaño máximo: 2MB</p>
+                                        <p class="text-xs text-blue-600 mt-2">
+                                            <i class="bx bx-info-circle"></i>
+                                            El sistema elegirá automáticamente el logo apropiado según el color de fondo
+                                        </p>
+                                    </div>
+                                </div>
+                                <p v-if="form.errors.logo_dark" class="text-red-600 text-sm mt-1">{{ form.errors.logo_dark }}</p>
                             </div>
                         </div>
                     </div>
@@ -275,5 +359,8 @@ const submit = () => {
                 </form>
             </div>
         </div>
+
+        <!-- Dialog component -->
+        <Dialog />
     </SidebarLayout>
 </template>

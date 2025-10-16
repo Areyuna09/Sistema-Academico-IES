@@ -2,6 +2,8 @@
 import { ref, computed } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
+import Dialog from '@/Components/Dialog.vue';
+import { useDialog } from '@/Composables/useDialog';
 
 const props = defineProps({
     reglas: Object,
@@ -38,9 +40,16 @@ const limpiarFiltros = () => {
     router.get('/admin/correlativas');
 };
 
+const { confirm: showConfirm } = useDialog();
+
 // Toggle activación de regla
-const toggleRegla = (reglaId) => {
-    if (confirm('¿Está seguro de cambiar el estado de esta regla?')) {
+const toggleRegla = async (reglaId) => {
+    const confirmed = await showConfirm(
+        '¿Está seguro de cambiar el estado de esta regla de correlativa?',
+        'Confirmar cambio'
+    );
+
+    if (confirmed) {
         router.post(`/admin/correlativas/${reglaId}/toggle`, {}, {
             preserveState: true,
             preserveScroll: true,
@@ -49,8 +58,13 @@ const toggleRegla = (reglaId) => {
 };
 
 // Eliminar regla
-const eliminarRegla = (reglaId) => {
-    if (confirm('¿Está seguro de eliminar esta regla de correlativa? Esta acción no se puede deshacer.')) {
+const eliminarRegla = async (reglaId) => {
+    const confirmed = await showConfirm(
+        '¿Está seguro de eliminar esta regla de correlativa? Esta acción no se puede deshacer y puede afectar la inscripción de alumnos a materias.',
+        'Confirmar eliminación'
+    );
+
+    if (confirmed) {
         router.delete(`/admin/correlativas/${reglaId}`, {
             preserveState: true,
             preserveScroll: true,
@@ -265,5 +279,8 @@ const getEstadoBadgeClass = (estado) => {
                     </div>
                 </div>
         </div>
+
+        <!-- Dialog component -->
+        <Dialog />
     </SidebarLayout>
 </template>

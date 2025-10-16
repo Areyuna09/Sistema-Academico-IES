@@ -2,7 +2,9 @@
 import { useForm } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
+import Dialog from '@/Components/Dialog.vue';
 import { Link } from '@inertiajs/vue3';
+import { useDialog } from '@/Composables/useDialog';
 
 const props = defineProps({
     carreras: Array,
@@ -51,8 +53,10 @@ const aniosDisponibles = computed(() => {
     return anios.sort((a, b) => a - b);
 });
 
+const { alert: showAlert } = useDialog();
+
 // Validar que no sea fin de semana
-const validarNoFinDeSemana = (fecha) => {
+const validarNoFinDeSemana = async (fecha) => {
     if (!fecha) return;
 
     const date = new Date(fecha + 'T00:00:00');
@@ -60,7 +64,7 @@ const validarNoFinDeSemana = (fecha) => {
 
     // 0 = Domingo, 6 = Sábado
     if (dayOfWeek === 0 || dayOfWeek === 6) {
-        alert('No se pueden seleccionar sábados ni domingos para exámenes');
+        await showAlert('No se pueden seleccionar sábados ni domingos para exámenes', 'Fecha no válida');
         form.fecha_examen = '';
     }
 };
@@ -342,5 +346,8 @@ const submit = () => {
                 </form>
             </div>
         </div>
+
+        <!-- Dialog component -->
+        <Dialog />
     </SidebarLayout>
 </template>

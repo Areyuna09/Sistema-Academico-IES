@@ -2,6 +2,8 @@
 import { ref, computed } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
+import Dialog from '@/Components/Dialog.vue';
+import { useDialog } from '@/Composables/useDialog';
 
 const props = defineProps({
     mesas: Array,
@@ -84,8 +86,15 @@ const confirmarInscripcion = () => {
     }
 };
 
-const cancelarInscripcion = (mesa) => {
-    if (confirm('¿Estás seguro de cancelar tu inscripción a esta mesa?')) {
+const { confirm: showConfirm } = useDialog();
+
+const cancelarInscripcion = async (mesa) => {
+    const confirmed = await showConfirm(
+        `¿Estás seguro de cancelar tu inscripción a la mesa de "${mesa.materia.nombre}"?`,
+        'Confirmar cancelación'
+    );
+
+    if (confirmed) {
         router.delete(route('mesas.cancelar', mesa.id), {
             preserveScroll: true,
         });
@@ -408,5 +417,8 @@ const getBadgeText = (mesa) => {
                 </div>
             </div>
         </div>
+
+        <!-- Dialog component -->
+        <Dialog />
     </SidebarLayout>
 </template>

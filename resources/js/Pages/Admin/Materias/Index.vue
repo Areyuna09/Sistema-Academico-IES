@@ -2,6 +2,8 @@
 import { ref, computed } from 'vue';
 import { useForm, Link, router } from '@inertiajs/vue3';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
+import Dialog from '@/Components/Dialog.vue';
+import { useDialog } from '@/Composables/useDialog';
 
 const props = defineProps({
     materias: Object,
@@ -31,8 +33,15 @@ const limpiarFiltros = () => {
     form.get(route('admin.materias.index'));
 };
 
-const eliminarMateria = (materia) => {
-    if (confirm(`¿Está seguro de eliminar la materia "${materia.nombre}"?`)) {
+const { confirm: showConfirm } = useDialog();
+
+const eliminarMateria = async (materia) => {
+    const confirmed = await showConfirm(
+        `¿Está seguro de eliminar la materia "${materia.nombre}"? Esta acción no se puede deshacer y puede afectar a mesas de examen, inscripciones y correlatividades asociadas.`,
+        'Confirmar eliminación'
+    );
+
+    if (confirmed) {
         router.delete(route('admin.materias.destroy', materia.id));
     }
 };
@@ -235,5 +244,8 @@ const getSemestreBadge = (semestre) => {
                 </div>
             </div>
         </div>
+
+        <!-- Dialog component -->
+        <Dialog />
     </SidebarLayout>
 </template>

@@ -2,6 +2,8 @@
 import { useForm, Link } from '@inertiajs/vue3';
 import { watch } from 'vue';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
+import Dialog from '@/Components/Dialog.vue';
+import { useDialog } from '@/Composables/useDialog';
 
 const currentYear = new Date().getFullYear();
 
@@ -16,8 +18,10 @@ const form = useForm({
     activo: false,
 });
 
+const { alert: showAlert } = useDialog();
+
 // Validar que no sea fin de semana
-const validarNoFinDeSemana = (fecha, campo) => {
+const validarNoFinDeSemana = async (fecha, campo) => {
     if (!fecha) return;
 
     const date = new Date(fecha + 'T00:00:00');
@@ -25,7 +29,7 @@ const validarNoFinDeSemana = (fecha, campo) => {
 
     // 0 = Domingo, 6 = Sábado
     if (dayOfWeek === 0 || dayOfWeek === 6) {
-        alert('No se pueden seleccionar sábados ni domingos');
+        await showAlert('No se pueden seleccionar sábados ni domingos para las fechas del período', 'Fecha no válida');
         form[campo] = '';
     }
 };
@@ -202,5 +206,8 @@ const submit = () => {
                 </form>
             </div>
         </div>
+
+        <!-- Dialog component -->
+        <Dialog />
     </SidebarLayout>
 </template>

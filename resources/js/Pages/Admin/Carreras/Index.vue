@@ -2,6 +2,8 @@
 import { ref, computed } from 'vue';
 import { useForm, Link, router } from '@inertiajs/vue3';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
+import Dialog from '@/Components/Dialog.vue';
+import { useDialog } from '@/Composables/useDialog';
 
 const props = defineProps({
     carreras: Object,
@@ -24,8 +26,15 @@ const limpiarFiltros = () => {
     form.get(route('admin.carreras.index'));
 };
 
-const eliminarCarrera = (carrera) => {
-    if (confirm(`¿Está seguro de eliminar la carrera "${carrera.nombre}"?`)) {
+const { confirm: showConfirm } = useDialog();
+
+const eliminarCarrera = async (carrera) => {
+    const confirmed = await showConfirm(
+        `¿Está seguro de eliminar la carrera "${carrera.nombre}"? Esta acción no se puede deshacer y puede afectar a materias y alumnos asociados.`,
+        'Confirmar eliminación'
+    );
+
+    if (confirmed) {
         router.delete(route('admin.carreras.destroy', carrera.Id));
     }
 };
@@ -173,5 +182,8 @@ const eliminarCarrera = (carrera) => {
                 </div>
             </div>
         </div>
+
+        <!-- Dialog component -->
+        <Dialog />
     </SidebarLayout>
 </template>
