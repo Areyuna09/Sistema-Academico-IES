@@ -13,6 +13,7 @@ use App\Models\NotaTemporal;
 use App\Models\AlumnoMateria;
 use App\Models\Materia;
 use App\Models\User;
+use App\Models\Notificacion;
 use App\Services\EstadoAcademicoService;
 
 class ExpedienteController extends Controller
@@ -840,6 +841,37 @@ class ExpedienteController extends Controller
                 // No fallar la aprobación por error en email
             }
 
+            // Crear notificación para el profesor
+            try {
+                $profesor = $nota->profesorMateria->profesorRelacion ?? null;
+                $profesorUser = $profesor?->user ?? null;
+
+                if ($profesorUser) {
+                    $alumnoNombre = $nota->alumno->apellido . ', ' . $nota->alumno->nombre;
+                    $materiaNombre = $nota->profesorMateria->materiaRelacion->nombre ?? 'N/A';
+
+                    Notificacion::crear(
+                        $profesorUser->id,
+                        'nota_aprobada',
+                        'Nota Aprobada',
+                        "La nota de {$alumnoNombre} en {$materiaNombre} ({$nota->tipo_evaluacion}: {$nota->nota}) ha sido aprobada por {$user->nombre}",
+                        [
+                            'icono' => 'bx-check-circle',
+                            'color' => 'green',
+                            'url' => route('expediente.index'),
+                            'datos' => [
+                                'nota_id' => $nota->id,
+                                'alumno_id' => $nota->alumno_id,
+                                'nota_valor' => $nota->nota,
+                                'tipo_evaluacion' => $nota->tipo_evaluacion,
+                            ],
+                        ]
+                    );
+                }
+            } catch (\Exception $e) {
+                \Log::error('Error al crear notificación de nota aprobada: ' . $e->getMessage());
+            }
+
             return response()->json([
                 'message' => 'Nota aprobada y transferida al legajo exitosamente. Se notificó al profesor.',
                 'nota' => $nota
@@ -927,6 +959,38 @@ class ExpedienteController extends Controller
                     'error' => $e->getMessage()
                 ]);
                 // No fallar el rechazo por error en email
+            }
+
+            // Crear notificación para el profesor
+            try {
+                $profesor = $nota->profesorMateria->profesorRelacion ?? null;
+                $profesorUser = $profesor?->user ?? null;
+
+                if ($profesorUser) {
+                    $alumnoNombre = $nota->alumno->apellido . ', ' . $nota->alumno->nombre;
+                    $materiaNombre = $nota->profesorMateria->materiaRelacion->nombre ?? 'N/A';
+
+                    Notificacion::crear(
+                        $profesorUser->id,
+                        'nota_rechazada',
+                        'Nota Rechazada',
+                        "La nota de {$alumnoNombre} en {$materiaNombre} ({$nota->tipo_evaluacion}: {$nota->nota}) ha sido rechazada por {$user->nombre}. Motivo: {$request->observaciones}",
+                        [
+                            'icono' => 'bx-x-circle',
+                            'color' => 'red',
+                            'url' => route('expediente.index'),
+                            'datos' => [
+                                'nota_id' => $nota->id,
+                                'alumno_id' => $nota->alumno_id,
+                                'nota_valor' => $nota->nota,
+                                'tipo_evaluacion' => $nota->tipo_evaluacion,
+                                'motivo_rechazo' => $request->observaciones,
+                            ],
+                        ]
+                    );
+                }
+            } catch (\Exception $e) {
+                \Log::error('Error al crear notificación de nota rechazada: ' . $e->getMessage());
             }
 
             return response()->json([

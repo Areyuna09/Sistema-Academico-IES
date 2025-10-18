@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\MesaExamen;
 use App\Models\InscripcionMesa;
 use App\Models\AlumnoMateria;
+use App\Models\Notificacion;
 use App\Services\MotorCorrelativasService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -229,6 +230,28 @@ class InscripcionesMesaController extends Controller
             \Log::error('Error al encolar email de comprobante de mesa: ' . $e->getMessage());
         }
 
+        // Crear notificación para el alumno
+        try {
+            Notificacion::crear(
+                $user->id,
+                'mesa_inscripcion_confirmada',
+                'Inscripción a Mesa Confirmada',
+                "Te has inscrito exitosamente a la mesa de examen de {$mesa->materia->nombre} - {$mesa->llamado} llamado",
+                [
+                    'icono' => 'bx-calendar-check',
+                    'color' => 'green',
+                    'url' => route('mesas.confirmacion', ['inscripcion' => $inscripcion->id]),
+                    'datos' => [
+                        'mesa_id' => $mesa->id,
+                        'materia_id' => $mesa->materia_id,
+                        'fecha_examen' => $mesa->fecha_examen->format('d/m/Y'),
+                    ],
+                ]
+            );
+        } catch (\Exception $e) {
+            \Log::error('Error al crear notificación de mesa: ' . $e->getMessage());
+        }
+
         return redirect()->route('mesas.confirmacion', ['inscripcion' => $inscripcion->id])
             ->with('success', 'Te inscribiste exitosamente a la mesa de examen.');
     }
@@ -266,6 +289,28 @@ class InscripcionesMesaController extends Controller
         }
 
         $inscripcion->delete();
+
+        // Crear notificación de cancelación
+        try {
+            Notificacion::crear(
+                $user->id,
+                'mesa_cancelacion',
+                'Inscripción Cancelada',
+                "Has cancelado tu inscripción a la mesa de examen de {$mesa->materia->nombre} - {$mesa->llamado} llamado",
+                [
+                    'icono' => 'bx-calendar-x',
+                    'color' => 'orange',
+                    'url' => route('mesas.index'),
+                    'datos' => [
+                        'mesa_id' => $mesa->id,
+                        'materia_nombre' => $mesa->materia->nombre,
+                        'fecha_examen' => $mesa->fecha_examen->format('d/m/Y'),
+                    ],
+                ]
+            );
+        } catch (\Exception $e) {
+            \Log::error('Error al crear notificación de cancelación de mesa: ' . $e->getMessage());
+        }
 
         return redirect()->route('mesas.index')
             ->with('success', 'Inscripción cancelada exitosamente.');

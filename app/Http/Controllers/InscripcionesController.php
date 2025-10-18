@@ -8,6 +8,7 @@ use App\Models\Materia;
 use App\Models\PeriodoInscripcion;
 use App\Models\Inscripcion;
 use App\Models\Configuracion;
+use App\Models\Notificacion;
 use App\Services\MotorCorrelativasService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -335,6 +336,31 @@ class InscripcionesController extends Controller
                 } catch (\Exception $e) {
                     \Log::error('Error al encolar email de comprobante: ' . $e->getMessage());
                     // No fallar la inscripción por error en email
+                }
+
+                // Crear notificación para el alumno
+                try {
+                    $materiasNombres = $inscripcionesCreadas->pluck('materia.nombre')->take(3)->join(', ');
+                    $cantidadMaterias = $inscripcionesCreadas->count();
+                    $restoMaterias = $cantidadMaterias > 3 ? ' y ' . ($cantidadMaterias - 3) . ' más' : '';
+
+                    Notificacion::crear(
+                        $user->id,
+                        'inscripcion_confirmada',
+                        'Inscripción Confirmada',
+                        "Te has inscrito exitosamente a {$cantidadMaterias} " . ($cantidadMaterias === 1 ? 'materia' : 'materias') . ": {$materiasNombres}{$restoMaterias}",
+                        [
+                            'icono' => 'bx-check-circle',
+                            'color' => 'green',
+                            'url' => route('inscripciones.confirmacion'),
+                            'datos' => [
+                                'periodo_id' => $periodoActivo->id,
+                                'cantidad_materias' => $cantidadMaterias,
+                            ],
+                        ]
+                    );
+                } catch (\Exception $e) {
+                    \Log::error('Error al crear notificación de inscripción: ' . $e->getMessage());
                 }
 
                 // Preparar mensaje de respuesta

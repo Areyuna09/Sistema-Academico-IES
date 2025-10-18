@@ -93,6 +93,14 @@ const menuItems = computed(() => {
         });
     }
 
+    // Plan de Estudio para todos los usuarios
+    baseItems.push({
+        name: "Plan de Estudio",
+        route: "plan-estudio",
+        icon: "bx-book-bookmark",
+        path: "/plan-estudio",
+    });
+
     // Filtrar items según tipo de usuario
     if (page.props.auth.user?.tipo === 4) {
         // Alumno: mostrar items de alumno y comunes
@@ -184,11 +192,8 @@ const parametrosItems = computed(() => {
                     class="w-10 h-10 flex items-center justify-center flex-shrink-0"
                 >
                     <img
-                        :src="
-                            $page.props.configuracion.logo_url ||
-                            '/images/logo-ies-original.png'
-                        "
-                        :alt="$page.props.configuracion.nombre_institucion"
+                        src="/images/logo-ies-original.png"
+                        alt="IES G.M. Belgrano"
                         class="w-full h-full object-contain"
                     />
                 </div>
