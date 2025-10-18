@@ -354,15 +354,29 @@ class MotorCorrelativasService
 
                 $materiaAlumno = $materiasAlumno->where('materia', $correlativaId)->first();
 
-                // Para rendir se requiere que las correlativas estén aprobadas
-                if (!$materiaAlumno || !$materiaAlumno->estaAprobada()) {
+                // IMPORTANTE: Si la materia está aprobada, cumple CUALQUIER requisito
+                // (tanto "regular" como "aprobada"), por lo que NO debería bloquearse
+                // Solo se bloquea si: no la cursó O solo está regular (no aprobada)
+                if (!$materiaAlumno) {
+                    // No cursó la correlativa
                     $correlativasFaltantes[] = [
                         'id' => $correlativaId,
                         'nombre' => $materiaCorrelativa->nombre,
                         'estado_requerido' => 'aprobada',
-                        'estado_actual' => $materiaAlumno ? ($materiaAlumno->estaRegular() ? 'regular' : 'no cursada') : 'no cursada',
+                        'estado_actual' => 'no cursada',
+                    ];
+                } elseif (!$materiaAlumno->estaAprobada()) {
+                    // La cursó pero NO está aprobada
+                    // Si para rendir se requiere aprobada, entonces falta
+                    $correlativasFaltantes[] = [
+                        'id' => $correlativaId,
+                        'nombre' => $materiaCorrelativa->nombre,
+                        'estado_requerido' => 'aprobada',
+                        'estado_actual' => $materiaAlumno->estaRegular() ? 'regular' : 'no cursada',
                     ];
                 }
+                // Si está aprobada, NO agregamos nada a correlativasFaltantes
+                // porque cumple todos los requisitos posibles
             }
         }
 

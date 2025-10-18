@@ -122,11 +122,13 @@ class ValidacionCursadoService
         foreach ($materiasIds as $materiaId) {
             $registro = $historial->firstWhere('materia', $materiaId);
 
-            if ($registro && $registro->estaRegular()) {
+            // IMPORTANTE: Si la materia está aprobada, cumple CUALQUIER requisito
+            // (tanto "regular" como "aprobada"). Solo verificamos que esté al menos regular O aprobada.
+            if ($registro && ($registro->estaRegular() || $registro->estaAprobada())) {
                 $cumplidas[] = [
                     'materia_id' => $materiaId,
                     'materia_nombre' => $registro->materiaRelacion->nombre ?? 'Desconocida',
-                    'estado' => 'regular',
+                    'estado' => $registro->estaAprobada() ? 'aprobada' : 'regular',
                     'nota' => $registro->nota,
                     'fecha' => $registro->fecha?->format('Y-m-d'),
                 ];
