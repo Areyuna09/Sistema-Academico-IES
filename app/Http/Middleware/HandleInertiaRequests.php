@@ -48,14 +48,20 @@ class HandleInertiaRequests extends Middleware
             ],
             'configuracion' => $configuracion ? [
                 'nombre_institucion' => $configuracion->nombre_institucion ?? 'IES Gral. Manuel Belgrano',
-                'logo_url' => $configuracion->logo_path ? Storage::url($configuracion->logo_path) : '/images/logo-ies-original.png',
-                'logo_dark_url' => $configuracion->logo_dark_path ? Storage::url($configuracion->logo_dark_path) : null,
+                'logo_url' => ($configuracion->logo_path && Storage::exists($configuracion->logo_path))
+                    ? Storage::url($configuracion->logo_path)
+                    : '/images/logo-ies-original.png',
+                'logo_dark_url' => ($configuracion->logo_dark_path && Storage::exists($configuracion->logo_dark_path))
+                    ? Storage::url($configuracion->logo_dark_path)
+                    : null,
                 'telefono' => $configuracion->telefono ?? null,
                 'email' => $configuracion->email ?? null,
                 'sitio_web' => $configuracion->sitio_web ?? null,
                 'direccion' => $configuracion->direccion ?? null,
                 'footer_documentos' => $configuracion->footer_documentos ?? null,
-                'firma_digital_url' => $configuracion->firma_digital_path ? Storage::url($configuracion->firma_digital_path) : null,
+                'firma_digital_url' => ($configuracion->firma_digital_path && Storage::exists($configuracion->firma_digital_path))
+                    ? Storage::url($configuracion->firma_digital_path)
+                    : null,
                 'cargo_firma' => $configuracion->cargo_firma ?? null,
             ] : [
                 'nombre_institucion' => 'IES Gral. Manuel Belgrano',
