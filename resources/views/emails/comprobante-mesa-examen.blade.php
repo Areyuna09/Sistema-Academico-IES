@@ -183,13 +183,13 @@
         <!-- Header -->
         <div class="header">
             @php
-                // Para PDFs con fondo blanco, usar logo oscuro (con letras negras) si está disponible
-                $logoPath = $configuracion->logo_dark_path ?? $configuracion->logo_path;
+                // Para emails usar logo normal
+                $logoPath = $configuracion->logo_path;
             @endphp
             @if($logoPath)
-                <img src="{{ public_path('storage/' . $logoPath) }}" alt="Logo {{ $configuracion->nombre_institucion }}" class="logo">
+                <img src="{{ asset('storage/' . $logoPath) }}" alt="Logo {{ $configuracion->nombre_institucion }}" class="logo">
             @else
-                <img src="{{ public_path('images/logo-ies-original.png') }}" alt="Logo IES" class="logo">
+                <img src="{{ asset('images/logo-ies-original.png') }}" alt="Logo IES" class="logo">
             @endif
             <div class="institution-name">{{ $configuracion->nombre_institucion }}</div>
             <div class="document-title">Comprobante de Inscripción a Mesa de Examen</div>
@@ -248,12 +248,6 @@
                 <td class="label">Hora:</td>
                 <td class="value">{{ $datos['mesa']['hora_examen'] }}</td>
             </tr>
-            @if($datos['mesa']['aula'])
-            <tr>
-                <td class="label">Aula:</td>
-                <td class="value">{{ $datos['mesa']['aula'] }}</td>
-            </tr>
-            @endif
         </table>
 
         <!-- Tribunal -->
@@ -313,6 +307,7 @@
                 </div>
             </div>
 
+            {{-- Firma digital desactivada hasta ser necesaria
             <div class="footer-signature">
                 @if($configuracion->firma_digital_path)
                     <img src="{{ public_path('storage/' . $configuracion->firma_digital_path) }}" alt="Firma" style="max-width: 120px; height: auto; margin-bottom: 5px;">
@@ -321,6 +316,7 @@
                 @endif
                 <div class="signature-label">{{ $configuracion->cargo_firma ?? 'Secretaría Académica' }}</div>
             </div>
+            --}}
 
             <div class="footer-note">
                 @if($configuracion->footer_documentos)

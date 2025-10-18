@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\InscripcionesController;
 use App\Http\Controllers\InscripcionesMesaController;
 use App\Http\Controllers\ExpedienteController;
+use App\Http\Controllers\NotificacionesController;
 use App\Http\Controllers\Admin\CorrelativasController;
 use App\Http\Controllers\Admin\UsuariosController;
 use App\Http\Controllers\Admin\CarrerasController;
@@ -11,6 +12,7 @@ use App\Http\Controllers\Admin\MateriasController;
 use App\Http\Controllers\Admin\PeriodosController;
 use App\Http\Controllers\Admin\ConfiguracionController;
 use App\Http\Controllers\Admin\MesasExamenController;
+use App\Http\Controllers\Admin\ExcepcionesController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -60,6 +62,19 @@ Route::middleware('auth')->group(function () {
     Route::get('/mesas/confirmacion/{inscripcion}', [InscripcionesMesaController::class, 'confirmacion'])->name('mesas.confirmacion');
     Route::get('/mesas/comprobante/{inscripcion}/pdf', [InscripcionesMesaController::class, 'descargarComprobante'])->name('mesas.comprobante.pdf');
     Route::get('/mis-mesas', [InscripcionesMesaController::class, 'misInscripciones'])->name('mesas.mis-inscripciones');
+
+    // Plan de Estudio
+    Route::get('/plan-estudio', function () {
+        return Inertia::render('PlanDeEstudio');
+    })->name('plan-estudio');
+
+    // Notificaciones
+    Route::get('/notificaciones', [NotificacionesController::class, 'index'])->name('notificaciones.index');
+    Route::get('/notificaciones/contador', [NotificacionesController::class, 'contador'])->name('notificaciones.contador');
+    Route::post('/notificaciones/{notificacion}/marcar-leida', [NotificacionesController::class, 'marcarLeida'])->name('notificaciones.marcar-leida');
+    Route::post('/notificaciones/marcar-todas-leidas', [NotificacionesController::class, 'marcarTodasLeidas'])->name('notificaciones.marcar-todas-leidas');
+    Route::delete('/notificaciones/{notificacion}', [NotificacionesController::class, 'destroy'])->name('notificaciones.destroy');
+    Route::delete('/notificaciones/limpiar-leidas', [NotificacionesController::class, 'limpiarLeidas'])->name('notificaciones.limpiar-leidas');
 });
 
 // Rutas de administración (solo para admin y profesores)
@@ -130,6 +145,18 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 
     // Importación masiva
     Route::post('/correlativas/importar', [CorrelativasController::class, 'importar'])->name('correlativas.importar');
+
+    // Gestión de Excepciones (Parámetros)
+    Route::get('/excepciones', [ExcepcionesController::class, 'index'])->name('excepciones.index');
+    Route::post('/excepciones', [ExcepcionesController::class, 'store'])->name('excepciones.store');
+    Route::put('/excepciones/{excepcion}', [ExcepcionesController::class, 'update'])->name('excepciones.update');
+    Route::delete('/excepciones/{excepcion}', [ExcepcionesController::class, 'destroy'])->name('excepciones.destroy');
+
+    // Configuración de Módulos del Sistema
+    Route::get('/configuracion-modulos', [\App\Http\Controllers\Admin\ConfiguracionModulosController::class, 'index'])->name('configuracion-modulos.index');
+    Route::post('/configuracion-modulos/{modulo}/toggle', [\App\Http\Controllers\Admin\ConfiguracionModulosController::class, 'toggle'])->name('configuracion-modulos.toggle');
+    Route::post('/configuracion-modulos/update-batch', [\App\Http\Controllers\Admin\ConfiguracionModulosController::class, 'updateBatch'])->name('configuracion-modulos.update-batch');
+    Route::post('/configuracion-modulos/reset', [\App\Http\Controllers\Admin\ConfiguracionModulosController::class, 'resetDefaults'])->name('configuracion-modulos.reset');
 });
 
 // Rutas de Profesores (asistencias y materias)

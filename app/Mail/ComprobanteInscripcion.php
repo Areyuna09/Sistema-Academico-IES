@@ -16,6 +16,7 @@ class ComprobanteInscripcion extends Mailable
     public $alumno;
     public $inscripciones;
     public $periodo;
+    public $configuracion;
 
     /**
      * Create a new message instance.
@@ -25,6 +26,7 @@ class ComprobanteInscripcion extends Mailable
         $this->alumno = $alumno;
         $this->inscripciones = $inscripciones;
         $this->periodo = $periodo;
+        $this->configuracion = \App\Models\Configuracion::get();
     }
 
     /**
@@ -54,6 +56,19 @@ class ComprobanteInscripcion extends Mailable
      */
     public function attachments(): array
     {
-        return [];
+        $attachments = [];
+
+        // Adjuntar logo como imagen embebida
+        if ($this->configuracion->logo_path && file_exists(storage_path('app/public/' . $this->configuracion->logo_path))) {
+            $attachments[] = \Illuminate\Mail\Mailables\Attachment::fromPath(storage_path('app/public/' . $this->configuracion->logo_path))
+                ->as('logo.png')
+                ->withMime('image/png');
+        } elseif (file_exists(public_path('images/logo-ies-original.png'))) {
+            $attachments[] = \Illuminate\Mail\Mailables\Attachment::fromPath(public_path('images/logo-ies-original.png'))
+                ->as('logo.png')
+                ->withMime('image/png');
+        }
+
+        return $attachments;
     }
 }

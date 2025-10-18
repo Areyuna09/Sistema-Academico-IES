@@ -19,7 +19,6 @@ const form = useForm({
     hora_examen: '17:30',
     llamado: 1,
     periodo_id: '',
-    aula: '',
     presidente_id: '',
     vocal1_id: '',
     vocal2_id: '',

@@ -1,9 +1,7 @@
 <script setup>
 import { useForm, Link } from '@inertiajs/vue3';
-import { watch } from 'vue';
+import { ref } from 'vue';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
-import Dialog from '@/Components/Dialog.vue';
-import { useDialog } from '@/Composables/useDialog';
 
 const currentYear = new Date().getFullYear();
 
@@ -18,29 +16,38 @@ const form = useForm({
     activo: false,
 });
 
-const { alert: showAlert } = useDialog();
+const validationErrors = ref({});
 
 // Validar que no sea fin de semana
-const validarNoFinDeSemana = async (fecha, campo) => {
-    if (!fecha) return;
-
+const esFinDeSemana = (fecha) => {
+    if (!fecha) return false;
     const date = new Date(fecha + 'T00:00:00');
     const dayOfWeek = date.getDay();
-
-    // 0 = Domingo, 6 = Sábado
-    if (dayOfWeek === 0 || dayOfWeek === 6) {
-        await showAlert('No se pueden seleccionar sábados ni domingos para las fechas del período', 'Fecha no válida');
-        form[campo] = '';
-    }
+    return dayOfWeek === 0 || dayOfWeek === 6;
 };
 
-// Watchers para validar fechas
-watch(() => form.fecha_inicio_inscripcion, (valor) => validarNoFinDeSemana(valor, 'fecha_inicio_inscripcion'));
-watch(() => form.fecha_fin_inscripcion, (valor) => validarNoFinDeSemana(valor, 'fecha_fin_inscripcion'));
-watch(() => form.fecha_inicio_cursada, (valor) => validarNoFinDeSemana(valor, 'fecha_inicio_cursada'));
-watch(() => form.fecha_fin_cursada, (valor) => validarNoFinDeSemana(valor, 'fecha_fin_cursada'));
-
 const submit = () => {
+    validationErrors.value = {};
+
+    // Validar fechas de fin de semana
+    if (esFinDeSemana(form.fecha_inicio_inscripcion)) {
+        validationErrors.value.fecha_inicio_inscripcion = 'No se pueden seleccionar sábados ni domingos';
+    }
+    if (esFinDeSemana(form.fecha_fin_inscripcion)) {
+        validationErrors.value.fecha_fin_inscripcion = 'No se pueden seleccionar sábados ni domingos';
+    }
+    if (esFinDeSemana(form.fecha_inicio_cursada)) {
+        validationErrors.value.fecha_inicio_cursada = 'No se pueden seleccionar sábados ni domingos';
+    }
+    if (esFinDeSemana(form.fecha_fin_cursada)) {
+        validationErrors.value.fecha_fin_cursada = 'No se pueden seleccionar sábados ni domingos';
+    }
+
+    // Si hay errores de validación, no enviar
+    if (Object.keys(validationErrors.value).length > 0) {
+        return;
+    }
+
     form.post(route('admin.periodos.store'));
 };
 </script>
@@ -120,7 +127,9 @@ const submit = () => {
                                         required
                                         class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
                                     />
-                                    <p v-if="form.errors.fecha_inicio_inscripcion" class="text-red-600 text-sm mt-1">{{ form.errors.fecha_inicio_inscripcion }}</p>
+                                    <p v-if="validationErrors.fecha_inicio_inscripcion || form.errors.fecha_inicio_inscripcion" class="text-red-600 text-sm mt-1">
+                                        {{ validationErrors.fecha_inicio_inscripcion || form.errors.fecha_inicio_inscripcion }}
+                                    </p>
                                 </div>
 
                                 <div>
@@ -133,7 +142,9 @@ const submit = () => {
                                         required
                                         class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
                                     />
-                                    <p v-if="form.errors.fecha_fin_inscripcion" class="text-red-600 text-sm mt-1">{{ form.errors.fecha_fin_inscripcion }}</p>
+                                    <p v-if="validationErrors.fecha_fin_inscripcion || form.errors.fecha_fin_inscripcion" class="text-red-600 text-sm mt-1">
+                                        {{ validationErrors.fecha_fin_inscripcion || form.errors.fecha_fin_inscripcion }}
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -152,7 +163,9 @@ const submit = () => {
                                         required
                                         class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
                                     />
-                                    <p v-if="form.errors.fecha_inicio_cursada" class="text-red-600 text-sm mt-1">{{ form.errors.fecha_inicio_cursada }}</p>
+                                    <p v-if="validationErrors.fecha_inicio_cursada || form.errors.fecha_inicio_cursada" class="text-red-600 text-sm mt-1">
+                                        {{ validationErrors.fecha_inicio_cursada || form.errors.fecha_inicio_cursada }}
+                                    </p>
                                 </div>
 
                                 <div>
@@ -165,7 +178,9 @@ const submit = () => {
                                         required
                                         class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
                                     />
-                                    <p v-if="form.errors.fecha_fin_cursada" class="text-red-600 text-sm mt-1">{{ form.errors.fecha_fin_cursada }}</p>
+                                    <p v-if="validationErrors.fecha_fin_cursada || form.errors.fecha_fin_cursada" class="text-red-600 text-sm mt-1">
+                                        {{ validationErrors.fecha_fin_cursada || form.errors.fecha_fin_cursada }}
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -206,8 +221,5 @@ const submit = () => {
                 </form>
             </div>
         </div>
-
-        <!-- Dialog component -->
-        <Dialog />
     </SidebarLayout>
 </template>

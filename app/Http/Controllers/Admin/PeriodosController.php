@@ -69,7 +69,7 @@ class PeriodosController extends Controller
             'anio' => 'required|integer|min:2020|max:2050',
             'fecha_inicio_inscripcion' => 'required|date',
             'fecha_fin_inscripcion' => 'required|date|after:fecha_inicio_inscripcion',
-            'fecha_inicio_cursada' => 'required|date|after_or_equal:fecha_inicio_inscripcion',
+            'fecha_inicio_cursada' => 'required|date',
             'fecha_fin_cursada' => 'required|date|after:fecha_inicio_cursada',
             'activo' => 'boolean',
         ]);
@@ -125,7 +125,7 @@ class PeriodosController extends Controller
             'anio' => 'required|integer|min:2020|max:2050',
             'fecha_inicio_inscripcion' => 'required|date',
             'fecha_fin_inscripcion' => 'required|date|after:fecha_inicio_inscripcion',
-            'fecha_inicio_cursada' => 'required|date|after_or_equal:fecha_inicio_inscripcion',
+            'fecha_inicio_cursada' => 'required|date',
             'fecha_fin_cursada' => 'required|date|after:fecha_inicio_cursada',
             'activo' => 'boolean',
         ]);

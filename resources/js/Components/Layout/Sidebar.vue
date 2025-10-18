@@ -74,12 +74,6 @@ const menuItems = computed(() => {
             onlyAlumno: true,
         },
         {
-            name: "Expediente",
-            route: "expediente",
-            icon: "bx-folder-open",
-            path: "/expediente",
-        },
-        {
             name: "Mesas",
             route: "mesas",
             icon: "bx-calendar-event",
@@ -89,15 +83,15 @@ const menuItems = computed(() => {
         },
     ];
 
-    // Agregar opciones para admin o profesor si se necesita en el futuro
-    // if (isAdminOrProfesor.value) {
-    //     baseItems.push({
-    //         name: "Expedientes",
-    //         route: "admin/expedientes",
-    //         icon: "bx-folder-open",
-    //         path: "/admin/expedientes",
-    //     });
-    // }
+    // Agregar "Expediente" solo para Admin y Profesores
+    if (isAdminOrProfesor.value) {
+        baseItems.push({
+            name: "Expediente",
+            route: "expediente",
+            icon: "bx-folder-open",
+            path: "/expediente",
+        });
+    }
 
     // Filtrar items según tipo de usuario
     if (page.props.auth.user?.tipo === 4) {
@@ -106,10 +100,10 @@ const menuItems = computed(() => {
             (item) => item.onlyAlumno || !item.hasOwnProperty("onlyAlumno")
         );
     } else if (page.props.auth.user?.tipo === 3) {
-        // Profesor: mostrar inicio, expediente y parámetros
+        // Profesor: mostrar inicio, expediente (agregado dinámicamente) y parámetros
         return baseItems.filter((item) => !item.onlyAlumno);
     } else {
-        // Admin: mostrar solo inicio, expediente y parámetros
+        // Admin: mostrar inicio, expediente (agregado dinámicamente) y parámetros
         return baseItems.filter((item) => !item.onlyAlumno);
     }
 });
@@ -150,10 +144,22 @@ const parametrosItems = computed(() => {
             path: "/admin/correlativas",
         },
         {
+            name: "Excepciones",
+            route: "admin.excepciones.index",
+            icon: "bx-error-circle",
+            path: "/admin/excepciones",
+        },
+        {
             name: "Configuración",
             route: "admin.configuracion.index",
             icon: "bx-cog",
             path: "/admin/configuracion",
+        },
+        {
+            name: "Módulos del Sistema",
+            route: "admin.configuracion-modulos.index",
+            icon: "bx-package",
+            path: "/admin/configuracion-modulos",
         },
     ];
 });

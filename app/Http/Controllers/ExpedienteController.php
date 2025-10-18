@@ -40,10 +40,13 @@ class ExpedienteController extends Controller
             return $this->mostrarPanelAdmin($request);
         }
 
-        // Alumno: redirigir a su propio expediente
-        if ($user->tipo == 4 && $user->alumno_id) {
-            \Log::info('Redirigiendo a expediente del alumno');
-            return redirect()->route('expediente.show', $user->alumno_id);
+        // Alumno: NO tiene acceso al expediente (no pueden ver sus notas)
+        if ($user->tipo == 4) {
+            \Log::warning('Alumno intentó acceder a expediente - acceso denegado', [
+                'user_id' => $user->id,
+                'user_name' => $user->nombre
+            ]);
+            abort(403, 'Los alumnos no tienen acceso al expediente. Consulta con Secretaría Académica.');
         }
 
         \Log::warning('Usuario sin acceso a expediente', ['tipo' => $user->tipo]);
@@ -182,6 +185,17 @@ class ExpedienteController extends Controller
 
     public function show($id)
     {
+        $user = auth()->user();
+
+        // Bloquear acceso a alumnos
+        if ($user->tipo == 4) {
+            \Log::warning('Alumno intentó acceder a expediente/show - acceso denegado', [
+                'user_id' => $user->id,
+                'alumno_id' => $id
+            ]);
+            abort(403, 'Los alumnos no tienen acceso al expediente. Consulta con Secretaría Académica.');
+        }
+
         $alumno = Alumno::with([
             'carreraRelacion',
             'materiasCursadas.materiaRelacion'
@@ -697,7 +711,7 @@ class ExpedienteController extends Controller
             ], 403);
         }
 
-        $nota = NotaTemporal::with(['alumno', 'profesorMateria'])->findOrFail($id);
+        $nota = NotaTemporal::with(['alumno', 'profesorMateria.materiaRelacion', 'profesorMateria.profesorRelacion.user'])->findOrFail($id);
 
         // Verificar que la nota esté pendiente
         if ($nota->estado !== 'pendiente') {
@@ -801,8 +815,33 @@ class ExpedienteController extends Controller
 
             \DB::commit();
 
+            // Enviar correo al profesor para notificar la aprobación
+            try {
+                $profesor = $nota->profesorMateria->profesorRelacion ?? null;
+                $profesorEmail = $profesor?->user?->email ?? null;
+
+                if ($profesorEmail) {
+                    \Mail::to($profesorEmail)->queue(new \App\Mail\NotaAprobada($nota));
+                    \Log::info('Correo de nota aprobada encolado', [
+                        'nota_id' => $nota->id,
+                        'profesor_email' => $profesorEmail
+                    ]);
+                } else {
+                    \Log::warning('No se pudo enviar correo: profesor sin email', [
+                        'nota_id' => $nota->id,
+                        'profesor_id' => $nota->profesorMateria->profesor ?? null
+                    ]);
+                }
+            } catch (\Exception $e) {
+                \Log::error('Error al encolar correo de nota aprobada', [
+                    'nota_id' => $nota->id,
+                    'error' => $e->getMessage()
+                ]);
+                // No fallar la aprobación por error en email
+            }
+
             return response()->json([
-                'message' => 'Nota aprobada y transferida al legajo exitosamente',
+                'message' => 'Nota aprobada y transferida al legajo exitosamente. Se notificó al profesor.',
                 'nota' => $nota
             ], 200);
 
@@ -835,7 +874,7 @@ class ExpedienteController extends Controller
             'observaciones' => 'required|string|max:500'
         ]);
 
-        $nota = NotaTemporal::findOrFail($id);
+        $nota = NotaTemporal::with(['alumno', 'profesorMateria.materiaRelacion', 'profesorMateria.profesorRelacion.user'])->findOrFail($id);
 
         // Verificar que la nota esté pendiente
         if ($nota->estado !== 'pendiente') {
@@ -865,8 +904,33 @@ class ExpedienteController extends Controller
                 'fecha_rechazo' => now()
             ]);
 
+            // Enviar correo al profesor para que corrija la nota
+            try {
+                $profesor = $nota->profesorMateria->profesorRelacion ?? null;
+                $profesorEmail = $profesor?->user?->email ?? null;
+
+                if ($profesorEmail) {
+                    \Mail::to($profesorEmail)->queue(new \App\Mail\NotaRechazada($nota));
+                    \Log::info('Correo de nota rechazada encolado', [
+                        'nota_id' => $nota->id,
+                        'profesor_email' => $profesorEmail
+                    ]);
+                } else {
+                    \Log::warning('No se pudo enviar correo: profesor sin email', [
+                        'nota_id' => $nota->id,
+                        'profesor_id' => $nota->profesorMateria->profesor ?? null
+                    ]);
+                }
+            } catch (\Exception $e) {
+                \Log::error('Error al encolar correo de nota rechazada', [
+                    'nota_id' => $nota->id,
+                    'error' => $e->getMessage()
+                ]);
+                // No fallar el rechazo por error en email
+            }
+
             return response()->json([
-                'message' => 'Nota rechazada exitosamente',
+                'message' => 'Nota rechazada exitosamente. Se notificó al profesor.',
                 'nota' => $nota
             ], 200);
 

@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\CorrelativasController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Academic\PlanEstudioController;
 
 // Rutas de Autenticación con Sanctum
 Route::post('/login', [AuthController::class, 'login']);
@@ -17,6 +18,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
+
+    // Rutas de Plan de Estudio para alumnos autenticados
+    Route::get('/alumnos/{alumno}/plan-estudio', [PlanEstudioController::class, 'showAlumnoPlan']);
+    Route::patch('/alumnos/{alumno}/materias/{materia}', [PlanEstudioController::class, 'updateAlumnoMateria']);
 });
 
 // Rutas de Correlativas - Motor de Correlativas (RF02, RF03)
@@ -38,3 +43,7 @@ Route::prefix('correlativas')->group(function () {
     // Resumen de alumno
     Route::get('/alumno/{dni}', [CorrelativasController::class, 'obtenerResumenAlumno']);
 });
+
+// Rutas públicas de Plan de Estudio (carreras)
+Route::get('/carreras', [PlanEstudioController::class, 'listCarreras']);
+Route::get('/carreras/{carrera}/plan', [PlanEstudioController::class, 'showCarreraPlan']);

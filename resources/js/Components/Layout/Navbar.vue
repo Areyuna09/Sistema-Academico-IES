@@ -1,4 +1,8 @@
 <script setup>
+import { ref, onMounted, computed } from 'vue';
+import { router } from '@inertiajs/vue3';
+import axios from 'axios';
+
 defineProps({
     sidebarOpen: {
         type: Boolean,
@@ -11,6 +15,109 @@ defineProps({
 });
 
 const emit = defineEmits(['toggleSidebar', 'showHelp']);
+
+// Estado de notificaciones
+const notificaciones = ref([]);
+const noLeidasCount = ref(0);
+const dropdownOpen = ref(false);
+const cargando = ref(false);
+
+// Cargar notificaciones
+const cargarNotificaciones = async () => {
+    try {
+        cargando.value = true;
+        const response = await axios.get(route('notificaciones.index'));
+        notificaciones.value = response.data.notificaciones;
+        noLeidasCount.value = response.data.no_leidas_count;
+    } catch (error) {
+        console.error('Error al cargar notificaciones:', error);
+    } finally {
+        cargando.value = false;
+    }
+};
+
+// Marcar como leída
+const marcarLeida = async (notificacion) => {
+    if (notificacion.leida) return;
+
+    try {
+        await axios.post(route('notificaciones.marcar-leida', notificacion.id));
+        notificacion.leida = true;
+        noLeidasCount.value = Math.max(0, noLeidasCount.value - 1);
+
+        // Si tiene URL, redirigir
+        if (notificacion.url) {
+            router.visit(notificacion.url);
+        }
+    } catch (error) {
+        console.error('Error al marcar notificación:', error);
+    }
+};
+
+// Marcar todas como leídas
+const marcarTodasLeidas = async () => {
+    try {
+        await axios.post(route('notificaciones.marcar-todas-leidas'));
+        notificaciones.value.forEach(n => n.leida = true);
+        noLeidasCount.value = 0;
+    } catch (error) {
+        console.error('Error al marcar todas:', error);
+    }
+};
+
+// Toggle dropdown
+const toggleDropdown = () => {
+    dropdownOpen.value = !dropdownOpen.value;
+    if (dropdownOpen.value && notificaciones.value.length === 0) {
+        cargarNotificaciones();
+    }
+};
+
+// Cerrar al hacer click fuera
+const cerrarDropdown = (event) => {
+    if (!event.target.closest('.notifications-dropdown')) {
+        dropdownOpen.value = false;
+    }
+};
+
+// Polling cada 30 segundos
+const iniciarPolling = () => {
+    setInterval(async () => {
+        try {
+            const response = await axios.get(route('notificaciones.contador'));
+            noLeidasCount.value = response.data.count;
+        } catch (error) {
+            console.error('Error en polling:', error);
+        }
+    }, 30000);
+};
+
+onMounted(() => {
+    cargarNotificaciones();
+    iniciarPolling();
+    document.addEventListener('click', cerrarDropdown);
+});
+
+// Icono por tipo de notificación
+const getIcono = (notificacion) => {
+    return notificacion.icono || 'bx-bell';
+};
+
+// Color por tipo
+const getColor = (notificacion) => {
+    const colores = {
+        'blue': 'text-blue-600',
+        'green': 'text-green-600',
+        'red': 'text-red-600',
+        'yellow': 'text-yellow-600',
+    };
+    return colores[notificacion.color] || 'text-gray-600';
+};
+
+// Notificaciones recientes (últimas 5)
+const notificacionesRecientes = computed(() => {
+    return notificaciones.value.slice(0, 5);
+});
 </script>
 
 <template>
@@ -41,10 +148,94 @@ const emit = defineEmits(['toggleSidebar', 'showHelp']);
                 </button>
 
                 <!-- Notifications -->
-                <button class="relative p-2 text-gray-400 hover:bg-gray-700 hover:text-white rounded-lg transition-all duration-200">
-                    <i class="bx bx-bell text-lg"></i>
-                    <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
-                </button>
+                <div class="relative notifications-dropdown">
+                    <button
+                        @click="toggleDropdown"
+                        class="relative p-2 text-gray-400 hover:bg-gray-700 hover:text-white rounded-lg transition-all duration-200"
+                        title="Notificaciones"
+                    >
+                        <i class="bx bx-bell text-lg"></i>
+                        <span
+                            v-if="noLeidasCount > 0"
+                            class="absolute top-0.5 right-0.5 flex items-center justify-center w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full"
+                        >
+                            {{ noLeidasCount > 9 ? '9+' : noLeidasCount }}
+                        </span>
+                    </button>
+
+                    <!-- Dropdown de notificaciones -->
+                    <div
+                        v-if="dropdownOpen"
+                        class="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50"
+                    >
+                        <!-- Header -->
+                        <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+                            <h3 class="text-sm font-semibold text-gray-900">Notificaciones</h3>
+                            <button
+                                v-if="noLeidasCount > 0"
+                                @click="marcarTodasLeidas"
+                                class="text-xs text-blue-600 hover:text-blue-800"
+                            >
+                                Marcar todas como leídas
+                            </button>
+                        </div>
+
+                        <!-- Lista de notificaciones -->
+                        <div class="max-h-96 overflow-y-auto">
+                            <div v-if="cargando" class="p-8 text-center text-gray-500">
+                                <i class="bx bx-loader-alt bx-spin text-2xl"></i>
+                                <p class="mt-2 text-sm">Cargando...</p>
+                            </div>
+
+                            <div v-else-if="notificacionesRecientes.length === 0" class="p-8 text-center text-gray-500">
+                                <i class="bx bx-bell-off text-4xl mb-2"></i>
+                                <p class="text-sm">No tienes notificaciones</p>
+                            </div>
+
+                            <div v-else>
+                                <div
+                                    v-for="notificacion in notificacionesRecientes"
+                                    :key="notificacion.id"
+                                    @click="marcarLeida(notificacion)"
+                                    :class="[
+                                        'px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer',
+                                        !notificacion.leida && 'bg-blue-50'
+                                    ]"
+                                >
+                                    <div class="flex items-start">
+                                        <div :class="['mr-3 mt-0.5', getColor(notificacion)]">
+                                            <i :class="['bx text-xl', getIcono(notificacion)]"></i>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-sm font-medium text-gray-900 truncate">
+                                                {{ notificacion.titulo }}
+                                            </p>
+                                            <p class="text-xs text-gray-600 mt-1 line-clamp-2">
+                                                {{ notificacion.mensaje }}
+                                            </p>
+                                            <p class="text-xs text-gray-400 mt-1">
+                                                Hace {{ notificacion.tiempo_transcurrido }}
+                                            </p>
+                                        </div>
+                                        <div v-if="!notificacion.leida" class="ml-2">
+                                            <span class="w-2 h-2 bg-blue-600 rounded-full block"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Footer - Ver todas -->
+                        <div v-if="notificaciones.length > 5" class="px-4 py-3 bg-gray-50 border-t border-gray-200 rounded-b-lg">
+                            <button
+                                @click="dropdownOpen = false"
+                                class="w-full text-sm text-blue-600 hover:text-blue-800 font-medium"
+                            >
+                                Ver todas las notificaciones
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </header>

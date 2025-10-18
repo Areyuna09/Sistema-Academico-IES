@@ -18,7 +18,6 @@ const form = useForm({
     hora_examen: props.mesa.hora_examen,
     llamado: props.mesa.llamado,
     periodo_id: props.mesa.periodo_id || '',
-    aula: props.mesa.aula || '',
     presidente_id: props.mesa.presidente?.id || '',
     vocal1_id: props.mesa.vocal1?.id || '',
     vocal2_id: props.mesa.vocal2?.id || '',
