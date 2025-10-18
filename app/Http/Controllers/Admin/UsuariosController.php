@@ -110,18 +110,22 @@ class UsuariosController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'dni' => 'required|string|max:20|unique:tbl_usuarios,dni',
-            'nombre' => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:tbl_usuarios,email',
+            'dni' => ['required', 'string', 'max:10', 'regex:/^[0-9]+$/', 'unique:tbl_usuarios,dni'],
+            'nombre' => ['required', 'string', 'max:100', 'regex:/^.*[a-zA-ZáéíóúÁÉÍÓÚñÑ]+.*$/'],
+            'email' => 'required|email|max:100|unique:tbl_usuarios,email',
             'tipo' => ['required', 'integer', Rule::in([TipoUsuario::ADMIN, TipoUsuario::PROFESOR, TipoUsuario::ALUMNO])],
             'password' => 'required|string|min:6|confirmed',
-            'telefono' => 'nullable|string|max:50',
+            'telefono' => ['nullable', 'string', 'max:20', 'regex:/^[0-9\s\-\+\(\)]+$/'],
             'alumno_id' => 'nullable|exists:tbl_alumnos,id',
             'profesor_id' => 'nullable|exists:tbl_profesores,id',
             'pais' => 'nullable|exists:tbl_paises,id',
             'provincia' => 'nullable|exists:tbl_provincias,id',
             'sexo' => 'nullable|exists:tbl_sexos,id',
             'activo' => 'boolean',
+        ], [
+            'dni.regex' => 'El DNI debe contener solo números.',
+            'nombre.regex' => 'El nombre debe contener al menos una letra.',
+            'telefono.regex' => 'El teléfono solo puede contener números, espacios, guiones, paréntesis y signo +.',
         ]);
 
         // Validar que solo se vincule a alumno O profesor, no ambos
@@ -244,18 +248,22 @@ class UsuariosController extends Controller
     public function update(Request $request, User $usuario)
     {
         $validated = $request->validate([
-            'dni' => ['required', 'string', 'max:20', Rule::unique('tbl_usuarios')->ignore($usuario->id)],
-            'nombre' => 'required|string|max:255',
-            'email' => ['required', 'email', 'max:255', Rule::unique('tbl_usuarios')->ignore($usuario->id)],
+            'dni' => ['required', 'string', 'max:10', 'regex:/^[0-9]+$/', Rule::unique('tbl_usuarios')->ignore($usuario->id)],
+            'nombre' => ['required', 'string', 'max:100', 'regex:/^.*[a-zA-ZáéíóúÁÉÍÓÚñÑ]+.*$/'],
+            'email' => ['required', 'email', 'max:100', Rule::unique('tbl_usuarios')->ignore($usuario->id)],
             'tipo' => ['required', 'integer', Rule::in([TipoUsuario::ADMIN, TipoUsuario::PROFESOR, TipoUsuario::ALUMNO])],
             'password' => 'nullable|string|min:6|confirmed',
-            'telefono' => 'nullable|string|max:50',
+            'telefono' => ['nullable', 'string', 'max:20', 'regex:/^[0-9\s\-\+\(\)]+$/'],
             'alumno_id' => 'nullable|exists:tbl_alumnos,id',
             'profesor_id' => 'nullable|exists:tbl_profesores,id',
             'pais' => 'nullable|exists:tbl_paises,id',
             'provincia' => 'nullable|exists:tbl_provincias,id',
             'sexo' => 'nullable|exists:tbl_sexos,id',
             'activo' => 'boolean',
+        ], [
+            'dni.regex' => 'El DNI debe contener solo números.',
+            'nombre.regex' => 'El nombre debe contener al menos una letra.',
+            'telefono.regex' => 'El teléfono solo puede contener números, espacios, guiones, paréntesis y signo +.',
         ]);
 
         // Validaciones de vinculación

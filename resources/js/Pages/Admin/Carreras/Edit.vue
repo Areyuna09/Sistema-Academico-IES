@@ -53,6 +53,7 @@ const submit = () => {
                                 v-model="form.nombre"
                                 type="text"
                                 required
+                                maxlength="55"
                                 class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
                                 placeholder="Ej: Tecnicatura en Desarrollo de Software"
                             />
@@ -67,6 +68,7 @@ const submit = () => {
                             <input
                                 v-model="form.resolucion"
                                 type="text"
+                                maxlength="55"
                                 class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
                                 placeholder="Ej: Res. N° 1234/2024"
                             />

@@ -1201,6 +1201,7 @@ const getEstadoBadge = (estado) => {
                                 type="text"
                                 placeholder="Ingrese el DNI del alumno"
                                 @keyup.enter="buscarAlumno"
+                                maxlength="10"
                                 pattern="[0-9]*"
                                 inputmode="numeric"
                                 class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"

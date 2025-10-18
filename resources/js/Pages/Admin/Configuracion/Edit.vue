@@ -113,6 +113,17 @@ const deleteFirma = async () => {
 const submit = () => {
     form.post(route('admin.configuracion.update'), {
         forceFormData: true,
+        onSuccess: () => {
+            // Resetear los archivos del form después de guardar
+            form.logo = null;
+            form.logo_dark = null;
+            form.firma_digital = null;
+
+            // Actualizar previews con los nuevos valores de la DB
+            logoPreview.value = props.configuracion.logo_url;
+            logoDarkPreview.value = props.configuracion.logo_dark_url;
+            firmaPreview.value = props.configuracion.firma_digital_url;
+        },
     });
 };
 </script>
@@ -127,6 +138,15 @@ const submit = () => {
         </template>
 
         <div class="p-8 max-w-5xl mx-auto">
+            <!-- Mensaje de éxito -->
+            <div v-if="$page.props.flash?.success" class="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3">
+                <i class="bx bx-check-circle text-2xl text-green-600"></i>
+                <div>
+                    <p class="text-sm font-medium text-green-800">{{ $page.props.flash.success }}</p>
+                    <p class="text-xs text-green-600 mt-0.5">Los cambios se han guardado correctamente en la base de datos.</p>
+                </div>
+            </div>
+
             <div class="bg-white rounded-lg shadow-md p-6">
                 <form @submit.prevent="submit">
                     <!-- Información de la Institución -->
@@ -143,6 +163,7 @@ const submit = () => {
                                     v-model="form.nombre_institucion"
                                     type="text"
                                     required
+                                    maxlength="100"
                                     class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
                                 />
                                 <p v-if="form.errors.nombre_institucion" class="text-red-600 text-sm mt-1">{{ form.errors.nombre_institucion }}</p>
@@ -166,6 +187,16 @@ const submit = () => {
                                         >
                                             Eliminar logo
                                         </button>
+                                        <p class="text-xs text-gray-500 mt-1">
+                                            <i class="bx bx-check-circle text-green-600"></i>
+                                            Logo guardado en DB
+                                        </p>
+                                    </div>
+                                    <div v-else class="flex-shrink-0">
+                                        <div class="bg-gray-100 p-3 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center" style="width: 120px; height: 120px;">
+                                            <i class="bx bx-image text-4xl text-gray-400"></i>
+                                        </div>
+                                        <p class="text-xs text-gray-500 mt-1 text-center">Sin logo</p>
                                     </div>
                                     <div class="flex-1">
                                         <input
@@ -175,6 +206,10 @@ const submit = () => {
                                             class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                                         />
                                         <p class="text-xs text-gray-500 mt-1">Formatos: JPG, PNG, SVG. Tamaño máximo: 2MB</p>
+                                        <p v-if="form.logo" class="text-xs text-blue-600 mt-2 flex items-center gap-1">
+                                            <i class="bx bx-info-circle"></i>
+                                            <span>Archivo seleccionado: {{ form.logo.name }}</span>
+                                        </p>
                                     </div>
                                 </div>
                                 <p v-if="form.errors.logo" class="text-red-600 text-sm mt-1">{{ form.errors.logo }}</p>
@@ -198,6 +233,16 @@ const submit = () => {
                                         >
                                             Eliminar logo oscuro
                                         </button>
+                                        <p class="text-xs text-gray-500 mt-1">
+                                            <i class="bx bx-check-circle text-green-600"></i>
+                                            Logo oscuro guardado en DB
+                                        </p>
+                                    </div>
+                                    <div v-else class="flex-shrink-0">
+                                        <div class="bg-gray-100 p-3 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center" style="width: 120px; height: 120px;">
+                                            <i class="bx bx-image text-4xl text-gray-400"></i>
+                                        </div>
+                                        <p class="text-xs text-gray-500 mt-1 text-center">Sin logo oscuro</p>
                                     </div>
                                     <div class="flex-1">
                                         <input
@@ -207,6 +252,10 @@ const submit = () => {
                                             class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                                         />
                                         <p class="text-xs text-gray-500 mt-1">Formatos: JPG, PNG, SVG. Tamaño máximo: 2MB</p>
+                                        <p v-if="form.logo_dark" class="text-xs text-blue-600 mt-2 flex items-center gap-1">
+                                            <i class="bx bx-info-circle"></i>
+                                            <span>Archivo seleccionado: {{ form.logo_dark.name }}</span>
+                                        </p>
                                         <p class="text-xs text-blue-600 mt-2">
                                             <i class="bx bx-info-circle"></i>
                                             El sistema elegirá automáticamente el logo apropiado según el color de fondo
@@ -228,6 +277,7 @@ const submit = () => {
                                 <textarea
                                     v-model="form.direccion"
                                     rows="2"
+                                    maxlength="200"
                                     class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
                                     placeholder="Calle, número, ciudad, provincia"
                                 ></textarea>
@@ -240,11 +290,11 @@ const submit = () => {
                                     v-model="form.telefono"
                                     type="text"
                                     class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
-                                    placeholder="2644123456"
-                                    pattern="[0-9]*"
-                                    inputmode="numeric"
+                                    placeholder="381-5123456 o +54 381 5123456"
+                                    pattern="[0-9\s\-\+\(\)]+"
+                                    inputmode="tel"
                                     maxlength="20"
-                                    title="Solo se permiten números"
+                                    title="Se permiten números, espacios, guiones, paréntesis y signo +"
                                 />
                                 <p v-if="form.errors.telefono" class="text-red-600 text-sm mt-1">{{ form.errors.telefono }}</p>
                             </div>
@@ -254,6 +304,7 @@ const submit = () => {
                                 <input
                                     v-model="form.email"
                                     type="email"
+                                    maxlength="100"
                                     class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
                                     placeholder="info@instituto.edu.ar"
                                 />
@@ -265,6 +316,7 @@ const submit = () => {
                                 <input
                                     v-model="form.sitio_web"
                                     type="url"
+                                    maxlength="100"
                                     class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
                                     placeholder="https://www.instituto.edu.ar"
                                 />
@@ -283,6 +335,7 @@ const submit = () => {
                                 <textarea
                                     v-model="form.footer_documentos"
                                     rows="3"
+                                    maxlength="500"
                                     class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
                                     placeholder="Texto que aparecerá al pie de los documentos oficiales..."
                                 ></textarea>
@@ -321,6 +374,7 @@ const submit = () => {
                                 <input
                                     v-model="form.cargo_firma"
                                     type="text"
+                                    maxlength="100"
                                     class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
                                     placeholder="Ej: Director/a, Rector/a"
                                 />
@@ -338,6 +392,7 @@ const submit = () => {
                             <textarea
                                 v-model="form.horarios_atencion"
                                 rows="4"
+                                maxlength="500"
                                 class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
                                 placeholder="Lunes a Viernes: 8:00 a 20:00&#10;Sábados: 8:00 a 12:00"
                             ></textarea>

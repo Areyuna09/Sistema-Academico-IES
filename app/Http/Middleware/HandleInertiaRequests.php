@@ -31,24 +31,43 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        $configuracion = Configuracion::get();
+        try {
+            $configuracion = Configuracion::get();
+        } catch (\Exception $e) {
+            $configuracion = null;
+        }
 
         return [
             ...parent::share($request),
             'auth' => [
                 'user' => $request->user(),
             ],
-            'configuracion' => [
-                'nombre_institucion' => $configuracion->nombre_institucion,
-                'logo_url' => $configuracion->logo_path ? Storage::url($configuracion->logo_path) : null,
+            'flash' => [
+                'success' => $request->session()->get('success'),
+                'error' => $request->session()->get('error'),
+            ],
+            'configuracion' => $configuracion ? [
+                'nombre_institucion' => $configuracion->nombre_institucion ?? 'IES Gral. Manuel Belgrano',
+                'logo_url' => $configuracion->logo_path ? Storage::url($configuracion->logo_path) : '/images/logo-ies-original.png',
                 'logo_dark_url' => $configuracion->logo_dark_path ? Storage::url($configuracion->logo_dark_path) : null,
-                'telefono' => $configuracion->telefono,
-                'email' => $configuracion->email,
-                'sitio_web' => $configuracion->sitio_web,
-                'direccion' => $configuracion->direccion,
-                'footer_documentos' => $configuracion->footer_documentos,
+                'telefono' => $configuracion->telefono ?? null,
+                'email' => $configuracion->email ?? null,
+                'sitio_web' => $configuracion->sitio_web ?? null,
+                'direccion' => $configuracion->direccion ?? null,
+                'footer_documentos' => $configuracion->footer_documentos ?? null,
                 'firma_digital_url' => $configuracion->firma_digital_path ? Storage::url($configuracion->firma_digital_path) : null,
-                'cargo_firma' => $configuracion->cargo_firma,
+                'cargo_firma' => $configuracion->cargo_firma ?? null,
+            ] : [
+                'nombre_institucion' => 'IES Gral. Manuel Belgrano',
+                'logo_url' => '/images/logo-ies-original.png',
+                'logo_dark_url' => null,
+                'telefono' => null,
+                'email' => null,
+                'sitio_web' => null,
+                'direccion' => null,
+                'footer_documentos' => null,
+                'firma_digital_url' => null,
+                'cargo_firma' => null,
             ],
         ];
     }

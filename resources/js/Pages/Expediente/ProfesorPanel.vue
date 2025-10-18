@@ -686,6 +686,7 @@ onMounted(() => {
                                 type="text"
                                 placeholder="Ingrese el DNI del alumno"
                                 @keyup.enter="buscarAlumno"
+                                maxlength="10"
                                 pattern="[0-9]*"
                                 inputmode="numeric"
                                 class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent"
@@ -849,6 +850,7 @@ onMounted(() => {
                                         <input
                                             v-model="asistencias[alumno.id].observaciones"
                                             type="text"
+                                            maxlength="500"
                                             placeholder="Opcional"
                                             class="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500"
                                         />
@@ -958,6 +960,7 @@ onMounted(() => {
                                         <input
                                             v-model="notas[alumno.id].observaciones"
                                             type="text"
+                                            maxlength="500"
                                             placeholder="Opcional"
                                             class="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-purple-500"
                                         />

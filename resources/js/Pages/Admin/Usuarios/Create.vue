@@ -199,6 +199,7 @@ const mostrarVinculacionProfesor = computed(() => form.tipo == 3);
                                     required
                                     pattern="[0-9]+"
                                     inputmode="numeric"
+                                    maxlength="10"
                                     class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
                                     placeholder="12345678"
                                     title="Solo se permiten números"
@@ -214,6 +215,7 @@ const mostrarVinculacionProfesor = computed(() => form.tipo == 3);
                                     v-model="form.email"
                                     type="email"
                                     required
+                                    maxlength="100"
                                     class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
                                     placeholder="usuario@example.com"
                                 />
@@ -228,6 +230,7 @@ const mostrarVinculacionProfesor = computed(() => form.tipo == 3);
                                     v-model="form.nombre"
                                     type="text"
                                     required
+                                    maxlength="100"
                                     class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
                                     placeholder="Juan Pérez"
                                 />
@@ -266,12 +269,12 @@ const mostrarVinculacionProfesor = computed(() => form.tipo == 3);
                                 <input
                                     v-model="form.telefono"
                                     type="text"
-                                    pattern="[0-9]*"
-                                    inputmode="numeric"
+                                    pattern="[0-9\s\-\+\(\)]+"
+                                    inputmode="tel"
                                     maxlength="20"
                                     class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
-                                    placeholder="3815123456"
-                                    title="Solo se permiten números"
+                                    placeholder="381-5123456 o +54 381 5123456"
+                                    title="Se permiten números, espacios, guiones, paréntesis y signo +"
                                 />
                                 <p v-if="form.errors.telefono" class="text-red-600 text-sm mt-1">{{ form.errors.telefono }}</p>
                             </div>

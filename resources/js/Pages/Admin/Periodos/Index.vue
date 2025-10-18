@@ -114,12 +114,12 @@ const estaEnInscripcion = (periodo) => {
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Cuatrimestre</label>
                         <select
-                            v-model="form.cuatrimestre"
+                            v-model.number="form.cuatrimestre"
                             class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
                         >
                             <option value="">Todos</option>
-                            <option value="1">1° Cuatrimestre</option>
-                            <option value="2">2° Cuatrimestre</option>
+                            <option :value="1">1° Cuatrimestre</option>
+                            <option :value="2">2° Cuatrimestre</option>
                         </select>
                     </div>
 

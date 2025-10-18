@@ -104,16 +104,23 @@ class ExpedienteController extends Controller
                                   ->withQueryString();
 
         // Obtener notas pendientes con todas las relaciones necesarias
-        $notasPendientes = NotaTemporal::with([
-            'alumno',
-            'profesorMateria.materiaRelacion',
-            'profesorMateria.carreraRelacion',
-            'registradoPor'
-        ])
-        ->orderBy('fecha', 'desc')
-        ->orderBy('created_at', 'desc')
-        ->get()
-        ->map(function($nota) {
+        try {
+            $notasPendientesQuery = NotaTemporal::with([
+                'alumno',
+                'profesorMateria.materiaRelacion',
+                'profesorMateria.carreraRelacion',
+                'registradoPor'
+            ]);
+
+            // Ordenar por fecha si la columna existe, sino solo por created_at
+            if (\Schema::hasColumn('tbl_notas_temporales', 'fecha')) {
+                $notasPendientesQuery->orderBy('fecha', 'desc');
+            }
+
+            $notasPendientes = $notasPendientesQuery
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function($nota) {
             return [
                 'id' => $nota->id,
                 'alumno' => $nota->alumno ? $nota->alumno->apellido . ', ' . $nota->alumno->nombre : 'N/A',
@@ -134,6 +141,10 @@ class ExpedienteController extends Controller
                 'profesor_materia_id' => $nota->profesor_materia_id,
             ];
         });
+        } catch (\Exception $e) {
+            \Log::error('Error al obtener notas pendientes: ' . $e->getMessage());
+            $notasPendientes = collect([]); // Colección vacía si falla
+        }
 
         // Debug temporal
         \Log::info('AdminPanel Data', [
@@ -270,7 +281,9 @@ class ExpedienteController extends Controller
     public function buscarPorDni(Request $request)
     {
         $request->validate([
-            'dni' => 'required|string'
+            'dni' => ['required', 'string', 'max:10', 'regex:/^[0-9]+$/']
+        ], [
+            'dni.regex' => 'El DNI debe contener solo números.',
         ]);
 
         // Usar carreraRelacion para evitar conflicto con el atributo 'carrera'
@@ -405,7 +418,7 @@ class ExpedienteController extends Controller
             'asistencias' => 'required|array',
             'asistencias.*.alumno_id' => 'required|exists:tbl_alumnos,id',
             'asistencias.*.estado' => 'required|in:presente,ausente,tarde',
-            'asistencias.*.observaciones' => 'nullable|string'
+            'asistencias.*.observaciones' => 'nullable|string|max:500'
         ]);
 
         $user = $request->user();
@@ -453,7 +466,7 @@ class ExpedienteController extends Controller
             'notas' => 'required|array',
             'notas.*.alumno_id' => 'required|exists:tbl_alumnos,id',
             'notas.*.nota' => 'required|numeric|min:1|max:10',
-            'notas.*.observaciones' => 'nullable|string'
+            'notas.*.observaciones' => 'nullable|string|max:500'
         ]);
 
         $user = $request->user();
@@ -602,7 +615,7 @@ class ExpedienteController extends Controller
             'asistencias.*.presentes' => 'required|integer|min:0',
             'asistencias.*.ausentes' => 'required|integer|min:0',
             'asistencias.*.tardes' => 'required|integer|min:0',
-            'asistencias.*.observaciones' => 'nullable|string'
+            'asistencias.*.observaciones' => 'nullable|string|max:500'
         ]);
 
         $user = $request->user();
@@ -658,7 +671,7 @@ class ExpedienteController extends Controller
             'notas' => 'required|array',
             'notas.*.alumno_id' => 'required|exists:tbl_alumnos,id',
             'notas.*.nota' => 'required|numeric|min:1|max:10',
-            'notas.*.observaciones' => 'nullable|string'
+            'notas.*.observaciones' => 'nullable|string|max:500'
         ]);
 
         $user = $request->user();

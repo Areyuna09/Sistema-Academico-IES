@@ -122,6 +122,9 @@ const logoUrl = computed(() => {
                                     required
                                     autofocus
                                     autocomplete="username"
+                                    maxlength="10"
+                                    pattern="[0-9]+"
+                                    inputmode="numeric"
                                     placeholder="Ingresa tu DNI"
                                     class="w-full pl-11 pr-4 py-2.5 text-sm bg-gray-700/50 border border-gray-600 text-white placeholder-gray-500 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-gray-700 transition-all duration-200"
                                 />

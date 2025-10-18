@@ -42,6 +42,7 @@ const submit = () => {
                                 v-model="form.nombre"
                                 type="text"
                                 required
+                                maxlength="100"
                                 class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
                                 placeholder="Ej: Programación I"
                             />
@@ -73,16 +74,16 @@ const submit = () => {
                                     Año <span class="text-red-500">*</span>
                                 </label>
                                 <select
-                                    v-model="form.anno"
+                                    v-model.number="form.anno"
                                     required
                                     class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
                                 >
-                                    <option value="1">1° Año</option>
-                                    <option value="2">2° Año</option>
-                                    <option value="3">3° Año</option>
-                                    <option value="4">4° Año</option>
-                                    <option value="5">5° Año</option>
-                                    <option value="6">6° Año</option>
+                                    <option :value="1">1° Año</option>
+                                    <option :value="2">2° Año</option>
+                                    <option :value="3">3° Año</option>
+                                    <option :value="4">4° Año</option>
+                                    <option :value="5">5° Año</option>
+                                    <option :value="6">6° Año</option>
                                 </select>
                                 <p v-if="form.errors.anno" class="text-red-600 text-sm mt-1">{{ form.errors.anno }}</p>
                             </div>
@@ -92,12 +93,12 @@ const submit = () => {
                                     Semestre <span class="text-red-500">*</span>
                                 </label>
                                 <select
-                                    v-model="form.semestre"
+                                    v-model.number="form.semestre"
                                     required
                                     class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
                                 >
-                                    <option value="1">1° Semestre</option>
-                                    <option value="2">2° Semestre</option>
+                                    <option :value="1">1° Semestre</option>
+                                    <option :value="2">2° Semestre</option>
                                 </select>
                                 <p v-if="form.errors.semestre" class="text-red-600 text-sm mt-1">{{ form.errors.semestre }}</p>
                             </div>
@@ -111,6 +112,7 @@ const submit = () => {
                             <input
                                 v-model="form.resolucion"
                                 type="text"
+                                maxlength="55"
                                 class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
                                 placeholder="Ej: Res. N° 1234/2024"
                             />

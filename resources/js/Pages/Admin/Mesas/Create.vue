@@ -54,8 +54,8 @@ const aniosDisponibles = computed(() => {
 
 const { alert: showAlert } = useDialog();
 
-// Validar que no sea fin de semana
-const validarNoFinDeSemana = async (fecha) => {
+// Validar que no sea fin de semana para fecha de examen
+const validarNoFinDeSemanaExamen = async (fecha) => {
     if (!fecha) return;
 
     const date = new Date(fecha + 'T00:00:00');
@@ -68,8 +68,38 @@ const validarNoFinDeSemana = async (fecha) => {
     }
 };
 
-// Watcher para validar fecha de examen
-watch(() => form.fecha_examen, (valor) => validarNoFinDeSemana(valor));
+// Validar que no sea fin de semana para fecha inicio inscripción
+const validarNoFinDeSemanaInscripcionInicio = async (fecha) => {
+    if (!fecha) return;
+
+    const date = new Date(fecha + 'T00:00:00');
+    const dayOfWeek = date.getDay();
+
+    // 0 = Domingo, 6 = Sábado
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+        await showAlert('No se pueden seleccionar sábados ni domingos para inscripciones', 'Fecha no válida');
+        form.fecha_inicio_inscripcion = '';
+    }
+};
+
+// Validar que no sea fin de semana para fecha fin inscripción
+const validarNoFinDeSemanaInscripcionFin = async (fecha) => {
+    if (!fecha) return;
+
+    const date = new Date(fecha + 'T00:00:00');
+    const dayOfWeek = date.getDay();
+
+    // 0 = Domingo, 6 = Sábado
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+        await showAlert('No se pueden seleccionar sábados ni domingos para inscripciones', 'Fecha no válida');
+        form.fecha_fin_inscripcion = '';
+    }
+};
+
+// Watchers para validar fechas
+watch(() => form.fecha_examen, (valor) => validarNoFinDeSemanaExamen(valor));
+watch(() => form.fecha_inicio_inscripcion, (valor) => validarNoFinDeSemanaInscripcionInicio(valor));
+watch(() => form.fecha_fin_inscripcion, (valor) => validarNoFinDeSemanaInscripcionFin(valor));
 
 const submit = () => {
     form.post(route('admin.mesas.store'));
@@ -187,11 +217,16 @@ const submit = () => {
                                     v-model="form.hora_examen"
                                     type="time"
                                     min="17:30"
+                                    step="1800"
                                     required
                                     class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
+                                    placeholder="17:30"
                                 />
                                 <p v-if="form.errors.hora_examen" class="text-red-600 text-sm mt-1">{{ form.errors.hora_examen }}</p>
-                                <p class="text-xs text-gray-500 mt-1">Horario mínimo: 17:30 (inicio de clases)</p>
+                                <p class="text-xs text-gray-500 mt-1">
+                                    <i class="bx bx-info-circle mr-1"></i>
+                                    Horario mínimo: 17:30 (formato 24 horas). Ej: 17:30, 18:00, 19:30
+                                </p>
                             </div>
 
                             <!-- Período de Inscripción -->

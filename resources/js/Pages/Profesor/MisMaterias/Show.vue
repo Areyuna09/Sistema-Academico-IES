@@ -683,6 +683,7 @@ const guardarNotasFinalesMasivas = async () => {
                                         <input
                                             v-model="asistenciasFinal[alumno.id].observaciones"
                                             type="text"
+                                            maxlength="500"
                                             placeholder="Opcional"
                                             class="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-green-500"
                                         />
@@ -797,6 +798,7 @@ const guardarNotasFinalesMasivas = async () => {
                                         <input
                                             v-model="notasFinales[alumno.id].observaciones"
                                             type="text"
+                                            maxlength="500"
                                             placeholder="Opcional"
                                             class="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-purple-500"
                                         />

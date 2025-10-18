@@ -74,11 +74,11 @@ class MateriasController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'nombre' => 'required|string|max:255',
+            'nombre' => 'required|string|max:100',
             'carrera' => 'required|exists:tbl_carreras,Id',
             'semestre' => 'required|integer|min:1|max:2',
             'anno' => 'required|integer|min:1|max:6',
-            'resolucion' => 'nullable|string|max:255',
+            'resolucion' => 'nullable|string|max:55',
         ]);
 
         // Validar que no exista ya una materia con el mismo nombre en la misma carrera
@@ -125,11 +125,11 @@ class MateriasController extends Controller
     public function update(Request $request, Materia $materia)
     {
         $validated = $request->validate([
-            'nombre' => 'required|string|max:255',
+            'nombre' => 'required|string|max:100',
             'carrera' => 'required|exists:tbl_carreras,Id',
             'semestre' => 'required|integer|min:1|max:2',
             'anno' => 'required|integer|min:1|max:6',
-            'resolucion' => 'nullable|string|max:255',
+            'resolucion' => 'nullable|string|max:55',
         ]);
 
         // Validar que no exista ya una materia con el mismo nombre en la misma carrera (excepto la actual)

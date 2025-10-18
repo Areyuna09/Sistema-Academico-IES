@@ -1,9 +1,12 @@
-import { driver } from 'driver.js';
-import 'driver.js/dist/driver.css';
+// NOTA: driver.js no está instalado actualmente. Instalar con: npm install driver.js
+// import { driver } from 'driver.js';
+// import 'driver.js/dist/driver.css';
 
 /**
  * Composable para gestionar el onboarding de profesores
  * Tour guiado paso a paso con Driver.js
+ *
+ * TEMPORALMENTE DESACTIVADO: Instalar driver.js para habilitar
  */
 export function useProfesorOnboarding() {
     const STORAGE_KEY = 'profesor_onboarding_completed';
@@ -33,6 +36,14 @@ export function useProfesorOnboarding() {
      * Crea y configura el tour guiado para profesores
      */
     const createProfesorTour = () => {
+        // TEMPORALMENTE DESACTIVADO - driver.js no está instalado
+        console.warn('Onboarding tour desactivado. Instalar driver.js para habilitar: npm install driver.js');
+        return {
+            drive: () => {},
+            destroy: () => {},
+        };
+
+        /* DESCOMENTAR CUANDO SE INSTALE driver.js
         const driverObj = driver({
             showProgress: true,
             nextBtnText: 'Siguiente',
@@ -380,6 +391,7 @@ export function useProfesorOnboarding() {
         });
 
         return driverObj;
+        */
     };
 
     /**

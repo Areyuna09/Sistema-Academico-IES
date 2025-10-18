@@ -22,8 +22,10 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $request->validate([
-            'dni' => 'required|string',
+            'dni' => ['required', 'string', 'max:10', 'regex:/^[0-9]+$/'],
             'password' => 'required|string',
+        ], [
+            'dni.regex' => 'El DNI debe contener solo números.',
         ]);
 
         $user = User::where('dni', $request->dni)->first();

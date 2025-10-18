@@ -64,7 +64,7 @@ class PeriodosController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'nombre' => 'required|string|max:255',
+            'nombre' => 'required|string|max:100',
             'cuatrimestre' => 'required|integer|min:1|max:2',
             'anio' => 'required|integer|min:2020|max:2050',
             'fecha_inicio_inscripcion' => 'required|date',
@@ -120,7 +120,7 @@ class PeriodosController extends Controller
     public function update(Request $request, PeriodoInscripcion $periodo)
     {
         $validated = $request->validate([
-            'nombre' => 'required|string|max:255',
+            'nombre' => 'required|string|max:100',
             'cuatrimestre' => 'required|integer|min:1|max:2',
             'anio' => 'required|integer|min:2020|max:2050',
             'fecha_inicio_inscripcion' => 'required|date',

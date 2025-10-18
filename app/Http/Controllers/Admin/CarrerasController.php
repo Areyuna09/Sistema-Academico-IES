@@ -53,8 +53,8 @@ class CarrerasController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'nombre' => 'required|string|max:255|unique:tbl_carreras,nombre',
-            'resolucion' => 'nullable|string|max:255',
+            'nombre' => 'required|string|max:55|unique:tbl_carreras,nombre',
+            'resolucion' => 'nullable|string|max:55',
         ]);
 
         Carrera::create($validated);
@@ -87,8 +87,8 @@ class CarrerasController extends Controller
     public function update(Request $request, Carrera $carrera)
     {
         $validated = $request->validate([
-            'nombre' => ['required', 'string', 'max:255', Rule::unique('tbl_carreras')->ignore($carrera->Id, 'Id')],
-            'resolucion' => 'nullable|string|max:255',
+            'nombre' => ['required', 'string', 'max:55', Rule::unique('tbl_carreras')->ignore($carrera->Id, 'Id')],
+            'resolucion' => 'nullable|string|max:55',
         ]);
 
         $carrera->update($validated);

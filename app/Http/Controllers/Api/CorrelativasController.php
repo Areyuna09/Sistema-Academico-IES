@@ -31,9 +31,11 @@ class CorrelativasController extends Controller
     public function validarCursado(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'dni' => 'required|string',
+            'dni' => ['required', 'string', 'max:10', 'regex:/^[0-9]+$/'],
             'materia_id' => 'required|integer',
             'carrera_id' => 'required|integer',
+        ], [
+            'dni.regex' => 'El DNI debe contener solo números.',
         ]);
 
         $resultado = $this->motorCorrelativas->validarParaCursar(
@@ -56,9 +58,11 @@ class CorrelativasController extends Controller
     public function validarExamen(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'dni' => 'required|string',
+            'dni' => ['required', 'string', 'max:10', 'regex:/^[0-9]+$/'],
             'materia_id' => 'required|integer',
             'carrera_id' => 'required|integer',
+        ], [
+            'dni.regex' => 'El DNI debe contener solo números.',
         ]);
 
         $resultado = $this->motorCorrelativas->validarParaRendir(

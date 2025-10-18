@@ -76,6 +76,7 @@ const submit = () => {
                                 v-model="form.nombre"
                                 type="text"
                                 required
+                                maxlength="100"
                                 class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
                                 placeholder="Ej: Primer Cuatrimestre 2025"
                             />

@@ -48,6 +48,7 @@ const form = useForm({
                     class="mt-1 block w-full"
                     v-model="form.name"
                     required
+                    maxlength="100"
                     autofocus
                     autocomplete="name"
                 />
@@ -64,6 +65,7 @@ const form = useForm({
                     class="mt-1 block w-full"
                     v-model="form.email"
                     required
+                    maxlength="100"
                     autocomplete="username"
                 />
 

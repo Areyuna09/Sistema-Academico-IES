@@ -74,17 +74,19 @@ class ConfiguracionController extends Controller
         $configuracion = Configuracion::get();
 
         $validated = $request->validate([
-            'nombre_institucion' => 'required|string|max:255',
-            'direccion' => 'nullable|string',
-            'telefono' => 'nullable|string|max:50',
+            'nombre_institucion' => 'required|string|max:100',
+            'direccion' => 'nullable|string|max:200',
+            'telefono' => ['nullable', 'string', 'max:20', 'regex:/^[0-9\s\-\+\(\)]+$/'],
             'email' => 'nullable|email|max:100',
-            'sitio_web' => 'nullable|url|max:255',
-            'footer_documentos' => 'nullable|string',
+            'sitio_web' => 'nullable|url|max:100',
+            'footer_documentos' => 'nullable|string|max:500',
             'cargo_firma' => 'nullable|string|max:100',
-            'horarios_atencion' => 'nullable|string',
+            'horarios_atencion' => 'nullable|string|max:500',
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,svg|max:2048',
             'logo_dark' => 'nullable|image|mimes:jpeg,png,jpg,svg|max:2048',
             'firma_digital' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+        ], [
+            'telefono.regex' => 'El teléfono solo puede contener números, espacios, guiones, paréntesis y signo +.',
         ]);
 
         // Subir logo si se proporcionó
@@ -122,7 +124,8 @@ class ConfiguracionController extends Controller
 
         $configuracion->update($validated);
 
-        return redirect()->route('admin.configuracion.index')
+        // Redirigir de vuelta a edit con mensaje de éxito y configuración actualizada
+        return redirect()->route('admin.configuracion.edit')
             ->with('success', 'Configuración actualizada exitosamente.');
     }
 

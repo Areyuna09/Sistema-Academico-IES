@@ -28,29 +28,36 @@ return new class extends Migration
         });
 
         // Agregar foreign keys solo si no existen
-        Schema::table('users', function (Blueprint $table) {
-            $sm = Schema::getConnection()->getDoctrineSchemaManager();
-            $foreignKeys = $sm->listTableForeignKeys('users');
+        // Skip en testing porque SQLite no soporta Doctrine
+        if (app()->environment() !== 'testing') {
+            Schema::table('users', function (Blueprint $table) {
+                try {
+                    $sm = Schema::getConnection()->getDoctrineSchemaManager();
+                    $foreignKeys = $sm->listTableForeignKeys('users');
 
-            $hasAlumnoFk = false;
-            $hasProfesorFk = false;
+                    $hasAlumnoFk = false;
+                    $hasProfesorFk = false;
 
-            foreach ($foreignKeys as $foreignKey) {
-                if (in_array('alumno_id', $foreignKey->getLocalColumns())) {
-                    $hasAlumnoFk = true;
+                    foreach ($foreignKeys as $foreignKey) {
+                        if (in_array('alumno_id', $foreignKey->getLocalColumns())) {
+                            $hasAlumnoFk = true;
+                        }
+                        if (in_array('profesor_id', $foreignKey->getLocalColumns())) {
+                            $hasProfesorFk = true;
+                        }
+                    }
+
+                    if (!$hasAlumnoFk && Schema::hasTable('tbl_alumnos')) {
+                        $table->foreign('alumno_id')->references('id')->on('tbl_alumnos')->onDelete('set null');
+                    }
+                    if (!$hasProfesorFk && Schema::hasTable('tbl_profesores')) {
+                        $table->foreign('profesor_id')->references('id')->on('tbl_profesores')->onDelete('set null');
+                    }
+                } catch (\Exception $e) {
+                    // Ignorar errores de Doctrine en SQLite
                 }
-                if (in_array('profesor_id', $foreignKey->getLocalColumns())) {
-                    $hasProfesorFk = true;
-                }
-            }
-
-            if (!$hasAlumnoFk && Schema::hasTable('tbl_alumnos')) {
-                $table->foreign('alumno_id')->references('id')->on('tbl_alumnos')->onDelete('set null');
-            }
-            if (!$hasProfesorFk && Schema::hasTable('tbl_profesores')) {
-                $table->foreign('profesor_id')->references('id')->on('tbl_profesores')->onDelete('set null');
-            }
-        });
+            });
+        }
     }
 
     /**

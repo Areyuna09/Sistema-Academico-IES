@@ -103,6 +103,9 @@ class MesasExamenController extends Controller
             'fecha_inicio_inscripcion' => 'nullable|date',
             'fecha_fin_inscripcion' => 'nullable|date|after_or_equal:fecha_inicio_inscripcion',
             'observaciones' => 'nullable|string',
+        ], [
+            'fecha_examen.after_or_equal' => 'La fecha del examen debe ser igual o posterior a hoy.',
+            'hora_examen.regex' => 'El formato de la hora no es válido. Use formato 24 horas (ej: 17:30).',
         ]);
 
         // Verificar que no exista mesa duplicada (misma materia, llamado y fecha)
@@ -161,6 +164,8 @@ class MesasExamenController extends Controller
             'vocal2_id' => 'nullable|exists:tbl_profesores,id',
             'estado' => 'required|in:activa,cerrada,suspendida',
             'observaciones' => 'nullable|string',
+        ], [
+            'hora_examen.regex' => 'El formato de la hora no es válido. Use formato 24 horas (ej: 17:30).',
         ]);
 
         // Verificar duplicados excluyendo la mesa actual
