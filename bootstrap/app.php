@@ -13,13 +13,16 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [
+            \App\Http\Middleware\ForceUtf8Response::class,
             \App\Http\Middleware\HandleInertiaRequests::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
         ]);
 
-        // Registrar middleware de admin
+        // Registrar middleware de roles
         $middleware->alias([
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
+            'directivo' => \App\Http\Middleware\DirectivoMiddleware::class,
+            'supervisor' => \App\Http\Middleware\SupervisorMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

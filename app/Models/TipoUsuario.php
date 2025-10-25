@@ -35,4 +35,6 @@ class TipoUsuario extends Model
     const USUARIO = 2;
     const PROFESOR = 3;
     const ALUMNO = 4;
+    const DIRECTIVO = 5;
+    const SUPERVISOR = 6;
 }

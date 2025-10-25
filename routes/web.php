@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\PeriodosController;
 use App\Http\Controllers\Admin\ConfiguracionController;
 use App\Http\Controllers\Admin\MesasExamenController;
 use App\Http\Controllers\Admin\ExcepcionesController;
+use App\Http\Controllers\Admin\InscripcionesController as AdminInscripcionesController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -67,6 +68,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/plan-estudio', function () {
         return Inertia::render('PlanDeEstudio');
     })->name('plan-estudio');
+
+    // API del Plan de Estudio con sesiones web
+    Route::get('/alumnos/{alumno}/plan-estudio', [App\Http\Controllers\Academic\PlanEstudioController::class, 'showAlumnoPlan'])->name('plan-estudio.alumno');
+    Route::get('/carreras', [App\Http\Controllers\Academic\PlanEstudioController::class, 'listCarreras'])->name('plan-estudio.carreras');
+    Route::get('/carreras/{carrera}/plan', [App\Http\Controllers\Academic\PlanEstudioController::class, 'showCarreraPlan'])->name('plan-estudio.carrera');
 
     // Notificaciones
     Route::get('/notificaciones', [NotificacionesController::class, 'index'])->name('notificaciones.index');
@@ -152,6 +158,12 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::put('/excepciones/{excepcion}', [ExcepcionesController::class, 'update'])->name('excepciones.update');
     Route::delete('/excepciones/{excepcion}', [ExcepcionesController::class, 'destroy'])->name('excepciones.destroy');
 
+    // Gestión de Inscripciones (Admin)
+    Route::get('/inscripciones', [AdminInscripcionesController::class, 'index'])->name('inscripciones.index');
+    Route::post('/inscripciones', [AdminInscripcionesController::class, 'store'])->name('inscripciones.store');
+    Route::put('/inscripciones/{inscripcion}', [AdminInscripcionesController::class, 'update'])->name('inscripciones.update');
+    Route::delete('/inscripciones/{inscripcion}', [AdminInscripcionesController::class, 'destroy'])->name('inscripciones.destroy');
+
     // Configuración de Módulos del Sistema
     Route::get('/configuracion-modulos', [\App\Http\Controllers\Admin\ConfiguracionModulosController::class, 'index'])->name('configuracion-modulos.index');
     Route::post('/configuracion-modulos/{modulo}/toggle', [\App\Http\Controllers\Admin\ConfiguracionModulosController::class, 'toggle'])->name('configuracion-modulos.toggle');
@@ -182,6 +194,42 @@ Route::middleware(['auth'])->prefix('profesor')->name('profesor.')->group(functi
     Route::post('/materia/{profesorMateria}/asistencias',
         [\App\Http\Controllers\Profesor\AsistenciasController::class, 'store'])
         ->name('asistencias.store');
+});
+
+// Rutas de Directivo (Tipo 5) - Revisión de legajos
+Route::middleware(['auth', 'directivo'])->prefix('directivo')->name('directivo.')->group(function () {
+    // Panel principal
+    Route::get('/', [\App\Http\Controllers\DirectivoController::class, 'index'])->name('index');
+
+    // Ver detalle de legajo
+    Route::get('/legajo/{id}', [\App\Http\Controllers\DirectivoController::class, 'show'])->name('show');
+
+    // Aprobar legajo
+    Route::post('/legajo/{id}/aprobar', [\App\Http\Controllers\DirectivoController::class, 'aprobar'])->name('aprobar');
+
+    // Rechazar legajo con observaciones
+    Route::post('/legajo/{id}/rechazar', [\App\Http\Controllers\DirectivoController::class, 'rechazar'])->name('rechazar');
+
+    // Editar/Corregir legajo
+    Route::put('/legajo/{id}', [\App\Http\Controllers\DirectivoController::class, 'actualizar'])->name('actualizar');
+});
+
+// Rutas de Supervisor (Tipo 6) - Supervisión ministerial
+Route::middleware(['auth', 'supervisor'])->prefix('supervisor')->name('supervisor.')->group(function () {
+    // Panel principal
+    Route::get('/', [\App\Http\Controllers\SupervisorController::class, 'index'])->name('index');
+
+    // Ver detalle de legajo
+    Route::get('/legajo/{id}', [\App\Http\Controllers\SupervisorController::class, 'show'])->name('show');
+
+    // Aprobar legajo (aprobación final)
+    Route::post('/legajo/{id}/aprobar', [\App\Http\Controllers\SupervisorController::class, 'aprobar'])->name('aprobar');
+
+    // Rechazar legajo con observaciones (devolver a Directivo)
+    Route::post('/legajo/{id}/rechazar', [\App\Http\Controllers\SupervisorController::class, 'rechazar'])->name('rechazar');
+
+    // Ver historial completo de un alumno
+    Route::get('/alumno/{alumnoId}/historial', [\App\Http\Controllers\SupervisorController::class, 'historialAlumno'])->name('historial-alumno');
 });
 
 // Rutas de autenticación (login, register, logout, reset password, etc.)

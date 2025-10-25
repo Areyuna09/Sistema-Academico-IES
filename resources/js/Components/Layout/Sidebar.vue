@@ -81,17 +81,13 @@ const menuItems = computed(() => {
             external: true,
             onlyAlumno: true,
         },
-    ];
-
-    // Agregar "Expediente" solo para Admin y Profesores
-    if (isAdminOrProfesor.value) {
-        baseItems.push({
+        {
             name: "Expediente",
             route: "expediente",
             icon: "bx-folder-open",
             path: "/expediente",
-        });
-    }
+        },
+    ];
 
     // Plan de Estudio para todos los usuarios
     baseItems.push({
@@ -138,6 +134,12 @@ const parametrosItems = computed(() => {
             route: "admin.periodos.index",
             icon: "bx-calendar",
             path: "/admin/periodos",
+        },
+        {
+            name: "Inscripciones",
+            route: "admin.inscripciones.index",
+            icon: "bx-list-check",
+            path: "/admin/inscripciones",
         },
         {
             name: "Mesas de Examen",

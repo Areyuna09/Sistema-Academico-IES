@@ -41,13 +41,9 @@ class ExpedienteController extends Controller
             return $this->mostrarPanelAdmin($request);
         }
 
-        // Alumno: NO tiene acceso al expediente (no pueden ver sus notas)
+        // Alumno: mostrar su expediente personal
         if ($user->tipo == 4) {
-            \Log::warning('Alumno intentó acceder a expediente - acceso denegado', [
-                'user_id' => $user->id,
-                'user_name' => $user->nombre
-            ]);
-            abort(403, 'Los alumnos no tienen acceso al expediente. Consulta con Secretaría Académica.');
+            return $this->mostrarExpedienteAlumno($user);
         }
 
         \Log::warning('Usuario sin acceso a expediente', ['tipo' => $user->tipo]);
@@ -80,44 +76,72 @@ class ExpedienteController extends Controller
                                   ->paginate(15)
                                   ->withQueryString();
 
-        // Query para usuarios (profesores y alumnos)
-        $queryUsuarios = User::with(['alumno', 'profesor']);
+        // Query para PROFESORES (tipo 3)
+        $queryProfesores = User::with(['profesor'])
+            ->where('tipo', 3);
 
-        // Filtros para usuarios
-        if ($request->filled('tipo')) {
-            $queryUsuarios->where('tipo', $request->tipo);
-        }
+        // Filtros para profesores
         if ($request->filled('activo')) {
-            $queryUsuarios->where('activo', $request->activo);
+            $queryProfesores->where('activo', $request->activo);
         }
         if ($request->filled('buscar')) {
             $search = $request->buscar;
-            $queryUsuarios->where(function($q) use ($search) {
+            $queryProfesores->where(function($q) use ($search) {
                 $q->where('nombre', 'like', "%{$search}%")
                   ->orWhere('dni', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%");
             });
         }
 
-        // Filtrar por carrera (solo para alumnos tipo 4)
+        $profesores = $queryProfesores->orderBy('nombre', 'asc')
+                                     ->paginate(15)
+                                     ->withQueryString();
+
+        // Query para ALUMNOS (tipo 4)
+        $queryAlumnos = User::with(['alumno'])
+            ->where('tipo', 4);
+
+        // Filtros para alumnos
+        if ($request->filled('activo')) {
+            $queryAlumnos->where('activo', $request->activo);
+        }
+        if ($request->filled('buscar')) {
+            $search = $request->buscar;
+            $queryAlumnos->where(function($q) use ($search) {
+                $q->where('nombre', 'like', "%{$search}%")
+                  ->orWhere('dni', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+        // Filtrar por carrera (solo para alumnos)
         if ($request->filled('carrera')) {
-            $queryUsuarios->whereHas('alumno', function($q) use ($request) {
+            $queryAlumnos->whereHas('alumno', function($q) use ($request) {
                 $q->where('carrera', $request->carrera);
             });
         }
 
-        $usuarios = $queryUsuarios->orderBy('nombre', 'asc')
-                                  ->paginate(15)
-                                  ->withQueryString();
+        $alumnos = $queryAlumnos->orderBy('nombre', 'asc')
+                                ->paginate(15)
+                                ->withQueryString();
 
-        // Obtener notas pendientes con todas las relaciones necesarias
+        // Obtener SOLO notas FINALES pendientes (las notas parciales no requieren aprobación)
         try {
             $notasPendientesQuery = NotaTemporal::with([
                 'alumno',
                 'profesorMateria.materiaRelacion',
                 'profesorMateria.carreraRelacion',
                 'registradoPor'
-            ]);
+            ])
+            ->where('estado', 'pendiente')
+            ->where(function($query) {
+                $query->where('tipo_evaluacion', 'like', '%final%')
+                      ->orWhere('tipo_evaluacion', 'like', '%Final%')
+                      ->orWhere('tipo_evaluacion', 'like', '%FINAL%')
+                      ->orWhere('tipo_evaluacion', 'like', '%mesa%')
+                      ->orWhere('tipo_evaluacion', 'like', '%Mesa%')
+                      ->orWhere('tipo_evaluacion', 'like', '%examen%')
+                      ->orWhere('tipo_evaluacion', 'like', '%Examen%');
+            });
 
             // Ordenar por fecha si la columna existe, sino solo por created_at
             if (\Schema::hasColumn('tbl_notas_temporales', 'fecha')) {
@@ -156,7 +180,8 @@ class ExpedienteController extends Controller
         // Debug temporal
         \Log::info('AdminPanel Data', [
             'materias_count' => $materias->total(),
-            'usuarios_count' => $usuarios->total(),
+            'profesores_count' => $profesores->total(),
+            'alumnos_count' => $alumnos->total(),
             'carreras_count' => $carreras->count(),
             'notas_pendientes_count' => $notasPendientes->count()
         ]);
@@ -164,10 +189,12 @@ class ExpedienteController extends Controller
         return Inertia::render('Expediente/AdminPanel', [
             'materias' => $materias,
             'carreras' => $carreras,
-            'usuarios' => $usuarios,
+            'profesores' => $profesores,
+            'alumnos' => $alumnos,
             'notasPendientes' => $notasPendientes,
             'filtrosMaterias' => $request->only(['carrera', 'anno', 'semestre', 'buscar']),
-            'filtrosUsuarios' => $request->only(['tipo', 'activo', 'buscar', 'carrera']),
+            'filtrosProfesores' => $request->only(['activo', 'buscar']),
+            'filtrosAlumnos' => $request->only(['activo', 'buscar', 'carrera']),
         ]);
     }
 
@@ -479,103 +506,47 @@ class ExpedienteController extends Controller
         $user = $request->user();
         $registros = [];
 
-        // Obtener configuración de la materia
-        $profesorMateria = ProfesorMateria::findOrFail($request->profesor_materia_id);
-
-        // Determinar si es nota parcial/práctica (se aprueba automáticamente) o necesita aprobación
+        // Determinar si es nota final (requiere aprobación) o nota parcial (no requiere aprobación)
         $tipoEvaluacion = strtolower($request->tipo_evaluacion);
-        $requiereAprobacion = in_array($tipoEvaluacion, ['final', 'examen final', 'mesa de examen']);
+        $esNotaFinal = (
+            str_contains($tipoEvaluacion, 'final') ||
+            str_contains($tipoEvaluacion, 'mesa') ||
+            str_contains($tipoEvaluacion, 'examen final')
+        );
 
         try {
-            if (!$requiereAprobacion) {
-                // Notas de parciales/prácticos: se guardan con estado aprobada y se calculan
-                \DB::beginTransaction();
-
+            if (!$esNotaFinal) {
+                // Notas de parciales/prácticos: se guardan como 'aprobada' SIN transferir al legajo
+                // Solo quedan registradas como notas temporales para consulta
                 foreach ($request->notas as $nota) {
-                    // Guardar nota temporal como aprobada
-                    $notaTemporal = NotaTemporal::create([
+                    $registros[] = NotaTemporal::create([
                         'profesor_materia_id' => $request->profesor_materia_id,
                         'alumno_id' => $nota['alumno_id'],
                         'nota' => $nota['nota'],
                         'tipo_evaluacion' => $request->tipo_evaluacion,
-                        'estado' => 'aprobada',
+                        'estado' => 'aprobada', // Auto-aprobada, no requiere revisión
                         'fecha' => $request->fecha,
                         'observaciones' => $nota['observaciones'] ?? null,
                         'registrado_por' => $user->id,
                         'aprobado_por' => $user->id,
                         'fecha_aprobacion' => now()
                     ]);
-
-                    // Calcular estado del alumno usando el servicio
-                    $notaValor = floatval($nota['nota']);
-                    $notaMinPromocion = floatval($profesorMateria->nota_minima_promocion ?? 7.00);
-                    $notaMinRegularidad = floatval($profesorMateria->nota_minima_regularidad ?? 4.00);
-                    $permitePromocion = $profesorMateria->permite_promocion ?? true;
-
-                    $resultado = EstadoAcademicoService::calcularEstado(
-                        $notaValor,
-                        $notaMinPromocion,
-                        $notaMinRegularidad,
-                        $permitePromocion
-                    );
-
-                    $estado = $resultado['estado'];
-                    $cursada = $resultado['cursada'];
-                    $rendida = $resultado['rendida'];
-
-                    // Actualizar o crear registro en legajo oficial
-                    $alumnoMateria = AlumnoMateria::where('alumno', $nota['alumno_id'])
-                        ->where('materia', $profesorMateria->materia)
-                        ->where('carrera', $profesorMateria->carrera)
-                        ->first();
-
-                    if ($alumnoMateria) {
-                        // Actualizar registro existente
-                        $alumnoMateria->update([
-                            'calificacion-cursada' => $notaValor,
-                            'cursada' => $cursada,
-                            'rendida' => $rendida,
-                            'nota' => ($estado === 'promocionado') ? $notaValor : $alumnoMateria->nota,
-                            'calificacion_rendida' => ($estado === 'promocionado') ? $notaValor : $alumnoMateria->calificacion_rendida,
-                        ]);
-                    } else {
-                        // Crear nuevo registro
-                        AlumnoMateria::create([
-                            'alumno' => $nota['alumno_id'],
-                            'carrera' => $profesorMateria->carrera,
-                            'materia' => $profesorMateria->materia,
-                            'calificacion-cursada' => $notaValor,
-                            'cursada' => $cursada,
-                            'rendida' => $rendida,
-                            'nota' => ($estado === 'promocionado') ? $notaValor : null,
-                            'calificacion_rendida' => ($estado === 'promocionado') ? $notaValor : null,
-                            'fecha' => $request->fecha,
-                            'equivalencia' => 0,
-                            'libre' => ($estado === 'libre') ? 1 : 0,
-                        ]);
-                    }
-
-                    \Log::info('Nota de cursada guardada y transferida automáticamente', [
-                        'nota_temporal_id' => $notaTemporal->id,
-                        'alumno_id' => $nota['alumno_id'],
-                        'nota' => $notaValor,
-                        'estado_calculado' => $estado,
-                        'tipo_evaluacion' => $request->tipo_evaluacion
-                    ]);
-
-                    $registros[] = $notaTemporal;
                 }
 
-                \DB::commit();
+                \Log::info('Notas parciales guardadas (no requieren aprobación)', [
+                    'cantidad' => count($registros),
+                    'tipo_evaluacion' => $request->tipo_evaluacion,
+                    'registrado_por' => $user->id
+                ]);
 
                 return response()->json([
-                    'message' => 'Notas guardadas y transferidas al legajo exitosamente.',
+                    'message' => 'Notas guardadas correctamente.',
                     'registros' => count($registros),
-                    'tipo' => 'aprobadas_automaticamente'
+                    'tipo' => 'notas_parciales'
                 ], 200);
 
             } else {
-                // Notas finales: requieren aprobación de admin/bedel
+                // Notas finales: requieren aprobación de admin/bedel para transferir al legajo
                 foreach ($request->notas as $nota) {
                     $registros[] = NotaTemporal::create([
                         'profesor_materia_id' => $request->profesor_materia_id,
@@ -589,18 +560,20 @@ class ExpedienteController extends Controller
                     ]);
                 }
 
+                \Log::info('Notas finales guardadas (requieren aprobación)', [
+                    'cantidad' => count($registros),
+                    'tipo_evaluacion' => $request->tipo_evaluacion,
+                    'registrado_por' => $user->id
+                ]);
+
                 return response()->json([
-                    'message' => 'Notas finales guardadas correctamente. Pendientes de aprobación.',
+                    'message' => 'Notas finales guardadas correctamente. Pendientes de aprobación por Secretaría.',
                     'registros' => count($registros),
                     'tipo' => 'pendiente_aprobacion'
                 ], 200);
             }
 
         } catch (\Exception $e) {
-            if (!$requiereAprobacion) {
-                \DB::rollBack();
-            }
-
             \Log::error('Error al guardar notas', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
@@ -738,6 +711,20 @@ class ExpedienteController extends Controller
         if ($nota->estado !== 'pendiente') {
             return response()->json([
                 'error' => 'La nota no está en estado pendiente'
+            ], 400);
+        }
+
+        // Verificar que sea una nota FINAL (solo las finales deben aprobarse y transferirse al legajo)
+        $tipoEvaluacion = strtolower($nota->tipo_evaluacion);
+        $esNotaFinal = (
+            str_contains($tipoEvaluacion, 'final') ||
+            str_contains($tipoEvaluacion, 'mesa') ||
+            str_contains($tipoEvaluacion, 'examen')
+        );
+
+        if (!$esNotaFinal) {
+            return response()->json([
+                'error' => 'Solo las notas finales requieren aprobación. Las notas parciales/prácticas se guardan automáticamente.'
             ], 400);
         }
 
@@ -932,6 +919,20 @@ class ExpedienteController extends Controller
         if ($nota->estado !== 'pendiente') {
             return response()->json([
                 'error' => 'La nota no está en estado pendiente'
+            ], 400);
+        }
+
+        // Verificar que sea una nota FINAL (solo las finales requieren aprobación)
+        $tipoEvaluacion = strtolower($nota->tipo_evaluacion);
+        $esNotaFinal = (
+            str_contains($tipoEvaluacion, 'final') ||
+            str_contains($tipoEvaluacion, 'mesa') ||
+            str_contains($tipoEvaluacion, 'examen')
+        );
+
+        if (!$esNotaFinal) {
+            return response()->json([
+                'error' => 'Solo las notas finales requieren aprobación/rechazo. Las notas parciales/prácticas se guardan automáticamente.'
             ], 400);
         }
 
@@ -1140,5 +1141,149 @@ class ExpedienteController extends Controller
                 'error' => 'Error al actualizar: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Mostrar expediente completo del alumno
+     */
+    private function mostrarExpedienteAlumno($user)
+    {
+        // Obtener alumno relacionado
+        $alumno = Alumno::where('dni', $user->dni)->first();
+
+        if (!$alumno) {
+            abort(404, 'No se encontró información del alumno');
+        }
+
+        // Obtener carrera del alumno
+        $carrera = Carrera::find($alumno->carrera);
+
+        // Obtener todas las materias del historial académico
+        $materias = AlumnoMateria::with(['materiaRelacion', 'carrera'])
+            ->where('alumno', $alumno->id)
+            ->orderBy('fecha', 'desc')
+            ->get()
+            ->filter(function($am) {
+                // Filtrar solo las que tienen relación con materia
+                return $am->materiaRelacion !== null;
+            })
+            ->map(function($am) {
+                return [
+                    'id' => $am->Id,
+                    'materia' => [
+                        'id' => $am->materiaRelacion->id,
+                        'nombre' => $am->materiaRelacion->nombre,
+                        'codigo' => $am->materiaRelacion->codigo ?? null,
+                        'anno' => $am->materiaRelacion->anno,
+                        'semestre' => $am->materiaRelacion->semestre,
+                    ],
+                    'nota_final' => $am->nota,
+                    'calificacion_cursada' => $am->{'calificacion-cursada'} ?? null,
+                    'calificacion_rendida' => $am->calificacion_rendida ?? null,
+                    'estado' => $this->obtenerEstadoMateria($am),
+                    'cursada' => $am->cursada === '1',
+                    'rendida' => $am->rendida === '1',
+                    'fecha' => $am->fecha ? $am->fecha->format('d/m/Y') : null,
+                    'libro' => $am->libro ?? null,
+                    'folio' => $am->folio ?? null,
+                ];
+            })
+            ->values(); // Reindexar después del filter
+
+        // Calcular estadísticas
+        $materiasAprobadas = $materias->where('rendida', true)->count();
+        $materiasRegulares = $materias->where('cursada', true)->where('rendida', false)->count();
+        $totalMaterias = $materias->count();
+
+        // Calcular promedio (solo materias aprobadas con nota)
+        $materiasConNota = $materias->where('rendida', true)->filter(function($m) {
+            return !empty($m['nota_final']) && is_numeric($m['nota_final']);
+        });
+
+        $promedio = $materiasConNota->count() > 0
+            ? round($materiasConNota->avg('nota_final'), 2)
+            : null;
+
+        // Obtener inscripciones actuales con asistencias
+        $inscripcionesActuales = Inscripcion::with(['materia'])
+            ->where('alumno_id', $alumno->id)
+            ->where('estado', 'confirmada')
+            ->get()
+            ->map(function($inscripcion) use ($alumno) {
+                // Obtener IDs de profesor_materia para esta materia
+                $profesorMateriaIds = \DB::table('tbl_profesor_tiene_materias')
+                    ->where('materia', $inscripcion->materia_id)
+                    ->pluck('id');
+
+                // Obtener asistencias del alumno para esta materia
+                $asistencias = Asistencia::where('alumno_id', $alumno->id)
+                    ->whereIn('profesor_materia_id', $profesorMateriaIds)
+                    ->where('tipo_carga', 'diaria')
+                    ->get();
+
+                $totalClases = $asistencias->count();
+                $asistenciasPresentes = $asistencias->where('estado', 'presente')->count();
+                $porcentajeAsistencia = $totalClases > 0
+                    ? round(($asistenciasPresentes / $totalClases) * 100, 1)
+                    : null;
+
+                return [
+                    'materia' => [
+                        'id' => $inscripcion->materia->id,
+                        'nombre' => $inscripcion->materia->nombre,
+                        'anno' => $inscripcion->materia->anno,
+                        'semestre' => $inscripcion->materia->semestre,
+                    ],
+                    'asistencia' => [
+                        'total_clases' => $totalClases,
+                        'presentes' => $asistenciasPresentes,
+                        'porcentaje' => $porcentajeAsistencia,
+                    ],
+                ];
+            });
+
+        return Inertia::render('Expediente/AlumnoPanel', [
+            'alumno' => [
+                'id' => $alumno->id,
+                'dni' => $alumno->dni,
+                'nombre_completo' => trim($alumno->apellido . ', ' . $alumno->nombre),
+                'legajo' => $alumno->legajo,
+                'email' => $alumno->email,
+                'telefono' => $alumno->telefono,
+                'celular' => $alumno->celular,
+                'curso' => $alumno->curso,
+                'division' => $alumno->division,
+            ],
+            'carrera' => $carrera ? [
+                'id' => $carrera->Id,
+                'nombre' => $carrera->nombre,
+                'duracion' => $carrera->duracion,
+            ] : null,
+            'estadisticas' => [
+                'total_materias' => $totalMaterias,
+                'aprobadas' => $materiasAprobadas,
+                'regulares' => $materiasRegulares,
+                'promedio' => $promedio,
+                'porcentaje_progreso' => $totalMaterias > 0
+                    ? round(($materiasAprobadas / $totalMaterias) * 100, 1)
+                    : 0,
+            ],
+            'historial' => $materias,
+            'materias_actuales' => $inscripcionesActuales,
+        ]);
+    }
+
+    /**
+     * Obtener estado legible de una materia
+     */
+    private function obtenerEstadoMateria($alumnoMateria)
+    {
+        if ($alumnoMateria->rendida === '1') {
+            return 'aprobada';
+        }
+        if ($alumnoMateria->cursada === '1') {
+            return 'regular';
+        }
+        return 'cursando';
     }
 }

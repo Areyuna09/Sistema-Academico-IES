@@ -39,6 +39,14 @@ class AlumnoMateria extends Model
         'calificacion-cursada',
         'calificacion_rendida',
         'libro_corte',
+        // Campos de revisión
+        'estado_revision',
+        'revisado_por_directivo',
+        'fecha_revision_directivo',
+        'observaciones_directivo',
+        'revisado_por_supervisor',
+        'fecha_revision_supervisor',
+        'observaciones_supervisor',
     ];
 
     /**
@@ -48,6 +56,8 @@ class AlumnoMateria extends Model
         'fecha' => 'date',
         'equivalencia' => 'integer',
         'libre' => 'integer',
+        'fecha_revision_directivo' => 'datetime',
+        'fecha_revision_supervisor' => 'datetime',
     ];
 
     /**
@@ -134,5 +144,93 @@ class AlumnoMateria extends Model
     public function scopeDeMateria($query, $materiaId)
     {
         return $query->where('materia', $materiaId);
+    }
+
+    /**
+     * Relación: Usuario Directivo que revisó
+     */
+    public function directivoRevisor()
+    {
+        return $this->belongsTo(User::class, 'revisado_por_directivo', 'id');
+    }
+
+    /**
+     * Relación: Usuario Supervisor que revisó
+     */
+    public function supervisorRevisor()
+    {
+        return $this->belongsTo(User::class, 'revisado_por_supervisor', 'id');
+    }
+
+    /**
+     * Relación: Historial de revisiones
+     */
+    public function historialRevisiones()
+    {
+        return $this->hasMany(HistorialRevision::class, 'alumno_materia_id', 'Id');
+    }
+
+    /**
+     * Scope: Legajos pendientes de revisión por Directivo
+     */
+    public function scopePendientesDirectivo($query)
+    {
+        return $query->where('estado_revision', 'pendiente');
+    }
+
+    /**
+     * Scope: Legajos con observaciones de Directivo
+     */
+    public function scopeConObservacionesDirectivo($query)
+    {
+        return $query->where('estado_revision', 'observaciones_directivo');
+    }
+
+    /**
+     * Scope: Legajos pendientes de revisión por Supervisor
+     */
+    public function scopePendientesSupervisor($query)
+    {
+        return $query->where('estado_revision', 'aprobado_directivo');
+    }
+
+    /**
+     * Scope: Legajos con observaciones de Supervisor
+     */
+    public function scopeConObservacionesSupervisor($query)
+    {
+        return $query->where('estado_revision', 'observaciones_supervisor');
+    }
+
+    /**
+     * Scope: Legajos aprobados finalmente
+     */
+    public function scopeAprobadosFinal($query)
+    {
+        return $query->where('estado_revision', 'aprobado_final');
+    }
+
+    /**
+     * Verificar si requiere revisión de Directivo
+     */
+    public function requiereRevisionDirectivo(): bool
+    {
+        return in_array($this->estado_revision, ['pendiente', 'observaciones_supervisor']);
+    }
+
+    /**
+     * Verificar si requiere revisión de Supervisor
+     */
+    public function requiereRevisionSupervisor(): bool
+    {
+        return in_array($this->estado_revision, ['aprobado_directivo', 'observaciones_directivo']);
+    }
+
+    /**
+     * Verificar si fue aprobado finalmente
+     */
+    public function estaAprobadoFinal(): bool
+    {
+        return $this->estado_revision === 'aprobado_final';
     }
 }

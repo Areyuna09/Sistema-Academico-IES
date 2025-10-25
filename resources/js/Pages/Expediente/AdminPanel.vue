@@ -17,7 +17,11 @@ const props = defineProps({
         type: Array,
         default: () => []
     },
-    usuarios: {
+    profesores: {
+        type: Object,
+        default: () => ({ data: [], links: [] })
+    },
+    alumnos: {
         type: Object,
         default: () => ({ data: [], links: [] })
     },
@@ -29,7 +33,11 @@ const props = defineProps({
         type: Object,
         default: () => ({})
     },
-    filtrosUsuarios: {
+    filtrosProfesores: {
+        type: Object,
+        default: () => ({})
+    },
+    filtrosAlumnos: {
         type: Object,
         default: () => ({})
     },
@@ -87,14 +95,14 @@ const formMaterias = useForm({
 });
 
 const formProfesores = useForm({
-    activo: props.filtrosUsuarios?.activo || '',
-    buscar: props.filtrosUsuarios?.buscar || '',
+    activo: props.filtrosProfesores?.activo || '',
+    buscar: props.filtrosProfesores?.buscar || '',
 });
 
 const formAlumnos = useForm({
-    activo: props.filtrosUsuarios?.activo || '',
-    buscar: props.filtrosUsuarios?.buscar || '',
-    carrera: props.filtrosUsuarios?.carrera || '',
+    activo: props.filtrosAlumnos?.activo || '',
+    buscar: props.filtrosAlumnos?.buscar || '',
+    carrera: props.filtrosAlumnos?.carrera || '',
 });
 
 const opciones = [
@@ -820,7 +828,7 @@ const getEstadoBadge = (estado) => {
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
-                                <tr v-for="usuario in usuarios?.data?.filter(u => u.tipo === 3) || []" :key="usuario.id" class="hover:bg-gray-50">
+                                <tr v-for="usuario in profesores?.data || []" :key="usuario.id" class="hover:bg-gray-50">
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                         {{ usuario.dni }}
                                     </td>
@@ -872,7 +880,7 @@ const getEstadoBadge = (estado) => {
                                         </div>
                                     </td>
                                 </tr>
-                                <tr v-if="!usuarios?.data || usuarios.data.filter(u => u.tipo === 3).length === 0">
+                                <tr v-if="!profesores?.data || profesores.data.length === 0">
                                     <td colspan="5" class="px-6 py-8 text-center text-gray-500">
                                         <i class="bx bx-user-x text-4xl mb-2"></i>
                                         <p>No se encontraron profesores</p>
@@ -972,7 +980,7 @@ const getEstadoBadge = (estado) => {
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
-                                <tr v-for="usuario in usuarios?.data?.filter(u => u.tipo === 4) || []" :key="usuario.id" class="hover:bg-gray-50">
+                                <tr v-for="usuario in alumnos?.data || []" :key="usuario.id" class="hover:bg-gray-50">
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                         {{ usuario.dni }}
                                     </td>
@@ -1039,7 +1047,7 @@ const getEstadoBadge = (estado) => {
                                         </div>
                                     </td>
                                 </tr>
-                                <tr v-if="!usuarios?.data || usuarios.data.filter(u => u.tipo === 4).length === 0">
+                                <tr v-if="!alumnos?.data || alumnos.data.length === 0">
                                     <td colspan="6" class="px-6 py-8 text-center text-gray-500">
                                         <i class="bx bx-user-x text-4xl mb-2"></i>
                                         <p>No se encontraron alumnos</p>

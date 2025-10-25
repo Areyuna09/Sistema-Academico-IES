@@ -43,7 +43,3 @@ Route::prefix('correlativas')->group(function () {
     // Resumen de alumno
     Route::get('/alumno/{dni}', [CorrelativasController::class, 'obtenerResumenAlumno']);
 });
-
-// Rutas públicas de Plan de Estudio (carreras)
-Route::get('/carreras', [PlanEstudioController::class, 'listCarreras']);
-Route::get('/carreras/{carrera}/plan', [PlanEstudioController::class, 'showCarreraPlan']);

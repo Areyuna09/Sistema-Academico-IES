@@ -320,6 +320,53 @@ class ConfiguracionModulosSeeder extends Seeder
                 'orden' => 64,
                 'icono' => 'bx-receipt',
             ],
+
+            // ===== FIRMAS DIGITALES =====
+            [
+                'clave' => 'firmas_digitales_libro_matriz',
+                'nombre' => 'Firmas Digitales en Libro Matriz',
+                'descripcion' => 'Requiere firma digital del Directivo y Supervisor en Libro Matriz PDF',
+                'categoria' => 'firmas_digitales',
+                'activo' => true,
+                'orden' => 70,
+                'icono' => 'bx-pen',
+            ],
+            [
+                'clave' => 'firmas_digitales_certificados',
+                'nombre' => 'Firmas Digitales en Certificados',
+                'descripcion' => 'Requiere firma digital en certificados académicos generados',
+                'categoria' => 'firmas_digitales',
+                'activo' => true,
+                'orden' => 71,
+                'icono' => 'bx-certification',
+            ],
+            [
+                'clave' => 'firmas_digitales_titulos',
+                'nombre' => 'Firmas Digitales en Títulos',
+                'descripcion' => 'Requiere firma digital en títulos oficiales emitidos',
+                'categoria' => 'firmas_digitales',
+                'activo' => true,
+                'orden' => 72,
+                'icono' => 'bx-award',
+            ],
+            [
+                'clave' => 'firmas_digitales_comprobantes',
+                'nombre' => 'Firmas Digitales en Comprobantes',
+                'descripcion' => 'Incluye firma digital en comprobantes de inscripción',
+                'categoria' => 'firmas_digitales',
+                'activo' => false,
+                'orden' => 73,
+                'icono' => 'bx-receipt',
+            ],
+            [
+                'clave' => 'verificacion_integridad_documentos',
+                'nombre' => 'Verificación de Integridad de Documentos',
+                'descripcion' => 'Valida que los documentos firmados no hayan sido modificados',
+                'categoria' => 'firmas_digitales',
+                'activo' => true,
+                'orden' => 74,
+                'icono' => 'bx-check-shield',
+            ],
         ];
 
         foreach ($modulos as $modulo) {

@@ -6,6 +6,7 @@ use App\Models\MesaExamen;
 use App\Models\InscripcionMesa;
 use App\Models\AlumnoMateria;
 use App\Models\Notificacion;
+use App\Models\Configuracion;
 use App\Services\MotorCorrelativasService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -373,57 +374,29 @@ class InscripcionesMesaController extends Controller
             abort(403, 'No tienes un perfil de alumno asociado');
         }
 
-        $inscripcion = InscripcionMesa::with(['mesa.materia.carrera', 'mesa.presidente', 'mesa.vocal1', 'mesa.vocal2', 'alumno'])
+        $inscripcion = InscripcionMesa::with(['mesa.materia.carrera', 'mesa.presidente', 'mesa.vocal1', 'mesa.vocal2', 'mesa.periodo', 'alumno'])
             ->where('id', $inscripcionId)
             ->where('alumno_id', $user->alumno_id)
             ->firstOrFail();
 
-        // Extraer relaciones explícitamente para evitar problemas en Blade
-        $materiaData = $inscripcion->mesa->getRelation('materia');
-        $carreraData = $materiaData->getRelation('carrera');
-        $alumnoData = $inscripcion->getRelation('alumno');
-
-        // Preparar datos para la vista
-        $datosComprobante = [
-            'inscripcion_id' => $inscripcion->id,
-            'fecha_inscripcion' => $inscripcion->fecha_inscripcion,
-            'estado' => $inscripcion->estado,
-            'mesa' => [
-                'llamado' => $inscripcion->mesa->llamado,
-                'fecha_examen' => $inscripcion->mesa->fecha_examen,
-                'hora_examen' => $inscripcion->mesa->hora_examen,
-                'aula' => $inscripcion->mesa->aula,
-                'observaciones' => $inscripcion->mesa->observaciones,
-            ],
-            'materia' => [
-                'nombre' => $materiaData->nombre,
-            ],
-            'carrera' => [
-                'nombre' => $carreraData->nombre,
-            ],
-            'alumno' => [
-                'nombre_completo' => $alumnoData->nombre_completo,
-                'dni' => $alumnoData->dni,
-                'email' => $alumnoData->email,
-                'legajo' => $alumnoData->legajo,
-            ],
-            'tribunal' => [
-                'presidente' => $inscripcion->mesa->presidente?->nombre_completo,
-                'vocal1' => $inscripcion->mesa->vocal1?->nombre_completo,
-                'vocal2' => $inscripcion->mesa->vocal2?->nombre_completo,
-            ],
-        ];
+        // Obtener alumno
+        $alumno = $inscripcion->alumno;
 
         // Obtener configuración global
         $configuracion = \App\Models\Configuracion::get();
 
-        // Generar PDF
-        $pdf = \PDF::loadView('emails.comprobante-mesa-examen', [
-            'datos' => $datosComprobante,
+        // Generar PDF usando la nueva vista profesional
+        $pdf = \PDF::loadView('pdfs.comprobante-inscripcion-mesa', [
+            'alumno' => $alumno,
+            'inscripcion' => $inscripcion,
+            'mesa' => $inscripcion->mesa,
             'configuracion' => $configuracion,
         ]);
 
-        return $pdf->download('comprobante-mesa-examen-' . $alumnoData->dni . '.pdf');
+        // Configurar orientación y tamaño
+        $pdf->setPaper('A4', 'portrait');
+
+        return $pdf->download('comprobante-mesa-examen-' . $alumno->dni . '.pdf');
     }
 
     /**

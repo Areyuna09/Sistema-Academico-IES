@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('excepciones', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('alumno_id');
+            $table->integer('alumno_id'); // int(11) para compatibilidad con legacy
             $table->enum('tipo', [
                 'correlativa',
                 'reingreso',
@@ -27,7 +27,7 @@ return new class extends Migration
             $table->enum('estado', ['pendiente', 'aprobada', 'rechazada'])->default('pendiente');
 
             // Referencias opcionales a materias/mesas si aplica
-            $table->unsignedBigInteger('materia_id')->nullable();
+            $table->integer('materia_id')->nullable(); // int(11) para compatibilidad con legacy
             $table->unsignedBigInteger('mesa_examen_id')->nullable();
 
             // Auditoría

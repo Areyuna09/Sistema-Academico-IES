@@ -489,13 +489,16 @@ class InscripcionesController extends Controller
         // Obtener configuración global
         $configuracion = Configuracion::get();
 
-        // Generar PDF usando la misma vista del email
-        $pdf = \PDF::loadView('emails.comprobante-inscripcion', [
+        // Generar PDF usando la vista específica para PDF (con logo y firma)
+        $pdf = \PDF::loadView('pdfs.comprobante-inscripcion', [
             'alumno' => $alumno,
             'inscripciones' => $inscripciones,
             'periodo' => $periodoActivo,
             'configuracion' => $configuracion,
         ]);
+
+        // Configurar orientación y tamaño
+        $pdf->setPaper('A4', 'portrait');
 
         // Descargar PDF
         return $pdf->download('comprobante-inscripcion-' . $alumno->dni . '.pdf');

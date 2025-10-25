@@ -3,6 +3,11 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 
+// Forzar UTF-8 en toda la aplicación
+mb_internal_encoding('UTF-8');
+mb_http_output('UTF-8');
+ini_set('default_charset', 'UTF-8');
+
 define('LARAVEL_START', microtime(true));
 
 // Determine if the application is in maintenance mode...
