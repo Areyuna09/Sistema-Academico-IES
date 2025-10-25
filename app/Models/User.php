@@ -82,20 +82,10 @@ class User extends Authenticatable
     }
 
     /**
-     * Obtener el nombre del campo usado para autenticación (username)
+     * NOTA: NO sobrescribir getAuthIdentifierName() ni getAuthIdentifier()
+     * Estos métodos definen la clave primaria del usuario (id), no el campo de login.
+     * Para login con DNI, se configura en config/auth.php o en el LoginRequest.
      */
-    public function getAuthIdentifierName()
-    {
-        return 'dni';
-    }
-
-    /**
-     * Obtener el valor del identificador de autenticación
-     */
-    public function getAuthIdentifier()
-    {
-        return $this->dni;
-    }
 
     /**
      * Accessor para 'name' (Laravel espera este campo)
