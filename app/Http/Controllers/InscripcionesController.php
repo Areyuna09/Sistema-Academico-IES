@@ -318,23 +318,23 @@ class InscripcionesController extends Controller
                     ->whereIn('materia_id', $validated['materias'])
                     ->get();
 
-                // Enviar email de comprobante en segundo plano (cola)
+                // Enviar email de comprobante inmediatamente
                 try {
                     $emailDestino = $alumno->email ?? $user->email;
 
                     if ($emailDestino) {
-                        // Despachar a cola para no bloquear la respuesta
-                        \Mail::to($emailDestino)->queue(
+                        // Enviar inmediatamente sin cola
+                        \Mail::to($emailDestino)->send(
                             new \App\Mail\ComprobanteInscripcion(
                                 $alumno,
                                 $inscripcionesCreadas,
                                 $periodoActivo
                             )
                         );
-                        \Log::info('Email de comprobante encolado', ['email' => $emailDestino]);
+                        \Log::info('Email de comprobante enviado', ['email' => $emailDestino]);
                     }
                 } catch (\Exception $e) {
-                    \Log::error('Error al encolar email de comprobante: ' . $e->getMessage());
+                    \Log::error('Error al enviar email de comprobante: ' . $e->getMessage());
                     // No fallar la inscripción por error en email
                 }
 

@@ -220,14 +220,14 @@ class InscripcionesMesaController extends Controller
             'fecha_inscripcion' => now(),
         ]);
 
-        // Enviar email con comprobante en cola (no bloqueante)
+        // Enviar email con comprobante inmediatamente
         try {
             if ($alumno->email) {
-                \Mail::to($alumno->email)->queue(new \App\Mail\ComprobanteMesaExamen($alumno, $mesa, $inscripcion));
-                \Log::info('Email de comprobante de mesa encolado', ['email' => $alumno->email]);
+                \Mail::to($alumno->email)->send(new \App\Mail\ComprobanteMesaExamen($alumno, $mesa, $inscripcion));
+                \Log::info('Email de comprobante de mesa enviado', ['email' => $alumno->email]);
             }
         } catch (\Exception $e) {
-            \Log::error('Error al encolar email de comprobante de mesa: ' . $e->getMessage());
+            \Log::error('Error al enviar email de comprobante de mesa: ' . $e->getMessage());
         }
 
         // Crear notificación para el alumno

@@ -4,396 +4,224 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Comprobante de Inscripción</title>
-    <style>
-        @page {
-            margin: 0;
-        }
-        body {
-            font-family: 'Helvetica', 'Arial', sans-serif;
-            line-height: 1.3;
-            color: #1a1a1a;
-            margin: 0;
-            padding: 0;
-            background: #ffffff;
-        }
-        .page {
-            width: 180mm;
-            padding: 12mm;
-            margin: 0 auto;
-            background: white;
-        }
-
-        /* Header con logo */
-        .header {
-            text-align: center;
-            border-bottom: 2px solid #2563eb;
-            padding-bottom: 12px;
-            margin-bottom: 15px;
-        }
-        .logo {
-            max-width: 70px;
-            height: auto;
-            margin-bottom: 8px;
-        }
-        .institution-name {
-            font-size: 18px;
-            font-weight: bold;
-            color: #1e293b;
-            margin: 8px 0 4px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .document-title {
-            font-size: 16px;
-            color: #2563eb;
-            font-weight: bold;
-            margin: 10px 0 4px;
-            text-transform: uppercase;
-        }
-        .document-subtitle {
-            font-size: 11px;
-            color: #64748b;
-        }
-
-        /* Sección de confirmación */
-        .confirmation-badge {
-            background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
-            color: white;
-            text-align: center;
-            padding: 12px;
-            border-radius: 6px;
-            margin-bottom: 15px;
-        }
-        .confirmation-badge h2 {
-            margin: 0 0 4px;
-            font-size: 14px;
-            font-weight: bold;
-        }
-        .confirmation-badge p {
-            margin: 0;
-            font-size: 10px;
-            opacity: 0.95;
-        }
-
-        /* Información en tabla */
-        .info-table {
-            width: 100%;
-            margin-bottom: 12px;
-            border-collapse: collapse;
-        }
-        .info-table td {
-            padding: 7px 10px;
-            border-bottom: 1px solid #e2e8f0;
-            font-size: 11px;
-        }
-        .info-table .label {
-            font-weight: bold;
-            color: #475569;
-            width: 35%;
-        }
-        .info-table .value {
-            color: #1e293b;
-        }
-
-        /* Lista de materias */
-        .section-title {
-            font-size: 11px;
-            font-weight: bold;
-            color: #1e293b;
-            margin: 12px 0 8px;
-            padding-bottom: 4px;
-            border-bottom: 2px solid #e2e8f0;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .materias-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 12px;
-        }
-        .materias-table thead {
-            background-color: #2563eb;
-            color: white;
-        }
-        .materias-table th {
-            padding: 7px 10px;
-            text-align: left;
-            font-size: 10px;
-            text-transform: uppercase;
-            font-weight: bold;
-        }
-        .materias-table td {
-            padding: 6px 10px;
-            border-bottom: 1px solid #e2e8f0;
-            font-size: 10px;
-            line-height: 1.3;
-        }
-        .materias-table tbody tr:nth-child(even) {
-            background-color: #f8fafc;
-        }
-        .materia-name {
-            font-weight: 600;
-            color: #1e293b;
-        }
-        .materia-details {
-            color: #64748b;
-            font-size: 8px;
-        }
-        .status-badge {
-            background-color: #dcfce7;
-            color: #15803d;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 8px;
-            font-weight: bold;
-            text-transform: uppercase;
-            display: inline-block;
-        }
-
-        /* Información importante */
-        .important-box {
-            background-color: #fef3c7;
-            border-left: 3px solid #f59e0b;
-            padding: 8px;
-            margin: 10px 0;
-            border-radius: 3px;
-        }
-        .important-box strong {
-            color: #92400e;
-            display: block;
-            margin-bottom: 3px;
-            font-size: 9px;
-        }
-        .important-box p {
-            margin: 0;
-            color: #78350f;
-            font-size: 8px;
-            line-height: 1.4;
-        }
-
-        /* Próximos pasos */
-        .steps-box {
-            background-color: #eff6ff;
-            border: 1px solid #bfdbfe;
-            border-radius: 4px;
-            padding: 8px;
-            margin: 10px 0;
-        }
-        .steps-box h3 {
-            margin: 0 0 6px;
-            color: #1e40af;
-            font-size: 9px;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-        .steps-box ul {
-            margin: 0;
-            padding-left: 15px;
-        }
-        .steps-box li {
-            color: #1e40af;
-            margin-bottom: 3px;
-            font-size: 8px;
-            line-height: 1.3;
-        }
-
-        /* Footer */
-        .footer {
-            margin-top: 20px;
-            padding-top: 10px;
-            border-top: 1px solid #e2e8f0;
-            text-align: center;
-        }
-        .footer-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 8px;
-            color: #64748b;
-        }
-        .footer-col {
-            flex: 1;
-        }
-        .footer-signature {
-            margin-top: 15px;
-            padding-top: 10px;
-        }
-        .signature-line {
-            border-top: 1px solid #1e293b;
-            width: 150px;
-            margin: 0 auto 5px;
-        }
-        .signature-label {
-            font-size: 8px;
-            color: #475569;
-            font-weight: bold;
-        }
-        .footer-note {
-            margin-top: 8px;
-            font-size: 7px;
-            color: #94a3b8;
-            font-style: italic;
-        }
-
-        /* Número de comprobante */
-        .comprobante-number {
-            text-align: right;
-            font-size: 9px;
-            color: #64748b;
-            margin-bottom: 8px;
-        }
-        .comprobante-number strong {
-            color: #1e293b;
-        }
-    </style>
 </head>
-<body>
-    <div class="page">
-        <!-- Header -->
-        <div class="header">
-            @php
-                // Para emails embeber logo
-                $logoPath = null;
-                if ($configuracion->logo_path && file_exists(storage_path('app/public/' . $configuracion->logo_path))) {
-                    $logoPath = storage_path('app/public/' . $configuracion->logo_path);
-                } elseif (file_exists(public_path('images/logo-ies-original.png'))) {
-                    $logoPath = public_path('images/logo-ies-original.png');
-                }
-            @endphp
-            @if($logoPath)
-                <img src="{{ $message->embed($logoPath) }}" alt="Logo {{ $configuracion->nombre_institucion }}" class="logo">
-            @endif
-            <div class="institution-name">{{ $configuracion->nombre_institucion }}</div>
-            <div class="document-title">Comprobante de Inscripción</div>
-            <div class="document-subtitle">{{ $periodo->nombre }}</div>
-        </div>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6;">
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f3f4f6; padding: 40px 20px;">
+        <tr>
+            <td align="center">
+                <!-- Container principal -->
+                <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
 
-        <!-- Número de comprobante -->
-        <div class="comprobante-number">
-            <strong>N° de Comprobante:</strong> {{ strtoupper(uniqid('INS-')) }} |
-            <strong>Fecha de emisión:</strong> {{ now()->format('d/m/Y H:i') }}hs
-        </div>
+                    <!-- Header con gradiente -->
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); padding: 40px 30px; text-align: center;">
+                            <div style="background-color: rgba(255,255,255,0.2); display: inline-block; padding: 15px 30px; border-radius: 50px; margin-bottom: 15px;">
+                                <span style="font-size: 32px; color: #ffffff;">🎓</span>
+                            </div>
+                            <h1 style="margin: 0 0 10px; font-size: 28px; color: #ffffff; font-weight: 700; letter-spacing: -0.5px;">
+                                {{ $configuracion->nombre_institucion ?? 'IES G.M. Belgrano' }}
+                            </h1>
+                            <p style="margin: 0; font-size: 14px; color: rgba(255,255,255,0.9); text-transform: uppercase; letter-spacing: 1px; font-weight: 500;">
+                                Comprobante de Inscripción
+                            </p>
+                        </td>
+                    </tr>
 
-        <!-- Confirmación -->
-        <div class="confirmation-badge">
-            <h2>✓ INSCRIPCIÓN CONFIRMADA</h2>
-            <p>Su inscripción ha sido procesada y confirmada exitosamente</p>
-        </div>
+                    <!-- Badge de confirmación -->
+                    <tr>
+                        <td style="padding: 30px 30px 20px;">
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                                <tr>
+                                    <td style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 20px; border-radius: 8px; text-align: center;">
+                                        <div style="font-size: 18px; color: #ffffff; font-weight: 700; margin-bottom: 5px;">
+                                            ✓ INSCRIPCIÓN CONFIRMADA
+                                        </div>
+                                        <div style="font-size: 13px; color: rgba(255,255,255,0.95);">
+                                            Tu inscripción ha sido procesada exitosamente
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
 
-        <!-- Información del estudiante -->
-        <h3 class="section-title">Datos del Estudiante</h3>
-        <table class="info-table">
-            <tr>
-                <td class="label">Apellido y Nombre:</td>
-                <td class="value">{{ strtoupper($alumno->nombre_completo) }}</td>
-            </tr>
-            <tr>
-                <td class="label">DNI:</td>
-                <td class="value">{{ number_format($alumno->dni, 0, ',', '.') }}</td>
-            </tr>
-            <tr>
-                <td class="label">Año de Cursada:</td>
-                <td class="value">{{ $alumno->curso }}° Año</td>
-            </tr>
-            <tr>
-                <td class="label">Período Académico:</td>
-                <td class="value">{{ $periodo->nombre }}</td>
-            </tr>
-        </table>
+                    <!-- Número de comprobante -->
+                    <tr>
+                        <td style="padding: 0 30px 20px;">
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f9fafb; border-radius: 6px; padding: 12px 15px;">
+                                <tr>
+                                    <td style="font-size: 12px; color: #6b7280;">
+                                        <strong style="color: #111827;">N° Comprobante:</strong> {{ strtoupper(uniqid('INS-')) }}
+                                    </td>
+                                    <td align="right" style="font-size: 12px; color: #6b7280;">
+                                        <strong style="color: #111827;">Fecha:</strong> {{ now()->format('d/m/Y H:i') }}hs
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
 
-        <!-- Materias inscritas -->
-        <h3 class="section-title">Materias Inscritas ({{ $inscripciones->count() }})</h3>
-        <table class="materias-table">
-            <thead>
-                <tr>
-                    <th style="width: 5%">#</th>
-                    <th style="width: 55%">Materia</th>
-                    <th style="width: 20%">Año / Cuatrimestre</th>
-                    <th style="width: 20%">Estado</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($inscripciones as $index => $inscripcion)
-                <tr>
-                    <td>{{ $index + 1 }}</td>
-                    <td>
-                        <div class="materia-name">{{ $inscripcion->materia->nombre }}</div>
-                    </td>
-                    <td>
-                        <div class="materia-details">
-                            {{ $inscripcion->materia->anno }}° Año - {{ $inscripcion->materia->semestre === 1 ? '1er' : '2do' }} Cuatr.
-                        </div>
-                    </td>
-                    <td>
-                        <span class="status-badge">Confirmada</span>
-                    </td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
+                    <!-- Datos del estudiante -->
+                    <tr>
+                        <td style="padding: 0 30px 25px;">
+                            <h2 style="margin: 0 0 15px; font-size: 16px; color: #111827; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 3px solid #3b82f6; padding-bottom: 8px;">
+                                📋 Datos del Estudiante
+                            </h2>
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                                <tr>
+                                    <td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb;">
+                                        <span style="font-size: 13px; color: #6b7280; font-weight: 600;">Apellido y Nombre:</span><br>
+                                        <span style="font-size: 15px; color: #111827; font-weight: 700;">{{ strtoupper($alumno->nombre_completo) }}</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb;">
+                                        <span style="font-size: 13px; color: #6b7280; font-weight: 600;">DNI:</span><br>
+                                        <span style="font-size: 15px; color: #111827;">{{ number_format($alumno->dni, 0, ',', '.') }}</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb;">
+                                        <span style="font-size: 13px; color: #6b7280; font-weight: 600;">Año de Cursada:</span><br>
+                                        <span style="font-size: 15px; color: #111827;">{{ $alumno->curso }}° Año</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 10px 0;">
+                                        <span style="font-size: 13px; color: #6b7280; font-weight: 600;">Período Académico:</span><br>
+                                        <span style="font-size: 15px; color: #111827; font-weight: 600;">{{ $periodo->nombre }}</span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
 
-        <!-- Información importante -->
-        <div class="important-box">
-            <strong>📌 IMPORTANTE</strong>
-            <p>
-                Este comprobante certifica su inscripción a las materias detalladas.
-                Debe conservarlo como documento oficial y presentarlo cuando sea requerido.
-                La inscripción está sujeta a la aprobación de las correlatividades correspondientes.
-            </p>
-        </div>
+                    <!-- Materias inscritas -->
+                    <tr>
+                        <td style="padding: 0 30px 25px;">
+                            <h2 style="margin: 0 0 15px; font-size: 16px; color: #111827; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 3px solid #3b82f6; padding-bottom: 8px;">
+                                📚 Materias Inscritas ({{ $inscripciones->count() }})
+                            </h2>
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border: 1px solid #e5e7eb; border-radius: 6px; overflow: hidden;">
+                                <thead>
+                                    <tr style="background-color: #1e40af;">
+                                        <th style="padding: 12px 10px; text-align: left; font-size: 12px; color: #ffffff; font-weight: 700; text-transform: uppercase; width: 8%;">#</th>
+                                        <th style="padding: 12px 10px; text-align: left; font-size: 12px; color: #ffffff; font-weight: 700; text-transform: uppercase;">Materia</th>
+                                        <th style="padding: 12px 10px; text-align: center; font-size: 12px; color: #ffffff; font-weight: 700; text-transform: uppercase; width: 25%;">Año/Cuatrim.</th>
+                                        <th style="padding: 12px 10px; text-align: center; font-size: 12px; color: #ffffff; font-weight: 700; text-transform: uppercase; width: 18%;">Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($inscripciones as $index => $inscripcion)
+                                    <tr style="background-color: {{ $index % 2 == 0 ? '#ffffff' : '#f9fafb' }};">
+                                        <td style="padding: 12px 10px; font-size: 14px; color: #6b7280; font-weight: 600; border-bottom: 1px solid #e5e7eb;">
+                                            {{ $index + 1 }}
+                                        </td>
+                                        <td style="padding: 12px 10px; border-bottom: 1px solid #e5e7eb;">
+                                            <div style="font-size: 14px; color: #111827; font-weight: 600; margin-bottom: 3px;">
+                                                {{ $inscripcion->materia->nombre }}
+                                            </div>
+                                        </td>
+                                        <td style="padding: 12px 10px; text-align: center; border-bottom: 1px solid #e5e7eb;">
+                                            <div style="font-size: 13px; color: #6b7280;">
+                                                {{ $inscripcion->materia->anno }}° Año - {{ $inscripcion->materia->semestre === 1 ? '1er' : '2do' }} Cuatr.
+                                            </div>
+                                        </td>
+                                        <td style="padding: 12px 10px; text-align: center; border-bottom: 1px solid #e5e7eb;">
+                                            <span style="background-color: #d1fae5; color: #065f46; padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; display: inline-block;">
+                                                Confirmada
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
 
-        <!-- Próximos pasos -->
-        <div class="steps-box">
-            <h3>📋 Próximos Pasos</h3>
-            <ul>
-                <li>Verificar los horarios de cursada en el Sistema de Gestión Académica</li>
-                <li>Consultar las fechas de inicio de clases para cada materia</li>
-                <li>Presentar este comprobante en Secretaría Académica si es requerido</li>
-                <li>Ante cualquier consulta, comunicarse con Secretaría en horario de atención</li>
-            </ul>
-        </div>
+                    <!-- Información importante -->
+                    <tr>
+                        <td style="padding: 0 30px 20px;">
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 6px; padding: 15px;">
+                                <tr>
+                                    <td>
+                                        <div style="font-size: 13px; color: #92400e; font-weight: 700; margin-bottom: 8px;">
+                                            📌 IMPORTANTE
+                                        </div>
+                                        <div style="font-size: 13px; color: #78350f; line-height: 1.6;">
+                                            Este comprobante certifica tu inscripción a las materias detalladas.
+                                            Conservalo como documento oficial y presentalo cuando sea requerido.
+                                            La inscripción está sujeta a la aprobación de las correlatividades correspondientes.
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
 
-        <!-- Footer -->
-        <div class="footer">
-            <div class="footer-row">
-                <div class="footer-col">
-                    <strong>Secretaría Académica</strong><br>
-                    {{ $configuracion->nombre_institucion }}<br>
-                    @if($configuracion->direccion)
-                        {{ $configuracion->direccion }}
-                    @endif
-                </div>
-                <div class="footer-col">
-                    <strong>Contacto</strong><br>
-                    @if($configuracion->email)
-                        {{ $configuracion->email }}<br>
-                    @endif
-                    @if($configuracion->telefono)
-                        Tel: {{ $configuracion->telefono }}
-                    @endif
-                </div>
-            </div>
+                    <!-- Próximos pasos -->
+                    <tr>
+                        <td style="padding: 0 30px 30px;">
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 15px;">
+                                <tr>
+                                    <td>
+                                        <div style="font-size: 13px; color: #1e40af; font-weight: 700; margin-bottom: 10px; text-transform: uppercase;">
+                                            📋 Próximos Pasos
+                                        </div>
+                                        <ul style="margin: 0; padding-left: 20px; color: #1e40af; font-size: 13px; line-height: 1.8;">
+                                            <li>Verificá los horarios de cursada en el Sistema de Gestión Académica</li>
+                                            <li>Consultá las fechas de inicio de clases para cada materia</li>
+                                            <li>Presentá este comprobante en Secretaría Académica si es requerido</li>
+                                            <li>Ante cualquier consulta, comunicate con Secretaría en horario de atención</li>
+                                        </ul>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
 
-            {{-- Firma digital desactivada hasta ser necesaria
-            <div class="footer-signature">
-                @if($configuracion->firma_digital_path)
-                    <img src="{{ public_path('storage/' . $configuracion->firma_digital_path) }}" alt="Firma" style="max-width: 120px; height: auto; margin-bottom: 5px;">
-                @else
-                    <div class="signature-line"></div>
-                @endif
-                <div class="signature-label">{{ $configuracion->cargo_firma ?? 'Secretaría Académica' }}</div>
-            </div>
-            --}}
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #f9fafb; padding: 25px 30px; border-top: 1px solid #e5e7eb;">
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                                <tr>
+                                    <td style="padding-bottom: 15px;">
+                                        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                                            <tr>
+                                                <td width="50%" style="font-size: 12px; color: #6b7280; line-height: 1.6;">
+                                                    <strong style="color: #111827; font-size: 13px;">Secretaría Académica</strong><br>
+                                                    {{ $configuracion->nombre_institucion ?? 'IES G.M. Belgrano' }}<br>
+                                                    @if($configuracion->direccion ?? false)
+                                                        {{ $configuracion->direccion }}
+                                                    @endif
+                                                </td>
+                                                <td width="50%" align="right" style="font-size: 12px; color: #6b7280; line-height: 1.6;">
+                                                    <strong style="color: #111827; font-size: 13px;">Contacto</strong><br>
+                                                    @if($configuracion->email ?? false)
+                                                        {{ $configuracion->email }}<br>
+                                                    @endif
+                                                    @if($configuracion->telefono ?? false)
+                                                        Tel: {{ $configuracion->telefono }}
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding-top: 15px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 11px; color: #9ca3af; line-height: 1.6;">
+                                        Documento generado automáticamente el {{ now()->format('d/m/Y') }} a las {{ now()->format('H:i') }}hs<br>
+                                        Este comprobante tiene validez oficial sin necesidad de firma autógrafa<br>
+                                        © {{ date('Y') }} {{ $configuracion->nombre_institucion ?? 'IES G.M. Belgrano' }} - Todos los derechos reservados
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
 
-            <div class="footer-note">
-                @if($configuracion->footer_documentos)
-                    {!! nl2br(e($configuracion->footer_documentos)) !!}<br>
-                @endif
-                Documento generado automáticamente el {{ now()->format('d/m/Y') }} a las {{ now()->format('H:i') }}hs.<br>
-                Este comprobante tiene validez oficial sin necesidad de firma autógrafa.<br>
-                © {{ date('Y') }} {{ $configuracion->nombre_institucion }} - Todos los derechos reservados
-            </div>
-        </div>
-    </div>
+                </table>
+            </td>
+        </tr>
+    </table>
 </body>
 </html>

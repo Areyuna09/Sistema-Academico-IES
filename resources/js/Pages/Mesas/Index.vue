@@ -4,6 +4,7 @@ import { Head, router } from '@inertiajs/vue3';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
 import Dialog from '@/Components/Dialog.vue';
 import { useDialog } from '@/Composables/useDialog';
+import { emitirNuevaNotificacion } from '@/Utils/notificaciones';
 
 const props = defineProps({
     mesas: Array,
@@ -81,6 +82,8 @@ const confirmarInscripcion = () => {
             onSuccess: () => {
                 mostrarModalConfirmacion.value = false;
                 mesaSeleccionada.value = null;
+                // Emitir evento para actualizar notificaciones en tiempo real
+                emitirNuevaNotificacion();
             }
         });
     }

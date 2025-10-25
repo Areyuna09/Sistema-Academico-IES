@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
 import MateriaCard from '@/Components/MateriaCard.vue';
+import { emitirNuevaNotificacion } from '@/Utils/notificaciones';
 
 const props = defineProps({
     estudiante: {
@@ -146,7 +147,11 @@ const procesarInscripcion = () => {
         materias: materiasIds
     }, {
         onStart: () => console.log('✅ Request iniciado'),
-        onSuccess: () => console.log('✅ Request exitoso'),
+        onSuccess: () => {
+            console.log('✅ Request exitoso');
+            // Emitir evento para actualizar notificaciones en tiempo real
+            emitirNuevaNotificacion();
+        },
         onError: (errors) => {
             console.error('❌ Error en inscripción:', errors);
             alert('Hubo un error al procesar la inscripción. Por favor, intenta nuevamente.');

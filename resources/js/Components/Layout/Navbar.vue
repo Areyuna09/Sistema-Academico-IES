@@ -92,9 +92,17 @@ const iniciarPolling = () => {
     }, 30000);
 };
 
+// Escuchar evento de nueva notificación
+const escucharNuevasNotificaciones = () => {
+    window.addEventListener('nueva-notificacion', () => {
+        cargarNotificaciones();
+    });
+};
+
 onMounted(() => {
     cargarNotificaciones();
     iniciarPolling();
+    escucharNuevasNotificaciones();
     document.addEventListener('click', cerrarDropdown);
 });
 

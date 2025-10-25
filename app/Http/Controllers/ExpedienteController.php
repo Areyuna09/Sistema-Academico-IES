@@ -90,12 +90,19 @@ class ExpedienteController extends Controller
         if ($request->filled('activo')) {
             $queryUsuarios->where('activo', $request->activo);
         }
-        if ($request->filled('buscar_usuario')) {
-            $search = $request->buscar_usuario;
+        if ($request->filled('buscar')) {
+            $search = $request->buscar;
             $queryUsuarios->where(function($q) use ($search) {
                 $q->where('nombre', 'like', "%{$search}%")
                   ->orWhere('dni', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        // Filtrar por carrera (solo para alumnos tipo 4)
+        if ($request->filled('carrera')) {
+            $queryUsuarios->whereHas('alumno', function($q) use ($request) {
+                $q->where('carrera', $request->carrera);
             });
         }
 
@@ -160,7 +167,7 @@ class ExpedienteController extends Controller
             'usuarios' => $usuarios,
             'notasPendientes' => $notasPendientes,
             'filtrosMaterias' => $request->only(['carrera', 'anno', 'semestre', 'buscar']),
-            'filtrosUsuarios' => $request->only(['tipo', 'activo', 'buscar_usuario']),
+            'filtrosUsuarios' => $request->only(['tipo', 'activo', 'buscar', 'carrera']),
         ]);
     }
 

@@ -56,19 +56,7 @@ class ComprobanteInscripcion extends Mailable
      */
     public function attachments(): array
     {
-        $attachments = [];
-
-        // Adjuntar logo como imagen embebida
-        if ($this->configuracion->logo_path && file_exists(storage_path('app/public/' . $this->configuracion->logo_path))) {
-            $attachments[] = \Illuminate\Mail\Mailables\Attachment::fromPath(storage_path('app/public/' . $this->configuracion->logo_path))
-                ->as('logo.png')
-                ->withMime('image/png');
-        } elseif (file_exists(public_path('images/logo-ies-original.png'))) {
-            $attachments[] = \Illuminate\Mail\Mailables\Attachment::fromPath(public_path('images/logo-ies-original.png'))
-                ->as('logo.png')
-                ->withMime('image/png');
-        }
-
-        return $attachments;
+        // No adjuntamos el logo para evitar problemas con Gmail
+        return [];
     }
 }
