@@ -171,9 +171,9 @@ const logoUrl = computed(() => {
                                     Recuérdame
                                 </span>
                             </label>
-                            <a v-if="canResetPassword" href="#" class="text-blue-400 hover:text-blue-300 transition-colors font-medium">
-                                ¿Olvidaste tu contraseña?
-                            </a>
+                           <a v-if="canResetPassword" :href="route('password.request')" class="text-blue-400 hover:text-blue-300 transition-colors font-medium">
+    ¿Olvidaste tu contraseña?
+</a>
                         </div>
 
                         <!-- Submit Button -->
