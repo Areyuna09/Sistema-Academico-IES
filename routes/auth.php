@@ -8,6 +8,7 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\Auth\SolicitudCambioEmailController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use Illuminate\Support\Facades\Route;
 
@@ -26,12 +27,18 @@ Route::middleware('guest')->group(function () {
         ->name('password.request');
 
     Route::post('forgot-password', [PasswordResetLinkController::class, 'store'])
+        ->middleware('throttle:3,1') // Máximo 3 intentos por minuto
         ->name('password.email');
+
+    Route::post('solicitud-cambio-email', [SolicitudCambioEmailController::class, 'store'])
+        ->middleware('throttle:3,1') // Máximo 3 intentos por minuto
+        ->name('solicitud-cambio-email.store');
 
     Route::get('reset-password/{token}', [NewPasswordController::class, 'create'])
         ->name('password.reset');
 
     Route::post('reset-password', [NewPasswordController::class, 'store'])
+        ->middleware('throttle:5,1') // Máximo 5 intentos por minuto
         ->name('password.store');
 });
 

@@ -6,14 +6,47 @@ const props = defineProps({
     status: {
         type: String,
     },
+    showEmailMismatchWarning: {
+        type: Boolean,
+        default: false,
+    },
+    requestedEmail: {
+        type: String,
+        default: '',
+    },
+    requestedDni: {
+        type: String,
+        default: '',
+    },
+    solicitudEnviada: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 const form = useForm({
+    dni: "",
     email: "",
 });
 
 const submit = () => {
     form.post(route("password.email"));
+};
+
+// Form para solicitar cambio de email
+const solicitudForm = useForm({
+    dni: "",
+    email: "",
+});
+
+const solicitarCambioEmail = () => {
+    // Actualizar los valores del formulario antes de enviar
+    solicitudForm.dni = props.requestedDni || form.dni;
+    solicitudForm.email = props.requestedEmail || form.email;
+
+    solicitudForm.post(route("solicitud-cambio-email.store"), {
+        preserveState: true,
+    });
 };
 
 // Obtener configuración institucional
@@ -80,8 +113,8 @@ const logoUrl = computed(() => {
                         <div class="flex items-start">
                             <i class="bx bx-info-circle text-blue-400 text-xl mr-3 mt-0.5"></i>
                             <p class="text-sm text-gray-300 leading-relaxed">
-                                ¿Olvidaste tu contraseña? No hay problema. Ingresa tu dirección de correo 
-                                electrónico y te enviaremos un enlace para restablecerla.
+                                Para recuperar tu contraseña, ingresa tu <strong>DNI</strong> y el <strong>correo electrónico</strong>
+                                asociado a tu cuenta. Te enviaremos un enlace de recuperación.
                             </p>
                         </div>
                     </div>
@@ -96,11 +129,81 @@ const logoUrl = computed(() => {
                         </div>
                     </div>
 
-                    <form @submit.prevent="submit" class="space-y-5">
+                    <!-- Email Mismatch Warning -->
+                    <div v-if="showEmailMismatchWarning" class="mb-5 p-4 bg-yellow-500 bg-opacity-10 border border-yellow-500 rounded-lg animate-fade-in">
+                        <div class="flex items-start">
+                            <i class="bx bx-error text-yellow-400 text-xl mr-3 mt-0.5"></i>
+                            <div class="text-sm text-yellow-400 flex-1">
+                                <p class="font-semibold mb-2">⚠️ El correo no coincide con tu cuenta</p>
+                                <p class="mb-3">
+                                    El email <strong>{{ requestedEmail }}</strong> no coincide con el registrado en tu cuenta.
+                                </p>
+
+                                <div v-if="!solicitudEnviada">
+                                    <p class="text-xs text-yellow-300 mb-3">
+                                        Por seguridad, no podemos enviar el enlace de recuperación.
+                                    </p>
+                                    <p class="text-xs text-yellow-200 mb-3 font-medium">
+                                        💡 Puedes solicitar que este sea tu nuevo correo electrónico. La solicitud será revisada por un administrador.
+                                    </p>
+                                    <button
+                                        @click="solicitarCambioEmail"
+                                        :disabled="solicitudForm.processing"
+                                        class="mt-2 px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-medium text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                    >
+                                        <i v-if="!solicitudForm.processing" class="bx bx-envelope-open"></i>
+                                        <svg v-else class="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        {{ solicitudForm.processing ? 'Enviando...' : 'Solicitar cambio de email' }}
+                                    </button>
+                                </div>
+
+                                <div v-else class="bg-green-500/20 border border-green-500/30 rounded-lg p-3 mt-2">
+                                    <div class="flex items-start">
+                                        <i class="bx bx-check-circle text-green-400 text-lg mr-2"></i>
+                                        <div class="text-xs text-green-300">
+                                            <p class="font-semibold mb-1">✓ Solicitud enviada</p>
+                                            <p>Tu solicitud de cambio de email ha sido enviada a los administradores. Recibirás una notificación cuando sea revisada.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form @submit.prevent="submit" class="space-y-4">
+                        <!-- DNI Input -->
+                        <div>
+                            <label for="dni" class="block text-sm font-medium text-gray-300 mb-1.5">
+                                DNI <span class="text-red-400">*</span>
+                            </label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                    <i class="bx bx-id-card text-gray-400 text-lg"></i>
+                                </div>
+                                <input
+                                    id="dni"
+                                    type="text"
+                                    v-model="form.dni"
+                                    required
+                                    maxlength="20"
+                                    autofocus
+                                    placeholder="12345678"
+                                    class="w-full pl-11 pr-4 py-2.5 text-sm bg-gray-700/50 border border-gray-600 text-white placeholder-gray-500 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-gray-700 transition-all duration-200"
+                                />
+                            </div>
+                            <p v-if="form.errors.dni" class="mt-1.5 text-xs text-red-400 flex items-center">
+                                <i class="bx bx-error-circle mr-1"></i>
+                                {{ form.errors.dni }}
+                            </p>
+                        </div>
+
                         <!-- Email Input -->
                         <div>
                             <label for="email" class="block text-sm font-medium text-gray-300 mb-1.5">
-                                Correo Electrónico
+                                Correo Electrónico <span class="text-red-400">*</span>
                             </label>
                             <div class="relative">
                                 <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
@@ -112,7 +215,6 @@ const logoUrl = computed(() => {
                                     v-model="form.email"
                                     required
                                     maxlength="100"
-                                    autofocus
                                     autocomplete="username"
                                     placeholder="ejemplo@correo.com"
                                     class="w-full pl-11 pr-4 py-2.5 text-sm bg-gray-700/50 border border-gray-600 text-white placeholder-gray-500 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-gray-700 transition-all duration-200"
@@ -121,6 +223,10 @@ const logoUrl = computed(() => {
                             <p v-if="form.errors.email" class="mt-1.5 text-xs text-red-400 flex items-center">
                                 <i class="bx bx-error-circle mr-1"></i>
                                 {{ form.errors.email }}
+                            </p>
+                            <p class="mt-1.5 text-xs text-gray-400">
+                                <i class="bx bx-shield text-blue-400 mr-1"></i>
+                                El email debe coincidir con el registrado en tu cuenta
                             </p>
                         </div>
 
@@ -135,13 +241,13 @@ const logoUrl = computed(() => {
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
-                            {{ form.processing ? 'Enviando...' : 'Enviar Enlace de Recuperación' }}
+                            {{ form.processing ? 'Verificando...' : 'Enviar Enlace de Recuperación' }}
                         </button>
 
                         <!-- Volver al Login -->
                         <div class="text-center pt-3">
-                            <a 
-                                :href="route('login')" 
+                            <a
+                                :href="route('login')"
                                 class="inline-flex items-center text-sm text-blue-400 hover:text-blue-300 transition-colors font-medium"
                             >
                                 <i class="bx bx-arrow-back mr-1.5"></i>

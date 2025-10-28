@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\ConfiguracionController;
 use App\Http\Controllers\Admin\MesasExamenController;
 use App\Http\Controllers\Admin\ExcepcionesController;
 use App\Http\Controllers\Admin\InscripcionesController as AdminInscripcionesController;
+use App\Http\Controllers\Admin\SolicitudesCambioEmailController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -169,6 +170,12 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/configuracion-modulos/{modulo}/toggle', [\App\Http\Controllers\Admin\ConfiguracionModulosController::class, 'toggle'])->name('configuracion-modulos.toggle');
     Route::post('/configuracion-modulos/update-batch', [\App\Http\Controllers\Admin\ConfiguracionModulosController::class, 'updateBatch'])->name('configuracion-modulos.update-batch');
     Route::post('/configuracion-modulos/reset', [\App\Http\Controllers\Admin\ConfiguracionModulosController::class, 'resetDefaults'])->name('configuracion-modulos.reset');
+
+    // Gestión de Solicitudes de Cambio de Email
+    Route::get('/solicitudes-email', [SolicitudesCambioEmailController::class, 'index'])->name('solicitudes-email.index');
+    Route::post('/solicitudes-email/{solicitud}/aprobar', [SolicitudesCambioEmailController::class, 'aprobar'])->name('solicitudes-email.aprobar');
+    Route::post('/solicitudes-email/{solicitud}/rechazar', [SolicitudesCambioEmailController::class, 'rechazar'])->name('solicitudes-email.rechazar');
+    Route::delete('/solicitudes-email/{solicitud}', [SolicitudesCambioEmailController::class, 'destroy'])->name('solicitudes-email.destroy');
 });
 
 // Rutas de Profesores (asistencias y materias)

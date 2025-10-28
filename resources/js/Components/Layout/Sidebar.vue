@@ -160,6 +160,12 @@ const parametrosItems = computed(() => {
             path: "/admin/excepciones",
         },
         {
+            name: "Solicitudes de Email",
+            route: "admin.solicitudes-email.index",
+            icon: "bx-envelope-open",
+            path: "/admin/solicitudes-email",
+        },
+        {
             name: "Configuración",
             route: "admin.configuracion.index",
             icon: "bx-cog",

@@ -179,6 +179,14 @@ const logoUrl = computed(() => {
                                 </li>
                                 <li class="flex items-start">
                                     <i class="bx bx-check text-green-400 mr-1.5 mt-0.5"></i>
+                                    <span>Debe contener letras (mayúsculas y minúsculas)</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="bx bx-check text-green-400 mr-1.5 mt-0.5"></i>
+                                    <span>Debe contener al menos un número</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="bx bx-check text-green-400 mr-1.5 mt-0.5"></i>
                                     <span>Debe coincidir con la confirmación</span>
                                 </li>
                             </ul>
