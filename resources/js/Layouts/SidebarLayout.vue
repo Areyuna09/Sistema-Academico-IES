@@ -2,6 +2,10 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import Sidebar from '@/Components/Layout/Sidebar.vue';
 import Navbar from '@/Components/Layout/Navbar.vue';
+import { useProfileSaver } from '@/composables/useProfileSaver';
+
+// Activar guardado de perfil automático
+useProfileSaver();
 
 // Función para detectar si estamos en desktop (>= 1024px = lg breakpoint de Tailwind)
 const isDesktop = () => window.innerWidth >= 1024;

@@ -17,4 +17,17 @@ export default defineConfig({
             },
         }),
     ],
+    build: {
+        // Generar nombres de archivos con hash para evitar problemas de caché
+        rollupOptions: {
+            output: {
+                manualChunks: undefined,
+            }
+        }
+    },
+    server: {
+        hmr: {
+            host: 'localhost',
+        },
+    },
 });

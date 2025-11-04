@@ -1,7 +1,6 @@
 <script setup>
 import { computed } from 'vue';
 import { Head } from "@inertiajs/vue3";
-import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
 import DeleteUserForm from "./Partials/DeleteUserForm.vue";
 import UpdatePasswordForm from "./Partials/UpdatePasswordForm.vue";
@@ -99,35 +98,31 @@ const esUsuarioVIP = computed(() => {
         </div>
     </SidebarLayout>
 
-    <!-- Vista para admin/otros usuarios -->
-    <AuthenticatedLayout v-else>
+    <!-- Vista para admin/profesores/otros usuarios -->
+    <SidebarLayout v-else :user="$page.props.auth.user">
         <template #header>
-            <div class="flex items-center gap-3">
-                <i class="bx bx-user-circle text-3xl text-gray-700 dark:text-gray-300"></i>
-                <h2 class="text-2xl font-bold leading-tight text-gray-800 dark:text-gray-200">
-                    Mi Perfil
-                </h2>
+            <div>
+                <h1 class="text-xl font-semibold text-white">Mi Perfil</h1>
+                <p class="text-xs text-gray-400 mt-0.5">Administra tu información personal</p>
             </div>
         </template>
 
-        <div class="py-8">
-            <div class="mx-auto max-w-7xl space-y-8 px-4 sm:px-6 lg:px-8">
-                <!-- Profile Information and Avatar -->
-                <UpdateProfileInformationForm
-                    :must-verify-email="mustVerifyEmail"
-                    :status="status"
-                />
+        <div class="p-4 md:p-8 max-w-4xl mx-auto space-y-6">
+            <!-- Profile Information and Avatar -->
+            <UpdateProfileInformationForm
+                :must-verify-email="mustVerifyEmail"
+                :status="status"
+            />
 
-                <!-- Password Update -->
-                <div class="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-xl border border-gray-200 dark:border-gray-700">
-                    <UpdatePasswordForm />
-                </div>
+            <!-- Password Update -->
+            <div class="bg-white border border-gray-200 rounded-lg p-6 md:p-8 shadow">
+                <UpdatePasswordForm />
+            </div>
 
-                <!-- Delete Account -->
-                <div class="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-xl border border-red-200 dark:border-red-900">
-                    <DeleteUserForm />
-                </div>
+            <!-- Delete Account -->
+            <div class="bg-white border border-gray-200 rounded-lg p-6 md:p-8 shadow">
+                <DeleteUserForm />
             </div>
         </div>
-    </AuthenticatedLayout>
+    </SidebarLayout>
 </template>

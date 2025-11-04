@@ -47,6 +47,11 @@ onMounted(() => {
     }, 100);
 });
 
+// Manejar logout
+const handleLogout = () => {
+    // El logout redirigirá a login, y desde ahí se mostrará la selección de perfiles
+};
+
 // Verificar si el usuario es admin o profesor
 const isAdminOrProfesor = computed(() => {
     return [1, 3].includes(page.props.auth.user?.tipo);
@@ -372,9 +377,20 @@ const parametrosItems = computed(() => {
             >
                 <div class="relative flex-shrink-0">
                     <div
-                        class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-xs"
+                        class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center overflow-hidden ring-2 ring-gray-600"
                     >
-                        {{ user?.name?.charAt(0).toUpperCase() || "U" }}
+                        <img
+                            v-if="user?.avatar"
+                            :src="`/storage/${user.avatar}`"
+                            :alt="user.name"
+                            class="w-full h-full object-cover"
+                        />
+                        <span
+                            v-else
+                            class="text-white font-bold text-xs"
+                        >
+                            {{ user?.name?.charAt(0).toUpperCase() || "U" }}
+                        </span>
                     </div>
                 </div>
 
@@ -434,6 +450,7 @@ const parametrosItems = computed(() => {
                         :href="route('logout')"
                         method="post"
                         as="button"
+                        @click="handleLogout"
                         class="w-full flex items-center space-x-2 px-3 py-2 rounded-md text-xs font-medium text-gray-300 hover:bg-red-600 hover:text-white transition-all duration-150 group"
                     >
                         <i class="bx bx-log-out text-sm text-red-400"></i>

@@ -1,6 +1,6 @@
 <script setup>
-import { Head, useForm, usePage } from "@inertiajs/vue3";
-import { computed } from 'vue';
+import { Head, useForm, usePage, router } from "@inertiajs/vue3";
+import { computed, onMounted } from 'vue';
 
 defineProps({
     canResetPassword: {
@@ -18,10 +18,59 @@ const form = useForm({
 });
 
 const submit = () => {
+    // Si "Recuérdame" está marcado, marcar para guardar después del login
+    if (form.remember) {
+        const dataToSave = {
+            dni: form.dni,
+            password: form.password, // Guardamos la contraseña para login automático
+        };
+        console.log('=== Login Submit ===');
+        console.log('Guardando en sessionStorage:', dataToSave);
+        sessionStorage.setItem('save_profile_data', JSON.stringify(dataToSave));
+    }
+
     form.post(route("login"), {
         onFinish: () => form.reset("password"),
     });
 };
+
+// Verificar si hay perfiles guardados al cargar
+onMounted(() => {
+    // Verificar si venimos de la selección de perfil con "Usar otra cuenta"
+    const fromProfileSelect = sessionStorage.getItem('from_profile_select');
+    if (fromProfileSelect) {
+        sessionStorage.removeItem('from_profile_select');
+        return; // No redirigir, quedarse en el login
+    }
+
+    // Verificar si venimos de la selección de perfil con DNI prellenado
+    const selectedDni = sessionStorage.getItem('selected_profile_dni');
+    if (selectedDni) {
+        form.dni = selectedDni;
+        form.remember = true;
+        sessionStorage.removeItem('selected_profile_dni');
+        // Enfocar el campo de contraseña
+        setTimeout(() => {
+            const passwordInput = document.getElementById('password');
+            if (passwordInput) passwordInput.focus();
+        }, 100);
+        return;
+    }
+
+    // Si no venimos de selección de perfil, verificar si hay perfiles guardados
+    const stored = localStorage.getItem('saved_profiles');
+    if (stored) {
+        try {
+            const profiles = JSON.parse(stored);
+            if (profiles.length > 0) {
+                // Si hay perfiles guardados, redirigir a la pantalla de selección
+                router.visit(route('profile.select'));
+            }
+        } catch (e) {
+            console.error('Error parsing saved profiles:', e);
+        }
+    }
+});
 
 // Obtener configuración institucional
 const page = usePage();

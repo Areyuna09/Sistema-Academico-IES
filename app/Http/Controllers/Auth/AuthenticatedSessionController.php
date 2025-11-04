@@ -47,6 +47,7 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerateToken();
 
-        return redirect('/');
+        // Redirigir a profile-select si hay perfiles guardados, sino al login
+        return redirect()->route('profile.select');
     }
 }
