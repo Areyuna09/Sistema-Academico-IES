@@ -33,6 +33,7 @@ class Materia extends Model
         'paracursar_rendido',
         'pararendir',
         'resolucion',
+        'tipo_materia', // lo que agregue
     ];
 
     /**

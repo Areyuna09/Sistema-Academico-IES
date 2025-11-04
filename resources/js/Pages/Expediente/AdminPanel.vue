@@ -3,6 +3,8 @@ import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { ref, onMounted, computed } from 'vue';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
 import Dialog from '@/Components/Dialog.vue';
+import AlumnoModal from '@/Components/AlumnoModal.vue';
+import ProfesorModal from '@/Components/ProfesorModal.vue';
 import { useDialog } from '@/Composables/useDialog';
 import axios from 'axios';
 
@@ -58,8 +60,21 @@ const historialOriginal = ref(null);
 const errorBusqueda = ref('');
 const guardando = ref(false);
 
+// Variables para agregar fila nueva en tabla
+const materiasDisponibles = ref([]);
+const filasNuevas = ref([]); // Array de filas nuevas agregadas
+
+// Variables para modales
+const mostrarModalAlumno = ref(false);
+const mostrarModalProfesor = ref(false);
+const alumnoEditando = ref(null);
+const profesorEditando = ref(null);
+
 // Computed para saber si hay cambios pendientes
 const hayCambiosPendientes = computed(() => {
+    // Si hay filas nuevas, hay cambios pendientes
+    if (filasNuevas.value.length > 0) return true;
+
     if (!historialAcademico.value || !historialOriginal.value) return false;
 
     for (const anno in historialAcademico.value) {
@@ -77,7 +92,11 @@ const hayCambiosPendientes = computed(() => {
             if (materia.cursada_value !== original.cursada_value ||
                 materia.rendida_value !== original.rendida_value ||
                 materia.libre_value !== original.libre_value ||
-                materia.equivalencia_value !== original.equivalencia_value) {
+                materia.equivalencia_value !== original.equivalencia_value ||
+                materia.nota !== original.nota ||
+                materia.fecha !== original.fecha ||
+                materia.libro !== original.libro ||
+                materia.folio !== original.folio) {
                 return true;
             }
         }
@@ -310,6 +329,116 @@ const limpiarBusqueda = () => {
     errorBusqueda.value = '';
 };
 
+// Función para agregar fila nueva en un año específico
+const agregarFilaNuevaEnAnno = async (anno) => {
+    if (!alumnoEncontrado.value) return;
+
+    // Cargar materias disponibles si aún no están cargadas
+    if (materiasDisponibles.value.length === 0) {
+        try {
+            const response = await axios.get(route('expediente.materias-disponibles'), {
+                params: {
+                    carrera_id: alumnoEncontrado.value.id_carrera
+                }
+            });
+            materiasDisponibles.value = response.data;
+        } catch (error) {
+            console.error('Error al cargar materias:', error);
+            await dialogAlert('Error al cargar las materias disponibles', 'Error');
+            return;
+        }
+    }
+
+    // Agregar fila nueva vacía en el año especificado
+    const nuevaFila = {
+        id: null, // null indica que es nueva
+        _uid: Date.now() + Math.random(), // ID único para Vue
+        materia_id: '',
+        materia: '',
+        anno: anno, // Año al que pertenece esta fila
+        regular: '',
+        promocional: '',
+        equivalencia: '',
+        libre: '',
+        cursada_value: false,
+        rendida_value: false,
+        libre_value: false,
+        equivalencia_value: false,
+        nota: '',
+        fecha: '',
+        libro: '',
+        folio: '',
+        esNueva: true
+    };
+
+    filasNuevas.value.push(nuevaFila);
+};
+
+const eliminarFilaNueva = (fila) => {
+    const index = filasNuevas.value.indexOf(fila);
+    if (index > -1) {
+        filasNuevas.value.splice(index, 1);
+    }
+};
+
+// Funciones para manejar modales de Alumno
+const abrirModalNuevoAlumno = () => {
+    alumnoEditando.value = null;
+    mostrarModalAlumno.value = true;
+};
+
+const abrirModalEditarAlumno = (alumno) => {
+    alumnoEditando.value = alumno;
+    mostrarModalAlumno.value = true;
+};
+
+const cerrarModalAlumno = () => {
+    mostrarModalAlumno.value = false;
+    alumnoEditando.value = null;
+};
+
+const alumnoGuardado = () => {
+    // Recargar solo los datos de alumnos sin refrescar la página
+    router.reload({
+        only: ['alumnos'],
+        preserveScroll: true,
+        preserveState: true,
+        onSuccess: () => {
+            // Cambiar al tab de alumnos para ver el nuevo registro
+            tabActivo.value = 'alumnos';
+        }
+    });
+};
+
+// Funciones para manejar modales de Profesor
+const abrirModalNuevoProfesor = () => {
+    profesorEditando.value = null;
+    mostrarModalProfesor.value = true;
+};
+
+const abrirModalEditarProfesor = (profesor) => {
+    profesorEditando.value = profesor;
+    mostrarModalProfesor.value = true;
+};
+
+const cerrarModalProfesor = () => {
+    mostrarModalProfesor.value = false;
+    profesorEditando.value = null;
+};
+
+const profesorGuardado = () => {
+    // Recargar solo los datos de profesores sin refrescar la página
+    router.reload({
+        only: ['profesores'],
+        preserveScroll: true,
+        preserveState: true,
+        onSuccess: () => {
+            // Cambiar al tab de profesores para ver el nuevo registro
+            tabActivo.value = 'profesores';
+        }
+    });
+};
+
 // Función para toggle del checkbox (solo modifica el estado local)
 const toggleCheckbox = (materiaId, campo) => {
     // Buscar la materia en el historial
@@ -387,33 +516,80 @@ const guardarCambios = async () => {
                 if (materia.cursada_value !== original.cursada_value ||
                     materia.rendida_value !== original.rendida_value ||
                     materia.libre_value !== original.libre_value ||
-                    materia.equivalencia_value !== original.equivalencia_value) {
+                    materia.equivalencia_value !== original.equivalencia_value ||
+                    materia.nota !== original.nota ||
+                    materia.fecha !== original.fecha ||
+                    materia.libro !== original.libro ||
+                    materia.folio !== original.folio) {
 
                     cambios.push({
                         id: materia.id,
                         cursada: materia.cursada_value ? '1' : '0',
                         rendida: materia.rendida_value ? '1' : '0',
                         libre: materia.libre_value ? 1 : 0,
-                        equivalencia: materia.equivalencia_value ? 1 : 0
+                        equivalencia: materia.equivalencia_value ? 1 : 0,
+                        nota: materia.nota || null,
+                        fecha: materia.fecha || null,
+                        libro: materia.libro || null,
+                        folio: materia.folio || null
                     });
                 }
             }
         }
 
-        if (cambios.length === 0) {
+        // Validar y guardar filas nuevas primero
+        const filasNuevasValidas = [];
+        for (const fila of filasNuevas.value) {
+            if (!fila.materia_id) {
+                await dialogAlert('Hay filas nuevas sin materia seleccionada', 'Validación');
+                return;
+            }
+            filasNuevasValidas.push({
+                alumno_id: alumnoEncontrado.value.id,
+                carrera_id: alumnoEncontrado.value.id_carrera,
+                materia_id: fila.materia_id,
+                cursada: fila.cursada_value,
+                rendida: fila.rendida_value,
+                libre: fila.libre_value,
+                equivalencia: fila.equivalencia_value,
+                nota: fila.nota || null,
+                fecha: fila.fecha || null,
+                libro: fila.libro || null,
+                folio: fila.folio || null
+            });
+        }
+
+        if (cambios.length === 0 && filasNuevasValidas.length === 0) {
             await dialogAlert('No hay cambios para guardar', 'Sin cambios');
             return;
         }
 
-        // Guardar cada cambio
+        // Guardar filas nuevas
         let errores = 0;
+        for (const nuevaFila of filasNuevasValidas) {
+            try {
+                await axios.post(route('expediente.agregar-materia'), nuevaFila);
+            } catch (error) {
+                errores++;
+                console.error('Error al agregar fila:', error);
+                if (error.response?.data?.error) {
+                    await dialogAlert(error.response.data.error, 'Error');
+                }
+            }
+        }
+
+        // Guardar cambios en filas existentes
         for (const cambio of cambios) {
             try {
                 await axios.put(route('expediente.actualizar-estado-materia', cambio.id), {
                     cursada: cambio.cursada,
                     rendida: cambio.rendida,
                     libre: cambio.libre,
-                    equivalencia: cambio.equivalencia
+                    equivalencia: cambio.equivalencia,
+                    nota: cambio.nota,
+                    fecha: cambio.fecha,
+                    libro: cambio.libro,
+                    folio: cambio.folio
                 });
             } catch (error) {
                 errores++;
@@ -421,18 +597,21 @@ const guardarCambios = async () => {
             }
         }
 
+        const totalOperaciones = cambios.length + filasNuevasValidas.length;
         if (errores === 0) {
             await dialogAlert(
-                `Se guardaron exitosamente ${cambios.length} cambio(s) en el legajo`,
+                `Se guardaron exitosamente ${totalOperaciones} cambio(s) en el legajo`,
                 'Cambios guardados'
             );
-            // Recargar datos
+            // Limpiar filas nuevas y recargar datos
+            filasNuevas.value = [];
             await buscarAlumno();
         } else {
             await dialogAlert(
-                `Se guardaron ${cambios.length - errores} cambio(s). ${errores} error(es) ocurrieron.`,
+                `Se guardaron ${totalOperaciones - errores} cambio(s). ${errores} error(es) ocurrieron.`,
                 'Guardado parcial'
             );
+            filasNuevas.value = [];
             await buscarAlumno();
         }
 
@@ -454,6 +633,9 @@ const descartarCambios = async () => {
     );
 
     if (!confirmacion) return;
+
+    // Limpiar filas nuevas
+    filasNuevas.value = [];
 
     // Restaurar desde el original
     historialAcademico.value = JSON.parse(JSON.stringify(historialOriginal.value));
@@ -763,30 +945,18 @@ const getEstadoBadge = (estado) => {
                                 <p class="text-sm text-gray-600">Listado de profesores del instituto</p>
                             </div>
                         </div>
-                        <Link
-                            :href="route('admin.usuarios.create')"
+                        <button
+                            @click="abrirModalNuevoProfesor"
                             class="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors duration-200"
                         >
                             <i class="bx bx-plus text-xl mr-2"></i>
                             Nuevo Profesor
-                        </Link>
+                        </button>
                     </div>
 
                     <!-- Filtros -->
                     <div class="bg-gray-50 rounded-lg p-4 mb-6">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
-                                <select
-                                    v-model="formProfesores.activo"
-                                    class="w-full rounded-lg border-gray-300 focus:border-purple-500 focus:ring focus:ring-purple-200"
-                                >
-                                    <option value="">Todos</option>
-                                    <option value="1">Activos</option>
-                                    <option value="0">Inactivos</option>
-                                </select>
-                            </div>
-
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Buscar</label>
                                 <input
@@ -823,7 +993,6 @@ const getEstadoBadge = (estado) => {
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DNI</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
                                     <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                                 </tr>
                             </thead>
@@ -837,16 +1006,6 @@ const getEstadoBadge = (estado) => {
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         {{ usuario.email }}
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span
-                                            :class="[
-                                                'px-2 py-1 text-xs font-semibold rounded-full',
-                                                usuario.activo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                                            ]"
-                                        >
-                                            {{ usuario.activo ? 'Activo' : 'Inactivo' }}
-                                        </span>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div class="flex items-center justify-end gap-2">
@@ -901,18 +1060,18 @@ const getEstadoBadge = (estado) => {
                                 <p class="text-sm text-gray-600">Administrar estudiantes del instituto</p>
                             </div>
                         </div>
-                        <Link
-                            :href="route('admin.usuarios.create')"
+                        <button
+                            @click="abrirModalNuevoAlumno"
                             class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors duration-200"
                         >
                             <i class="bx bx-plus text-xl mr-2"></i>
                             Nuevo Alumno
-                        </Link>
+                        </button>
                     </div>
 
                     <!-- Filtros -->
                     <div class="bg-gray-50 rounded-lg p-4 mb-6">
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Carrera</label>
                                 <select
@@ -927,23 +1086,11 @@ const getEstadoBadge = (estado) => {
                             </div>
 
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
-                                <select
-                                    v-model="formAlumnos.activo"
-                                    class="w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring focus:ring-green-200"
-                                >
-                                    <option value="">Todos</option>
-                                    <option value="1">Activos</option>
-                                    <option value="0">Inactivos</option>
-                                </select>
-                            </div>
-
-                            <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Buscar</label>
                                 <input
                                     v-model="formAlumnos.buscar"
                                     type="text"
-                                    placeholder="DNI, nombre o email..."
+                                    placeholder="DNI, nombre, legajo o email..."
                                     class="w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring focus:ring-green-200"
                                     @keyup.enter="buscarAlumnos"
                                 />
@@ -973,9 +1120,9 @@ const getEstadoBadge = (estado) => {
                                 <tr>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DNI</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Carrera</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vinculado a</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usuario</th>
                                     <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                                 </tr>
                             </thead>
@@ -985,27 +1132,20 @@ const getEstadoBadge = (estado) => {
                                         {{ usuario.dni }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {{ usuario.nombre }}
+                                        {{ usuario.apellido }}, {{ usuario.nombre }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {{ usuario.email }}
+                                        {{ usuario.carrera?.nombre || '-' }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        <span v-if="usuario.alumno" class="flex items-center">
-                                            <i class="bx bx-user text-green-600 mr-1"></i>
-                                            {{ usuario.alumno.nombre_completo }}
-                                        </span>
-                                        <span v-else class="text-gray-400">-</span>
+                                        {{ usuario.email || '-' }}
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span
-                                            :class="[
-                                                'px-2 py-1 text-xs font-semibold rounded-full',
-                                                usuario.activo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                                            ]"
-                                        >
-                                            {{ usuario.activo ? 'Activo' : 'Inactivo' }}
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <span v-if="usuario.user" class="flex items-center text-green-600">
+                                            <i class="bx bx-check-circle mr-1"></i>
+                                            Vinculado
                                         </span>
+                                        <span v-else class="text-gray-400">Sin usuario</span>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div class="flex items-center justify-end gap-2">
@@ -1297,8 +1437,16 @@ const getEstadoBadge = (estado) => {
 
                         <!-- Historial académico por año -->
                         <div v-for="(materias, anno) in historialAcademico" :key="anno" class="mb-6">
-                            <div class="bg-gray-800 text-white px-4 py-2 rounded-t-lg">
+                            <div class="bg-gray-800 text-white px-4 py-2 rounded-t-lg flex justify-between items-center">
                                 <h3 class="font-semibold">{{ anno }}</h3>
+                                <button
+                                    @click="agregarFilaNuevaEnAnno(anno)"
+                                    class="inline-flex items-center px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded transition-colors duration-200"
+                                    title="Agregar nota en este año"
+                                >
+                                    <i class="bx bx-plus text-lg mr-1"></i>
+                                    Agregar Nota
+                                </button>
                             </div>
                             <div class="overflow-x-auto">
                                 <table class="w-full border-collapse bg-white">
@@ -1358,10 +1506,141 @@ const getEstadoBadge = (estado) => {
                                                     :title="'Libre: ' + (materia.libre_value ? 'Sí' : 'No')"
                                                 />
                                             </td>
-                                            <td class="px-3 py-2 text-center text-sm font-semibold text-gray-900 border-r">{{ materia.nota }}</td>
-                                            <td class="px-3 py-2 text-center text-sm text-gray-900 border-r">{{ materia.fecha }}</td>
-                                            <td class="px-3 py-2 text-center text-sm text-gray-900 border-r">{{ materia.libro }}</td>
-                                            <td class="px-3 py-2 text-center text-sm text-gray-900">{{ materia.folio }}</td>
+                                            <!-- Nota editable -->
+                                            <td class="px-2 py-2 text-center text-sm border-r">
+                                                <input
+                                                    v-model="materia.nota"
+                                                    type="number"
+                                                    min="1"
+                                                    max="10"
+                                                    step="0.1"
+                                                    placeholder="-"
+                                                    class="w-16 px-2 py-1 text-center border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                />
+                                            </td>
+                                            <!-- Fecha editable -->
+                                            <td class="px-2 py-2 text-center text-sm border-r">
+                                                <input
+                                                    v-model="materia.fecha"
+                                                    type="date"
+                                                    class="w-32 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                />
+                                            </td>
+                                            <!-- Libro editable -->
+                                            <td class="px-2 py-2 text-center text-sm border-r">
+                                                <input
+                                                    v-model="materia.libro"
+                                                    type="text"
+                                                    placeholder="Libro"
+                                                    class="w-20 px-2 py-1 text-center border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                />
+                                            </td>
+                                            <!-- Folio editable -->
+                                            <td class="px-2 py-2 text-center text-sm">
+                                                <input
+                                                    v-model="materia.folio"
+                                                    type="text"
+                                                    placeholder="Folio"
+                                                    class="w-20 px-2 py-1 text-center border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                />
+                                            </td>
+                                        </tr>
+
+                                        <!-- Filas nuevas (filtradas por año) -->
+                                        <tr v-for="(fila, index) in filasNuevas.filter(f => f.anno === anno)" :key="'nueva-' + index" class="bg-yellow-50 border-b border-gray-200 hover:bg-yellow-100">
+                                            <!-- Dropdown de materia (filtrado por año) -->
+                                            <td class="px-2 py-2 text-sm border-r">
+                                                <select
+                                                    v-model="fila.materia_id"
+                                                    @change="fila.materia = materiasDisponibles.find(m => m.id == fila.materia_id)?.nombre || ''"
+                                                    class="w-full px-2 py-1 text-sm border border-green-500 rounded focus:ring-2 focus:ring-green-500"
+                                                >
+                                                    <option value="">Seleccionar materia...</option>
+                                                    <option v-for="materia in materiasDisponibles.filter(m => m.anno + '° Año' === anno)" :key="materia.id" :value="materia.id">
+                                                        {{ materia.nombre }}
+                                                    </option>
+                                                </select>
+                                            </td>
+                                            <!-- Checkbox Regular -->
+                                            <td class="px-2 py-2 text-center text-sm border-r">
+                                                <input
+                                                    v-model="fila.cursada_value"
+                                                    type="checkbox"
+                                                    class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                                                />
+                                            </td>
+                                            <!-- Checkbox Promocional -->
+                                            <td class="px-2 py-2 text-center text-sm border-r">
+                                                <input
+                                                    v-model="fila.rendida_value"
+                                                    type="checkbox"
+                                                    class="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500"
+                                                />
+                                            </td>
+                                            <!-- Checkbox Equivalencia -->
+                                            <td class="px-2 py-2 text-center text-sm border-r">
+                                                <input
+                                                    v-model="fila.equivalencia_value"
+                                                    type="checkbox"
+                                                    class="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 rounded focus:ring-purple-500"
+                                                />
+                                            </td>
+                                            <!-- Checkbox Libre -->
+                                            <td class="px-2 py-2 text-center text-sm border-r">
+                                                <input
+                                                    v-model="fila.libre_value"
+                                                    type="checkbox"
+                                                    class="w-4 h-4 text-orange-600 bg-gray-100 border-gray-300 rounded focus:ring-orange-500"
+                                                />
+                                            </td>
+                                            <!-- Nota -->
+                                            <td class="px-2 py-2 text-center text-sm border-r">
+                                                <input
+                                                    v-model="fila.nota"
+                                                    type="number"
+                                                    min="1"
+                                                    max="10"
+                                                    step="0.1"
+                                                    placeholder="-"
+                                                    class="w-16 px-2 py-1 text-center border border-green-500 rounded focus:ring-2 focus:ring-green-500"
+                                                />
+                                            </td>
+                                            <!-- Fecha -->
+                                            <td class="px-2 py-2 text-center text-sm border-r">
+                                                <input
+                                                    v-model="fila.fecha"
+                                                    type="date"
+                                                    class="w-32 px-2 py-1 text-sm border border-green-500 rounded focus:ring-2 focus:ring-green-500"
+                                                />
+                                            </td>
+                                            <!-- Libro -->
+                                            <td class="px-2 py-2 text-center text-sm border-r">
+                                                <input
+                                                    v-model="fila.libro"
+                                                    type="text"
+                                                    placeholder="Libro"
+                                                    class="w-20 px-2 py-1 text-center border border-green-500 rounded focus:ring-2 focus:ring-green-500"
+                                                />
+                                            </td>
+                                            <!-- Folio -->
+                                            <td class="px-2 py-2 text-center text-sm border-r">
+                                                <input
+                                                    v-model="fila.folio"
+                                                    type="text"
+                                                    placeholder="Folio"
+                                                    class="w-20 px-2 py-1 text-center border border-green-500 rounded focus:ring-2 focus:ring-green-500"
+                                                />
+                                            </td>
+                                            <!-- Botón eliminar fila -->
+                                            <td class="px-2 py-2 text-center text-sm">
+                                                <button
+                                                    @click="eliminarFilaNueva(fila)"
+                                                    class="text-red-600 hover:text-red-800"
+                                                    title="Eliminar fila"
+                                                >
+                                                    <i class="bx bx-trash text-xl"></i>
+                                                </button>
+                                            </td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -1383,5 +1662,22 @@ const getEstadoBadge = (estado) => {
                 </div>
             </div>
         </div>
+
+        <!-- Modales -->
+        <AlumnoModal
+            :show="mostrarModalAlumno"
+            :alumno="alumnoEditando"
+            :carreras="carreras"
+            @close="cerrarModalAlumno"
+            @saved="alumnoGuardado"
+        />
+
+        <ProfesorModal
+            :show="mostrarModalProfesor"
+            :profesor="profesorEditando"
+            :carreras="carreras"
+            @close="cerrarModalProfesor"
+            @saved="profesorGuardado"
+        />
     </SidebarLayout>
 </template>

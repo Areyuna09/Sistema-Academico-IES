@@ -38,7 +38,6 @@ class Alumno extends Model
         'anno',
         'carrera',
         'materia',
-        'turno',
         'fecha',
     ];
 

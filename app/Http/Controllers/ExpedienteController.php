@@ -76,51 +76,46 @@ class ExpedienteController extends Controller
                                   ->paginate(15)
                                   ->withQueryString();
 
-        // Query para PROFESORES (tipo 3)
-        $queryProfesores = User::with(['profesor'])
-            ->where('tipo', 3);
+        // Query para PROFESORES - traer todos desde tbl_profesores
+        $queryProfesores = \App\Models\Profesor::with(['carrera', 'user']);
 
         // Filtros para profesores
-        if ($request->filled('activo')) {
-            $queryProfesores->where('activo', $request->activo);
-        }
         if ($request->filled('buscar')) {
             $search = $request->buscar;
             $queryProfesores->where(function($q) use ($search) {
                 $q->where('nombre', 'like', "%{$search}%")
+                  ->orWhere('apellido', 'like', "%{$search}%")
                   ->orWhere('dni', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%");
             });
         }
 
-        $profesores = $queryProfesores->orderBy('nombre', 'asc')
+        $profesores = $queryProfesores->orderBy('apellido', 'asc')
+                                     ->orderBy('nombre', 'asc')
                                      ->paginate(15)
                                      ->withQueryString();
 
-        // Query para ALUMNOS (tipo 4)
-        $queryAlumnos = User::with(['alumno'])
-            ->where('tipo', 4);
+        // Query para ALUMNOS - traer todos desde tbl_alumnos
+        $queryAlumnos = Alumno::with(['carrera', 'user']);
 
         // Filtros para alumnos
-        if ($request->filled('activo')) {
-            $queryAlumnos->where('activo', $request->activo);
-        }
         if ($request->filled('buscar')) {
             $search = $request->buscar;
             $queryAlumnos->where(function($q) use ($search) {
                 $q->where('nombre', 'like', "%{$search}%")
+                  ->orWhere('apellido', 'like', "%{$search}%")
                   ->orWhere('dni', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('legajo', 'like', "%{$search}%");
             });
         }
-        // Filtrar por carrera (solo para alumnos)
+        // Filtrar por carrera
         if ($request->filled('carrera')) {
-            $queryAlumnos->whereHas('alumno', function($q) use ($request) {
-                $q->where('carrera', $request->carrera);
-            });
+            $queryAlumnos->where('carrera', $request->carrera);
         }
 
-        $alumnos = $queryAlumnos->orderBy('nombre', 'asc')
+        $alumnos = $queryAlumnos->orderBy('apellido', 'asc')
+                                ->orderBy('nombre', 'asc')
                                 ->paginate(15)
                                 ->withQueryString();
 
@@ -364,7 +359,7 @@ class ExpedienteController extends Controller
                         'libre_value' => $materiaCursada->libre == 1,
                         'equivalencia_value' => $materiaCursada->equivalencia == 1,
                         'nota' => $materiaCursada->nota ?? '',
-                        'fecha' => $materiaCursada->fecha ? \Carbon\Carbon::parse($materiaCursada->fecha)->format('d/m/Y') : '',
+                        'fecha' => $materiaCursada->fecha ? \Carbon\Carbon::parse($materiaCursada->fecha)->format('Y-m-d') : '',
                         'libro' => $materiaCursada->libro ?? '',
                         'folio' => $materiaCursada->folio ?? ''
                     ];
@@ -373,12 +368,14 @@ class ExpedienteController extends Controller
 
         return response()->json([
             'alumno' => [
+                'id' => $alumno->id,
                 'dni' => $alumno->dni,
                 'apellido' => $alumno->apellido,
                 'nombre' => $alumno->nombre,
                 'anno' => $alumno->anno ?? 'N/A',
                 'curso' => $alumno->curso ?? 0,
-                'carrera' => $alumno->carreraRelacion ? $alumno->carreraRelacion->nombre : 'Sin carrera'
+                'carrera' => $alumno->carreraRelacion ? $alumno->carreraRelacion->nombre : 'Sin carrera',
+                'id_carrera' => $carreraId
             ],
             'historial' => $historialAcademico
         ]);
@@ -1101,6 +1098,10 @@ class ExpedienteController extends Controller
             'rendida' => 'nullable|in:0,1',
             'libre' => 'nullable|in:0,1',
             'equivalencia' => 'nullable|in:0,1',
+            'nota' => 'nullable|numeric|min:1|max:10',
+            'fecha' => 'nullable|date',
+            'libro' => 'nullable|string|max:255',
+            'folio' => 'nullable|string|max:255',
         ]);
 
         try {
@@ -1112,6 +1113,10 @@ class ExpedienteController extends Controller
                 'rendida' => $request->rendida ?? $alumnoMateria->rendida,
                 'libre' => $request->libre ?? $alumnoMateria->libre,
                 'equivalencia' => $request->equivalencia ?? $alumnoMateria->equivalencia,
+                'nota' => $request->nota ?? $alumnoMateria->nota,
+                'fecha' => $request->fecha ?? $alumnoMateria->fecha,
+                'libro' => $request->libro ?? $alumnoMateria->libro,
+                'folio' => $request->folio ?? $alumnoMateria->folio,
             ]);
 
             \Log::info('Estado de materia actualizado manualmente en legajo', [
@@ -1139,6 +1144,130 @@ class ExpedienteController extends Controller
 
             return response()->json([
                 'error' => 'Error al actualizar: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function materiasDisponibles(Request $request)
+    {
+        $user = $request->user();
+
+        // Verificar que el usuario sea admin o bedel
+        if (!in_array($user->tipo, [1, 2])) {
+            return response()->json([
+                'error' => 'No tiene permisos para acceder a esta funcionalidad'
+            ], 403);
+        }
+
+        $request->validate([
+            'carrera_id' => 'required|exists:tbl_carreras,Id'
+        ]);
+
+        try {
+            // Obtener todas las materias de la carrera
+            $materias = Materia::where('carrera', $request->carrera_id)
+                ->orderBy('anno', 'asc')
+                ->orderBy('nombre', 'asc')
+                ->get()
+                ->map(function($materia) {
+                    return [
+                        'id' => $materia->id,
+                        'nombre' => $materia->nombre,
+                        'anno' => $materia->anno,
+                        'semestre' => $materia->semestre,
+                    ];
+                });
+
+            return response()->json($materias, 200);
+
+        } catch (\Exception $e) {
+            \Log::error('Error al obtener materias disponibles', [
+                'carrera_id' => $request->carrera_id,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'error' => 'Error al obtener materias: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function agregarMateria(Request $request)
+    {
+        $user = $request->user();
+
+        // Verificar que el usuario sea admin o bedel
+        if (!in_array($user->tipo, [1, 2])) {
+            return response()->json([
+                'error' => 'No tiene permisos para agregar materias al legajo'
+            ], 403);
+        }
+
+        $request->validate([
+            'alumno_id' => 'required|exists:tbl_alumnos,id',
+            'carrera_id' => 'required|exists:tbl_carreras,Id',
+            'materia_id' => 'required|exists:tbl_materias,id',
+            'nota' => 'nullable|numeric|min:1|max:10',
+            'fecha' => 'nullable|date',
+            'libro' => 'nullable|string|max:255',
+            'folio' => 'nullable|string|max:255',
+            'cursada' => 'nullable|boolean',
+            'rendida' => 'nullable|boolean',
+            'libre' => 'nullable|boolean',
+            'equivalencia' => 'nullable|boolean',
+        ]);
+
+        try {
+            // Verificar si ya existe esta materia en el legajo del alumno
+            $existe = AlumnoMateria::where('alumno', $request->alumno_id)
+                ->where('materia', $request->materia_id)
+                ->where('carrera', $request->carrera_id)
+                ->first();
+
+            if ($existe) {
+                return response()->json([
+                    'error' => 'Esta materia ya existe en el legajo del alumno'
+                ], 400);
+            }
+
+            // Crear el registro en el legajo
+            $alumnoMateria = AlumnoMateria::create([
+                'alumno' => $request->alumno_id,
+                'carrera' => $request->carrera_id,
+                'materia' => $request->materia_id,
+                'nota' => $request->nota ?? null,
+                'fecha' => $request->fecha ?? null,
+                'libro' => $request->libro ?? null,
+                'folio' => $request->folio ?? null,
+                'cursada' => $request->cursada ? '1' : '0',
+                'rendida' => $request->rendida ? '1' : '0',
+                'libre' => $request->libre ? 1 : 0,
+                'equivalencia' => $request->equivalencia ? 1 : 0,
+            ]);
+
+            \Log::info('Materia agregada manualmente al legajo', [
+                'alumno_materia_id' => $alumnoMateria->Id,
+                'alumno_id' => $request->alumno_id,
+                'materia_id' => $request->materia_id,
+                'agregado_por' => $user->id,
+                'agregado_por_nombre' => $user->nombre,
+            ]);
+
+            return response()->json([
+                'message' => 'Materia agregada al legajo correctamente',
+                'alumnoMateria' => $alumnoMateria
+            ], 201);
+
+        } catch (\Exception $e) {
+            \Log::error('Error al agregar materia al legajo', [
+                'alumno_id' => $request->alumno_id,
+                'materia_id' => $request->materia_id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'error' => 'Error al agregar materia: ' . $e->getMessage()
             ], 500);
         }
     }

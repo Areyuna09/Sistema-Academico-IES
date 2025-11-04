@@ -102,35 +102,30 @@ const esUsuarioVIP = computed(() => {
     <!-- Vista para admin/otros usuarios -->
     <AuthenticatedLayout v-else>
         <template #header>
-            <h2
-                class="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200"
-            >
-                Perfil
-            </h2>
+            <div class="flex items-center gap-3">
+                <i class="bx bx-user-circle text-3xl text-gray-700 dark:text-gray-300"></i>
+                <h2 class="text-2xl font-bold leading-tight text-gray-800 dark:text-gray-200">
+                    Mi Perfil
+                </h2>
+            </div>
         </template>
 
-        <div class="py-12">
-            <div class="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
-                <div
-                    class="bg-white p-4 shadow sm:rounded-lg sm:p-8 dark:bg-gray-800"
-                >
-                    <UpdateProfileInformationForm
-                        :must-verify-email="mustVerifyEmail"
-                        :status="status"
-                        class="max-w-xl"
-                    />
+        <div class="py-8">
+            <div class="mx-auto max-w-7xl space-y-8 px-4 sm:px-6 lg:px-8">
+                <!-- Profile Information and Avatar -->
+                <UpdateProfileInformationForm
+                    :must-verify-email="mustVerifyEmail"
+                    :status="status"
+                />
+
+                <!-- Password Update -->
+                <div class="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-xl border border-gray-200 dark:border-gray-700">
+                    <UpdatePasswordForm />
                 </div>
 
-                <div
-                    class="bg-white p-4 shadow sm:rounded-lg sm:p-8 dark:bg-gray-800"
-                >
-                    <UpdatePasswordForm class="max-w-xl" />
-                </div>
-
-                <div
-                    class="bg-white p-4 shadow sm:rounded-lg sm:p-8 dark:bg-gray-800"
-                >
-                    <DeleteUserForm class="max-w-xl" />
+                <!-- Delete Account -->
+                <div class="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-xl border border-red-200 dark:border-red-900">
+                    <DeleteUserForm />
                 </div>
             </div>
         </div>

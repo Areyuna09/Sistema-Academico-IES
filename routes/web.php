@@ -5,6 +5,8 @@ use App\Http\Controllers\InscripcionesController;
 use App\Http\Controllers\InscripcionesMesaController;
 use App\Http\Controllers\ExpedienteController;
 use App\Http\Controllers\NotificacionesController;
+use App\Http\Controllers\AlumnoController;
+use App\Http\Controllers\ProfesorController;
 use App\Http\Controllers\Admin\CorrelativasController;
 use App\Http\Controllers\Admin\UsuariosController;
 use App\Http\Controllers\Admin\CarrerasController;
@@ -35,6 +37,8 @@ Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'inde
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::post('/profile/avatar', [ProfileController::class, 'updateAvatar'])->name('profile.avatar.update');
+    Route::delete('/profile/avatar', [ProfileController::class, 'deleteAvatar'])->name('profile.avatar.delete');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     // Rutas de inscripciones
@@ -45,10 +49,12 @@ Route::middleware('auth')->group(function () {
 
     // Rutas de expediente
     Route::get('/expediente', [ExpedienteController::class, 'index'])->name('expediente.index');
-    Route::get('/expediente/{id}', [ExpedienteController::class, 'show'])->name('expediente.show');
-    Route::post('/expediente/buscar-dni', [ExpedienteController::class, 'buscarPorDni'])->name('expediente.buscar-dni');
-    Route::put('/expediente/materia/{alumnoMateriaId}', [ExpedienteController::class, 'actualizarEstadoMateria'])->name('expediente.actualizar-estado-materia');
+    // Rutas específicas ANTES de la ruta genérica {id}
+    Route::get('/expediente/materias-disponibles', [ExpedienteController::class, 'materiasDisponibles'])->name('expediente.materias-disponibles');
     Route::get('/expediente/alumnos/profesor', [ExpedienteController::class, 'obtenerAlumnosProfesor'])->name('expediente.alumnos-profesor');
+    Route::post('/expediente/buscar-dni', [ExpedienteController::class, 'buscarPorDni'])->name('expediente.buscar-dni');
+    Route::post('/expediente/agregar-materia', [ExpedienteController::class, 'agregarMateria'])->name('expediente.agregar-materia');
+    Route::put('/expediente/materia/{alumnoMateriaId}', [ExpedienteController::class, 'actualizarEstadoMateria'])->name('expediente.actualizar-estado-materia');
     Route::post('/expediente/asistencia/guardar', [ExpedienteController::class, 'guardarAsistencia'])->name('expediente.guardar-asistencia');
     Route::post('/expediente/asistencia/guardar-final', [ExpedienteController::class, 'guardarAsistenciaFinal'])->name('expediente.guardar-asistencia-final');
     Route::post('/expediente/notas/guardar', [ExpedienteController::class, 'guardarNotas'])->name('expediente.guardar-notas');
@@ -56,6 +62,14 @@ Route::middleware('auth')->group(function () {
     Route::post('/expediente/aprobar-nota/{id}', [ExpedienteController::class, 'aprobarNota'])->name('expediente.aprobar-nota');
     Route::post('/expediente/rechazar-nota/{id}', [ExpedienteController::class, 'rechazarNota'])->name('expediente.rechazar-nota');
     Route::post('/expediente/configurar-parametros/{profesorMateriaId}', [ExpedienteController::class, 'configurarParametrosAcademicos'])->name('expediente.configurar-parametros');
+    // Ruta genérica al final
+    Route::get('/expediente/{id}', [ExpedienteController::class, 'show'])->name('expediente.show');
+
+    // Rutas de gestión de alumnos
+    Route::resource('alumnos', AlumnoController::class);
+
+    // Rutas de gestión de profesores
+    Route::resource('profesores', ProfesorController::class);
 
     // Rutas de mesas de examen (alumnos)
     Route::get('/mesas', [InscripcionesMesaController::class, 'index'])->name('mesas.index');
