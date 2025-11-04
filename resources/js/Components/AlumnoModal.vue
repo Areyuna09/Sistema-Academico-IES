@@ -44,7 +44,10 @@ watch(() => props.alumno, (nuevoAlumno) => {
         form.celular = nuevoAlumno.celular || '';
         form.legajo = nuevoAlumno.legajo || '';
         form.anno = nuevoAlumno.anno || new Date().getFullYear();
-        form.carrera = nuevoAlumno.carrera || '';
+        // Si carrera es un objeto (relación cargada), extraer solo el ID
+        form.carrera = (typeof nuevoAlumno.carrera === 'object' && nuevoAlumno.carrera?.Id)
+            ? nuevoAlumno.carrera.Id
+            : (nuevoAlumno.carrera || '');
         form.curso = nuevoAlumno.curso || '';
         form.division = nuevoAlumno.division || '';
     } else {

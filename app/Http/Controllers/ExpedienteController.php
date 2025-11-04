@@ -95,6 +95,17 @@ class ExpedienteController extends Controller
                                      ->paginate(15)
                                      ->withQueryString();
 
+        // Cargar las materias asignadas a cada profesor
+        $profesores->getCollection()->transform(function($profesor) {
+            $materias = \DB::table('tbl_profesor_tiene_materias')
+                ->where('profesor', $profesor->id)
+                ->pluck('materia')
+                ->toArray();
+
+            $profesor->materias = $materias;
+            return $profesor;
+        });
+
         // Query para ALUMNOS - traer todos desde tbl_alumnos
         $queryAlumnos = Alumno::with(['carrera', 'user']);
 

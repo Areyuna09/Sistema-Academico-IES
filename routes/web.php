@@ -66,10 +66,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/expediente/{id}', [ExpedienteController::class, 'show'])->name('expediente.show');
 
     // Rutas de gestión de alumnos
-    Route::resource('alumnos', AlumnoController::class);
+    Route::resource('alumnos', AlumnoController::class)->parameters([
+        'alumnos' => 'alumno'
+    ]);
 
     // Rutas de gestión de profesores
-    Route::resource('profesores', ProfesorController::class);
+    Route::resource('profesores', ProfesorController::class)->parameters([
+        'profesores' => 'profesor'
+    ]);
 
     // Rutas de mesas de examen (alumnos)
     Route::get('/mesas', [InscripcionesMesaController::class, 'index'])->name('mesas.index');
@@ -252,6 +256,11 @@ Route::middleware(['auth', 'supervisor'])->prefix('supervisor')->name('superviso
     // Ver historial completo de un alumno
     Route::get('/alumno/{alumnoId}/historial', [\App\Http\Controllers\SupervisorController::class, 'historialAlumno'])->name('historial-alumno');
 });
+
+// Ruta de selección de perfil (antes de auth.php para que esté disponible sin autenticación)
+Route::get('/profile-select', function () {
+    return Inertia::render('Auth/ProfileSelect');
+})->name('profile.select')->middleware('guest');
 
 // Rutas de autenticación (login, register, logout, reset password, etc.)
 require __DIR__.'/auth.php';

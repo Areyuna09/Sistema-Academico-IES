@@ -35,14 +35,20 @@ const cargandoMaterias = ref(false);
 
 // Si hay un profesor (modo edición), cargar sus datos
 watch(() => props.profesor, (nuevoProfesor) => {
+    console.log('ProfesorModal - profesor cambiado:', nuevoProfesor);
     if (nuevoProfesor) {
         form.dni = nuevoProfesor.dni || '';
         form.apellido = nuevoProfesor.apellido || '';
         form.nombre = nuevoProfesor.nombre || '';
         form.email = nuevoProfesor.email || '';
-        form.carrera = nuevoProfesor.carrera || '';
+        // Si carrera es un objeto (relación cargada), extraer solo el ID
+        form.carrera = (typeof nuevoProfesor.carrera === 'object' && nuevoProfesor.carrera?.Id)
+            ? nuevoProfesor.carrera.Id
+            : (nuevoProfesor.carrera || '');
         form.division = nuevoProfesor.division || '';
         form.materias = nuevoProfesor.materias || [];
+        console.log('ProfesorModal - materias cargadas:', form.materias);
+        console.log('ProfesorModal - carrera ID:', form.carrera);
     } else {
         form.reset();
         materiasDisponibles.value = [];
@@ -71,11 +77,19 @@ watch(() => form.carrera, async (nuevaCarrera) => {
 });
 
 const submit = () => {
+    console.log('=== SUBMIT PROFESOR ===');
+    console.log('props.profesor:', props.profesor);
+    console.log('props.profesor.id:', props.profesor?.id);
+
     const url = props.profesor
         ? route('profesores.update', props.profesor.id)
         : route('profesores.store');
 
     const method = props.profesor ? 'put' : 'post';
+
+    console.log('URL:', url);
+    console.log('Method:', method);
+    console.log('Form data:', form.data());
 
     form[method](url, {
         preserveScroll: true,

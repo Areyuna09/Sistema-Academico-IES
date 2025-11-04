@@ -133,8 +133,17 @@ class ProfesorController extends Controller
     {
         $carreras = Carrera::all();
 
+        // Cargar las materias asignadas al profesor
+        $materias = \DB::table('tbl_profesor_tiene_materias')
+            ->where('profesor', $profesor->id)
+            ->pluck('materia')
+            ->toArray();
+
+        $profesorData = $profesor->toArray();
+        $profesorData['materias'] = $materias;
+
         return Inertia::render('Admin/Profesor/Edit', [
-            'profesor' => $profesor,
+            'profesor' => $profesorData,
             'carreras' => $carreras
         ]);
     }
@@ -144,8 +153,14 @@ class ProfesorController extends Controller
      */
     public function update(Request $request, Profesor $profesor)
     {
+        \Log::info('=== UPDATE PROFESOR ===', [
+            'profesor_id' => $profesor->id,
+            'profesor_object' => $profesor->toArray(),
+            'request_data' => $request->all(),
+        ]);
+
         $validated = $request->validate([
-            'dni' => 'required|string|max:20|unique:tbl_profesores,dni,' . $profesor->id,
+            'dni' => 'required|string|max:20|unique:tbl_profesores,dni,' . $profesor->id . ',id',
             'apellido' => 'required|string|max:255',
             'nombre' => 'required|string|max:255',
             'email' => 'nullable|email|max:255',

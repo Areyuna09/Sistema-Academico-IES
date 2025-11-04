@@ -417,6 +417,7 @@ const abrirModalNuevoProfesor = () => {
 };
 
 const abrirModalEditarProfesor = (profesor) => {
+    // Las materias ya vienen cargadas en el profesor desde el backend
     profesorEditando.value = profesor;
     mostrarModalProfesor.value = true;
 };
@@ -437,6 +438,36 @@ const profesorGuardado = () => {
             tabActivo.value = 'profesores';
         }
     });
+};
+
+const eliminarProfesor = (profesor) => {
+    if (confirm(`¿Estás seguro de que deseas eliminar al profesor ${profesor.apellido}, ${profesor.nombre}?`)) {
+        router.delete(route('profesores.destroy', profesor.id), {
+            preserveScroll: true,
+            onSuccess: () => {
+                router.reload({
+                    only: ['profesores'],
+                    preserveScroll: true,
+                    preserveState: true,
+                });
+            }
+        });
+    }
+};
+
+const eliminarAlumno = (alumno) => {
+    if (confirm(`¿Estás seguro de que deseas eliminar al alumno ${alumno.apellido}, ${alumno.nombre}?`)) {
+        router.delete(route('alumnos.destroy', alumno.id), {
+            preserveScroll: true,
+            onSuccess: () => {
+                router.reload({
+                    only: ['alumnos'],
+                    preserveScroll: true,
+                    preserveState: true,
+                });
+            }
+        });
+    }
 };
 
 // Función para toggle del checkbox (solo modifica el estado local)
@@ -993,44 +1024,40 @@ const getEstadoBadge = (estado) => {
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DNI</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Materias</th>
                                     <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
-                                <tr v-for="usuario in profesores?.data || []" :key="usuario.id" class="hover:bg-gray-50">
+                                <tr v-for="profesor in profesores?.data || []" :key="profesor.id" class="hover:bg-gray-50">
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                        {{ usuario.dni }}
+                                        {{ profesor.dni }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {{ usuario.nombre }}
+                                        {{ profesor.apellido }}, {{ profesor.nombre }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {{ usuario.email }}
+                                        {{ profesor.email || '-' }}
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-500">
+                                        <span v-if="profesor.materias && profesor.materias.length > 0" class="inline-flex items-center">
+                                            <span class="px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium">
+                                                {{ profesor.materias.length }} materia{{ profesor.materias.length !== 1 ? 's' : '' }}
+                                            </span>
+                                        </span>
+                                        <span v-else class="text-gray-400">Sin materias</span>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div class="flex items-center justify-end gap-2">
-                                            <Link
-                                                :href="route('admin.usuarios.edit', usuario.id)"
+                                            <button
+                                                @click="abrirModalEditarProfesor(profesor)"
                                                 class="text-blue-600 hover:text-blue-900"
                                                 title="Editar"
                                             >
                                                 <i class="bx bx-edit text-lg"></i>
-                                            </Link>
-                                            <button
-                                                @click="toggleActivo(usuario)"
-                                                :class="[
-                                                    'hover:opacity-75',
-                                                    usuario.activo ? 'text-yellow-600' : 'text-green-600'
-                                                ]"
-                                                :title="usuario.activo ? 'Desactivar' : 'Activar'"
-                                            >
-                                                <i :class="[
-                                                    'bx text-lg',
-                                                    usuario.activo ? 'bx-toggle-right' : 'bx-toggle-left'
-                                                ]"></i>
                                             </button>
                                             <button
-                                                @click="eliminarUsuario(usuario)"
+                                                @click="eliminarProfesor(profesor)"
                                                 class="text-red-600 hover:text-red-900"
                                                 title="Eliminar"
                                             >
@@ -1041,7 +1068,7 @@ const getEstadoBadge = (estado) => {
                                 </tr>
                                 <tr v-if="!profesores?.data || profesores.data.length === 0">
                                     <td colspan="5" class="px-6 py-8 text-center text-gray-500">
-                                        <i class="bx bx-user-x text-4xl mb-2"></i>
+                                        <i class="bx bx-user-x text-4xl mb-2 block"></i>
                                         <p>No se encontraron profesores</p>
                                     </td>
                                 </tr>
@@ -1127,21 +1154,21 @@ const getEstadoBadge = (estado) => {
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
-                                <tr v-for="usuario in alumnos?.data || []" :key="usuario.id" class="hover:bg-gray-50">
+                                <tr v-for="alumno in alumnos?.data || []" :key="alumno.id" class="hover:bg-gray-50">
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                        {{ usuario.dni }}
+                                        {{ alumno.dni }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {{ usuario.apellido }}, {{ usuario.nombre }}
+                                        {{ alumno.apellido }}, {{ alumno.nombre }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {{ usuario.carrera?.nombre || '-' }}
+                                        {{ alumno.carrera_relacion?.nombre || '-' }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {{ usuario.email || '-' }}
+                                        {{ alumno.email || '-' }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        <span v-if="usuario.user" class="flex items-center text-green-600">
+                                        <span v-if="alumno.user" class="flex items-center text-green-600">
                                             <i class="bx bx-check-circle mr-1"></i>
                                             Vinculado
                                         </span>
@@ -1150,35 +1177,21 @@ const getEstadoBadge = (estado) => {
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div class="flex items-center justify-end gap-2">
                                             <Link
-                                                v-if="usuario.alumno_id"
-                                                :href="route('expediente.show', usuario.alumno_id)"
+                                                :href="route('expediente.show', alumno.id)"
                                                 class="text-orange-600 hover:text-orange-900"
                                                 title="Ver expediente"
                                             >
                                                 <i class="bx bx-folder-open text-lg"></i>
                                             </Link>
-                                            <Link
-                                                :href="route('admin.usuarios.edit', usuario.id)"
+                                            <button
+                                                @click="abrirModalEditarAlumno(alumno)"
                                                 class="text-blue-600 hover:text-blue-900"
                                                 title="Editar"
                                             >
                                                 <i class="bx bx-edit text-lg"></i>
-                                            </Link>
-                                            <button
-                                                @click="toggleActivo(usuario)"
-                                                :class="[
-                                                    'hover:opacity-75',
-                                                    usuario.activo ? 'text-yellow-600' : 'text-green-600'
-                                                ]"
-                                                :title="usuario.activo ? 'Desactivar' : 'Activar'"
-                                            >
-                                                <i :class="[
-                                                    'bx text-lg',
-                                                    usuario.activo ? 'bx-toggle-right' : 'bx-toggle-left'
-                                                ]"></i>
                                             </button>
                                             <button
-                                                @click="eliminarUsuario(usuario)"
+                                                @click="eliminarAlumno(alumno)"
                                                 class="text-red-600 hover:text-red-900"
                                                 title="Eliminar"
                                             >
