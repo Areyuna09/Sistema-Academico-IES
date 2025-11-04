@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Materia;
 use App\Models\Carrera;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class MateriasController extends Controller
@@ -79,7 +78,6 @@ class MateriasController extends Controller
             'semestre' => 'required|integer|min:1|max:2',
             'anno' => 'required|integer|min:1|max:6',
             'resolucion' => 'nullable|string|max:55',
-            'tipo_materia' => ['required', Rule::in(['regular', 'promocional', 'promocional-regular'])], // lo que agregue
         ]);
 
         // Validar que no exista ya una materia con el mismo nombre en la misma carrera
@@ -114,7 +112,6 @@ class MateriasController extends Controller
                 'semestre' => $materia->semestre,
                 'anno' => $materia->anno,
                 'resolucion' => $materia->resolucion,
-                'tipo_materia' => $materia->tipo_materia, // ✅ agregado
                 'carrera_nombre' => $materia->carrera->nombre ?? null,
             ],
             'carreras' => $carreras,
@@ -132,7 +129,6 @@ class MateriasController extends Controller
             'semestre' => 'required|integer|min:1|max:2',
             'anno' => 'required|integer|min:1|max:6',
             'resolucion' => 'nullable|string|max:55',
-            'tipo_materia' => ['required', Rule::in(['regular', 'promocional', 'promocional-regular'])], // ✅ agregado
         ]);
 
         // Validar que no exista ya una materia con el mismo nombre en la misma carrera (excepto la actual)
