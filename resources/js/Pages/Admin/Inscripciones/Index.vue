@@ -133,6 +133,7 @@ const getEstadoColor = (estado) => {
                     <i class="bx bx-calendar-event mr-2"></i>
                     Inscripciones a Mesas
                 </button>
+                
             </div>
 
             <!-- Filtros -->

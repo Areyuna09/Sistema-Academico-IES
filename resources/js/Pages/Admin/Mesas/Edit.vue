@@ -15,7 +15,8 @@ const props = defineProps({
 const form = useForm({
     materia_id: props.mesa.materia.id,
     fecha_examen: props.mesa.fecha_examen.split('T')[0],
-    hora_examen: props.mesa.hora_examen,
+    hora_examen: props.mesa.hora_examen.substring(0,5),//el anterior no dejava que puediera editarlo este era el anterior:hora_examen: props.mesa.hora_examen,
+
     llamado: props.mesa.llamado,
     periodo_id: props.mesa.periodo_id || '',
     presidente_id: props.mesa.presidente?.id || '',
