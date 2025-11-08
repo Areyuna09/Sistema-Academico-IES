@@ -1,6 +1,6 @@
 <script setup>
 import { Head } from '@inertiajs/vue3';
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
 import Dialog from '@/Components/Dialog.vue';
 import axios from 'axios';
@@ -98,6 +98,24 @@ const opciones = [
     }
 ];
 
+// Computed para obtener lista de DNIs permitidos
+const dniAlumnosPermitidos = computed(() => {
+    if (!materiasData.value) return [];
+    
+    const dnis = new Set();
+    materiasData.value.forEach(materia => {
+        if (materia.alumnos && Array.isArray(materia.alumnos)) {
+            materia.alumnos.forEach(alumno => {
+                if (alumno.dni) {
+                    dnis.add(alumno.dni.toString());
+                }
+            });
+        }
+    });
+    
+    return Array.from(dnis);
+});
+
 const cambiarTab = (tabId) => {
     tabActivo.value = tabId;
     // Limpiar búsqueda al cambiar de tab
@@ -120,6 +138,13 @@ const buscarAlumno = async () => {
         return;
     }
 
+    // Verificar si el profesor tiene acceso a este alumno
+    const dniABuscar = dniBusqueda.value.trim();
+    if (!dniAlumnosPermitidos.value.includes(dniABuscar)) {
+        errorBusqueda.value = 'No tienes permiso para ver el legajo de este alumno. Solo puedes consultar alumnos inscriptos en tus materias.';
+        return;
+    }
+
     buscando.value = true;
     errorBusqueda.value = '';
     alumnoEncontrado.value = null;
@@ -135,6 +160,8 @@ const buscarAlumno = async () => {
     } catch (error) {
         if (error.response && error.response.status === 404) {
             errorBusqueda.value = 'No se encontró ningún alumno con ese DNI';
+        } else if (error.response && error.response.status === 403) {
+            errorBusqueda.value = 'No tienes permiso para ver el legajo de este alumno';
         } else {
             errorBusqueda.value = 'Ocurrió un error al buscar el alumno';
         }
@@ -520,13 +547,6 @@ onMounted(() => {
                                     <i class="bx bx-show mr-1"></i>
                                     Ver detalle
                                 </a>
-                                <button
-                                    class="px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                                    title="Cargar asistencia final del cuatrimestre"
-                                >
-                                    <i class="bx bx-check-circle mr-1"></i>
-                                    Asist. Final
-                                </button>
                             </div>
                         </div>
                     </div>
@@ -664,7 +684,7 @@ onMounted(() => {
                             <i class="bx bx-file text-3xl text-gray-600 mr-3"></i>
                             <div>
                                 <h2 class="text-2xl font-bold text-gray-900">Legajos de Alumnos</h2>
-                                <p class="text-sm text-gray-600">Consulta los expedientes académicos</p>
+                                <p class="text-sm text-gray-600">Consulta los expedientes académicos de tus alumnos</p>
                             </div>
                         </div>
                         <button
@@ -675,6 +695,17 @@ onMounted(() => {
                             <i class="bx bx-x mr-2"></i>
                             Limpiar
                         </button>
+                    </div>
+
+                    <!-- Información de seguridad -->
+                    <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div class="flex items-start text-blue-800">
+                            <i class="bx bx-info-circle mr-2 text-xl flex-shrink-0"></i>
+                            <div class="text-sm">
+                                <p><strong>Nota:</strong> Solo puedes consultar legajos de alumnos inscriptos en tus materias.</p>
+                                <p class="mt-1 text-xs text-blue-600">Alumnos disponibles para consulta: <strong>{{ dniAlumnosPermitidos.length }}</strong></p>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Formulario de búsqueda por DNI -->
@@ -785,6 +816,7 @@ onMounted(() => {
                     <div v-else-if="!buscando && !errorBusqueda" class="text-center py-12 bg-gray-50 rounded-lg">
                         <i class="bx bx-search-alt text-6xl text-gray-300 mb-4"></i>
                         <p class="text-gray-600">Ingresa un DNI para consultar el legajo del alumno</p>
+                        <p class="text-sm text-gray-500 mt-2">Solo puedes consultar alumnos de tus materias</p>
                     </div>
                 </div>
             </div>

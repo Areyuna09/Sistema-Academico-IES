@@ -1,7 +1,8 @@
 <script setup>
 import { Head, Link } from '@inertiajs/vue3';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
-import { computed } from 'vue';
+import { computed, ref, onMounted } from 'vue';
+import axios from 'axios';
 
 const props = defineProps({
     tipoUsuario: {
@@ -17,6 +18,12 @@ const props = defineProps({
         default: null
     }
 });
+
+// Estado del modal de materias
+const modalMateriasAbierto = ref(false);
+const materiasProfesor = ref([]);
+const cargandoMaterias = ref(false);
+const errorMaterias = ref('');
 
 // Determinar saludo según hora del día
 const obtenerSaludo = () => {
@@ -147,7 +154,7 @@ const accesosRapidos = computed(() => {
                 bgColor: 'bg-orange-100',
                 textColor: 'text-orange-600',
                 hoverBorder: 'hover:border-orange-400',
-                route: 'profesor.mis-materias.index'
+                onClick: abrirModalMaterias
             },
             {
                 titulo: 'Mi Perfil',
@@ -229,6 +236,35 @@ const accesosRapidos = computed(() => {
     }
     return [];
 });
+
+// Funciones para el modal de materias
+const abrirModalMaterias = async () => {
+    modalMateriasAbierto.value = true;
+    await cargarMaterias();
+};
+
+const cerrarModalMaterias = () => {
+    modalMateriasAbierto.value = false;
+};
+
+const cargarMaterias = async () => {
+    cargandoMaterias.value = true;
+    errorMaterias.value = '';
+
+    try {
+        const response = await axios.get(route('expediente.alumnos-profesor'));
+        materiasProfesor.value = response.data.materias;
+    } catch (error) {
+        errorMaterias.value = 'Error al cargar las materias';
+        console.error(error);
+    } finally {
+        cargandoMaterias.value = false;
+    }
+};
+
+const irAMateria = (materiaId) => {
+    window.location.href = route('profesor.mis-materias.show', materiaId);
+};
 </script>
 
 <template>
@@ -312,8 +348,28 @@ const accesosRapidos = computed(() => {
                 </h3>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <template v-for="(acceso, index) in accesosRapidos" :key="index">
+                        <!-- Con función onClick -->
+                        <div
+                            v-if="acceso.onClick"
+                            @click="acceso.onClick"
+                            class="group cursor-pointer"
+                        >
+                            <div :class="['bg-white border-2 border-gray-200 rounded-xl p-6 transition-all duration-200 hover:shadow-xl', acceso.hoverBorder]">
+                                <div class="flex items-center mb-4">
+                                    <div :class="['w-14 h-14 rounded-xl flex items-center justify-center mr-4', acceso.bgColor]">
+                                        <i :class="['bx text-2xl', acceso.icono, acceso.textColor]"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <h3 class="text-lg font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">{{ acceso.titulo }}</h3>
+                                    </div>
+                                    <i :class="['bx bx-chevron-right text-2xl text-gray-400 transition-colors', `group-hover:${acceso.textColor}`]"></i>
+                                </div>
+                                <p class="text-sm text-gray-600">{{ acceso.descripcion }}</p>
+                            </div>
+                        </div>
+                        <!-- Con route -->
                         <Link
-                            v-if="acceso.route"
+                            v-else-if="acceso.route"
                             :href="route(acceso.route)"
                             class="group"
                         >
@@ -330,6 +386,7 @@ const accesosRapidos = computed(() => {
                                 <p class="text-sm text-gray-600">{{ acceso.descripcion }}</p>
                             </div>
                         </Link>
+                        <!-- Con href -->
                         <a
                             v-else
                             :href="acceso.href"
@@ -382,6 +439,122 @@ const accesosRapidos = computed(() => {
                             </template>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Selección de Materias -->
+        <div v-if="modalMateriasAbierto" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[85vh] overflow-hidden flex flex-col">
+                <!-- Header del modal -->
+                <div class="bg-orange-600 text-white px-6 py-4 flex items-center justify-between">
+                    <div class="flex items-center">
+                        <i class="bx bx-book text-3xl mr-3"></i>
+                        <div>
+                            <h3 class="text-xl font-semibold">Mis Materias</h3>
+                            <p class="text-sm text-orange-100 mt-1">Selecciona una materia para ver su detalle</p>
+                        </div>
+                    </div>
+                    <button @click="cerrarModalMaterias" class="text-white hover:text-gray-200 transition-colors">
+                        <i class="bx bx-x text-3xl"></i>
+                    </button>
+                </div>
+
+                <!-- Contenido del modal -->
+                <div class="flex-1 overflow-y-auto p-6">
+                    <!-- Estado de carga -->
+                    <div v-if="cargandoMaterias" class="text-center py-12">
+                        <i class="bx bx-loader-alt animate-spin text-6xl text-gray-300 mb-4"></i>
+                        <p class="text-gray-600">Cargando materias...</p>
+                    </div>
+
+                    <!-- Error -->
+                    <div v-else-if="errorMaterias" class="p-4 bg-red-50 border border-red-200 rounded-lg">
+                        <div class="flex items-center text-red-700">
+                            <i class="bx bx-error-circle mr-2 text-xl"></i>
+                            {{ errorMaterias }}
+                        </div>
+                    </div>
+
+                    <!-- Lista de materias -->
+                    <div v-else-if="materiasProfesor && materiasProfesor.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div 
+                            v-for="materia in materiasProfesor" 
+                            :key="materia.materia_id"
+                            @click="irAMateria(materia.materia_id)"
+                            class="bg-white border-2 border-gray-200 rounded-lg p-5 hover:border-orange-400 hover:shadow-lg transition-all cursor-pointer group"
+                        >
+                            <!-- Header de la materia -->
+                            <div class="flex items-start justify-between mb-3">
+                                <div class="flex-1">
+                                    <h3 class="text-lg font-semibold text-gray-900 mb-1 group-hover:text-orange-600 transition-colors">
+                                        {{ materia.materia }}
+                                    </h3>
+                                    <p class="text-sm text-gray-600">{{ materia.carrera }}</p>
+                                </div>
+                                <i class="bx bx-chevron-right text-2xl text-gray-400 group-hover:text-orange-600 transition-colors"></i>
+                            </div>
+
+                            <!-- Advertencia de configuración pendiente -->
+                            <div v-if="!materia.configuracion?.configuracion_completa" class="mb-3 p-2 bg-yellow-50 border border-yellow-300 rounded-lg">
+                                <div class="flex items-center text-yellow-800 text-xs">
+                                    <i class="bx bx-warning mr-2 text-base"></i>
+                                    <span><strong>Configuración pendiente</strong></span>
+                                </div>
+                            </div>
+
+                            <!-- Badge de alumnos -->
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="bg-orange-100 text-orange-700 text-xs font-medium px-3 py-1 rounded-full">
+                                    <i class="bx bx-group mr-1"></i>
+                                    {{ materia.total_alumnos }} alumnos
+                                </span>
+                                <div class="flex gap-2">
+                                    <span class="bg-blue-100 text-blue-700 text-xs font-medium px-2 py-1 rounded">
+                                        {{ materia.cursado }}
+                                    </span>
+                                    <span class="bg-purple-100 text-purple-700 text-xs font-medium px-2 py-1 rounded">
+                                        Div. {{ materia.division }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Parámetros configurados (si existe configuración) -->
+                            <div v-if="materia.configuracion?.configuracion_completa" class="p-2 bg-green-50 border border-green-200 rounded-lg">
+                                <div class="grid grid-cols-2 gap-2 text-xs text-gray-700">
+                                    <div class="flex items-center">
+                                        <i class="bx bx-medal text-green-600 mr-1"></i>
+                                        <span>Promo: <strong>{{ materia.configuracion.nota_minima_promocion }}</strong></span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <i class="bx bx-check text-green-600 mr-1"></i>
+                                        <span>Reg: <strong>{{ materia.configuracion.nota_minima_regularidad }}</strong></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sin materias -->
+                    <div v-else class="text-center py-12 bg-gray-50 rounded-lg">
+                        <i class="bx bx-book-open text-6xl text-gray-300 mb-4"></i>
+                        <p class="text-gray-600 mb-4">No tienes materias asignadas</p>
+                        <p class="text-sm text-gray-500">Contacta con el administrador para asignarte materias</p>
+                    </div>
+                </div>
+
+                <!-- Footer del modal -->
+                <div class="bg-gray-100 px-6 py-4 flex justify-between items-center">
+                    <p class="text-sm text-gray-600">
+                        <i class="bx bx-info-circle mr-1"></i>
+                        Haz clic en una materia para ver su detalle completo
+                    </p>
+                    <button
+                        @click="cerrarModalMaterias"
+                        class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                    >
+                        Cerrar
+                    </button>
                 </div>
             </div>
         </div>
