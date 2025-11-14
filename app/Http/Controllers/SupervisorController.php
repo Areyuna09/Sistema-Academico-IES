@@ -7,12 +7,14 @@ use App\Models\HistorialRevision;
 use App\Models\Alumno;
 use App\Models\Carrera;
 use App\Models\Notificacion;
+use App\Traits\HandlesErrors;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class SupervisorController extends Controller
 {
+    use HandlesErrors;
     /**
      * Panel principal del Supervisor
      * Muestra legajos aprobados por Directivo pendientes de supervisión
@@ -244,13 +246,14 @@ class SupervisorController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Error al aprobar legajo (Supervisor)', [
+
+            $this->handleError($e, 'aprobar legajo (Supervisor)', [
                 'legajo_id' => $id,
-                'error' => $e->getMessage(),
+                'aprobado_por' => $user->id
             ]);
 
             return back()->withErrors([
-                'error' => 'Error al aprobar el legajo: ' . $e->getMessage()
+                'error' => $this->getFriendlyErrorMessage($e, 'Error al aprobar el legajo')
             ]);
         }
     }
@@ -319,13 +322,14 @@ class SupervisorController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Error al rechazar legajo (Supervisor)', [
+
+            $this->handleError($e, 'rechazar legajo (Supervisor)', [
                 'legajo_id' => $id,
-                'error' => $e->getMessage(),
+                'rechazado_por' => $user->id
             ]);
 
             return back()->withErrors([
-                'error' => 'Error al rechazar el legajo: ' . $e->getMessage()
+                'error' => $this->getFriendlyErrorMessage($e, 'Error al rechazar el legajo')
             ]);
         }
     }

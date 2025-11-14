@@ -30,6 +30,9 @@ const form = useForm({
     materias: []
 });
 
+// Guardar referencia al profesor para evitar problemas con el reactivo
+const profesorActual = ref(null);
+
 const materiasDisponibles = ref([]);
 const cargandoMaterias = ref(false);
 
@@ -37,6 +40,7 @@ const cargandoMaterias = ref(false);
 watch(() => props.profesor, (nuevoProfesor) => {
     console.log('ProfesorModal - profesor cambiado:', nuevoProfesor);
     if (nuevoProfesor) {
+        profesorActual.value = nuevoProfesor; // Guardar referencia
         form.dni = nuevoProfesor.dni || '';
         form.apellido = nuevoProfesor.apellido || '';
         form.nombre = nuevoProfesor.nombre || '';
@@ -50,6 +54,7 @@ watch(() => props.profesor, (nuevoProfesor) => {
         console.log('ProfesorModal - materias cargadas:', form.materias);
         console.log('ProfesorModal - carrera ID:', form.carrera);
     } else {
+        profesorActual.value = null;
         form.reset();
         materiasDisponibles.value = [];
     }
@@ -79,13 +84,15 @@ watch(() => form.carrera, async (nuevaCarrera) => {
 const submit = () => {
     console.log('=== SUBMIT PROFESOR ===');
     console.log('props.profesor:', props.profesor);
-    console.log('props.profesor.id:', props.profesor?.id);
+    console.log('profesorActual.value:', profesorActual.value);
+    console.log('profesorActual.value?.id:', profesorActual.value?.id);
 
-    const url = props.profesor
-        ? route('profesores.update', props.profesor.id)
+    // Usar profesorActual en lugar de props.profesor para evitar problemas de reactividad
+    const url = profesorActual.value
+        ? route('profesores.update', profesorActual.value.id)
         : route('profesores.store');
 
-    const method = props.profesor ? 'put' : 'post';
+    const method = profesorActual.value ? 'put' : 'post';
 
     console.log('URL:', url);
     console.log('Method:', method);
@@ -98,6 +105,7 @@ const submit = () => {
             emit('close');
             form.reset();
             materiasDisponibles.value = [];
+            profesorActual.value = null;
         },
         onError: (errors) => {
             console.error('Errores al guardar profesor:', errors);
@@ -109,6 +117,7 @@ const close = () => {
     form.reset();
     form.clearErrors();
     materiasDisponibles.value = [];
+    profesorActual.value = null;
     emit('close');
 };
 </script>
@@ -150,7 +159,7 @@ const close = () => {
                 <!-- Header -->
                 <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
                     <h2 class="text-2xl font-bold text-gray-900">
-                        {{ profesor ? 'Editar Profesor' : 'Nuevo Profesor' }}
+                        {{ profesorActual ? 'Editar Profesor' : 'Nuevo Profesor' }}
                     </h2>
                     <button
                         @click="close"
@@ -330,7 +339,7 @@ const close = () => {
                             class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <span v-if="form.processing">Guardando...</span>
-                            <span v-else>{{ profesor ? 'Actualizar' : 'Crear' }} Profesor</span>
+                            <span v-else>{{ profesorActual ? 'Actualizar' : 'Crear' }} Profesor</span>
                         </button>
                     </div>
 

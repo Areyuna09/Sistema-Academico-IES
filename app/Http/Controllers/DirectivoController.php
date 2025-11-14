@@ -7,12 +7,14 @@ use App\Models\HistorialRevision;
 use App\Models\Alumno;
 use App\Models\Carrera;
 use App\Models\Notificacion;
+use App\Traits\HandlesErrors;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class DirectivoController extends Controller
 {
+    use HandlesErrors;
     /**
      * Panel principal del Directivo
      * Muestra legajos pendientes de revisión y estadísticas
@@ -223,13 +225,14 @@ class DirectivoController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Error al aprobar legajo', [
+
+            $this->handleError($e, 'aprobar legajo', [
                 'legajo_id' => $id,
-                'error' => $e->getMessage(),
+                'aprobado_por' => $user->id
             ]);
 
             return back()->withErrors([
-                'error' => 'Error al aprobar el legajo: ' . $e->getMessage()
+                'error' => $this->getFriendlyErrorMessage($e, 'Error al aprobar el legajo')
             ]);
         }
     }
@@ -298,13 +301,14 @@ class DirectivoController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Error al rechazar legajo', [
+
+            $this->handleError($e, 'rechazar legajo', [
                 'legajo_id' => $id,
-                'error' => $e->getMessage(),
+                'rechazado_por' => $user->id
             ]);
 
             return back()->withErrors([
-                'error' => 'Error al rechazar el legajo: ' . $e->getMessage()
+                'error' => $this->getFriendlyErrorMessage($e, 'Error al rechazar el legajo')
             ]);
         }
     }
@@ -411,13 +415,14 @@ class DirectivoController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Error al actualizar legajo', [
+
+            $this->handleError($e, 'actualizar legajo', [
                 'legajo_id' => $id,
-                'error' => $e->getMessage(),
+                'actualizado_por' => $user->id
             ]);
 
             return back()->withErrors([
-                'error' => 'Error al actualizar el legajo: ' . $e->getMessage()
+                'error' => $this->getFriendlyErrorMessage($e, 'Error al actualizar el legajo')
             ]);
         }
     }

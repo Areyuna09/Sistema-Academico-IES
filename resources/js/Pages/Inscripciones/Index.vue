@@ -146,18 +146,25 @@ const procesarInscripcion = () => {
     router.post('/inscripciones', {
         materias: materiasIds
     }, {
-        onStart: () => console.log('✅ Request iniciado'),
-        onSuccess: () => {
-            console.log('✅ Request exitoso');
+        preserveState: false, // Importante: no preservar estado para permitir redirección
+        onStart: () => {
+            console.log('✅ Request iniciado');
+        },
+        onSuccess: (page) => {
+            console.log('✅ Request exitoso', page);
             // Emitir evento para actualizar notificaciones en tiempo real
             emitirNuevaNotificacion();
+            // Cerrar modal antes de redirigir
+            cerrarModal();
         },
         onError: (errors) => {
             console.error('❌ Error en inscripción:', errors);
             alert('Hubo un error al procesar la inscripción. Por favor, intenta nuevamente.');
             cerrarModal();
         },
-        onFinish: () => console.log('🏁 Request finalizado')
+        onFinish: () => {
+            console.log('🏁 Request finalizado');
+        }
     });
 
     console.log('📤 router.post() llamado');

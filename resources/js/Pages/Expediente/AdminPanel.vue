@@ -5,6 +5,7 @@ import SidebarLayout from '@/Layouts/SidebarLayout.vue';
 import Dialog from '@/Components/Dialog.vue';
 import AlumnoModal from '@/Components/AlumnoModal.vue';
 import ProfesorModal from '@/Components/ProfesorModal.vue';
+import MateriaModal from '@/Components/MateriaModal.vue';
 import { useDialog } from '@/Composables/useDialog';
 import axios from 'axios';
 
@@ -30,6 +31,10 @@ const props = defineProps({
     notasPendientes: {
         type: Array,
         default: () => []
+    },
+    duracionCarreras: {
+        type: Object,
+        default: () => ({})
     },
     filtrosMaterias: {
         type: Object,
@@ -107,21 +112,21 @@ const hayCambiosPendientes = computed(() => {
 
 // Forms para filtros
 const formMaterias = useForm({
-    carrera: props.filtrosMaterias?.carrera || '',
+    carrera_materias: props.filtrosMaterias?.carrera_materias || '',
     semestre: props.filtrosMaterias?.semestre || '',
     anno: props.filtrosMaterias?.anno || '',
-    buscar: props.filtrosMaterias?.buscar || '',
+    buscar_materias: props.filtrosMaterias?.buscar_materias || '',
 });
 
 const formProfesores = useForm({
     activo: props.filtrosProfesores?.activo || '',
-    buscar: props.filtrosProfesores?.buscar || '',
+    buscar_profesores: props.filtrosProfesores?.buscar_profesores || '',
 });
 
 const formAlumnos = useForm({
     activo: props.filtrosAlumnos?.activo || '',
-    buscar: props.filtrosAlumnos?.buscar || '',
-    carrera: props.filtrosAlumnos?.carrera || '',
+    buscar_alumnos: props.filtrosAlumnos?.buscar_alumnos || '',
+    carrera_alumnos: props.filtrosAlumnos?.carrera_alumnos || '',
 });
 
 const opciones = [
@@ -198,10 +203,10 @@ const buscarMaterias = () => {
 };
 
 const limpiarFiltrosMaterias = () => {
-    formMaterias.carrera = '';
+    formMaterias.carrera_materias = '';
     formMaterias.semestre = '';
     formMaterias.anno = '';
-    formMaterias.buscar = '';
+    formMaterias.buscar_materias = '';
     formMaterias.get(route('expediente.index'));
 };
 
@@ -223,11 +228,11 @@ const eliminarMateria = async (materia) => {
     }
 };
 
-const getSemestreBadge = (semestre) => {
+const getCuatrimestreBadge = (semestre) => {
     if (semestre === 1) {
-        return { text: '1° Sem', class: 'bg-blue-100 text-blue-800' };
+        return { text: '1° Cuatr', class: 'bg-blue-100 text-blue-800' };
     } else if (semestre === 2) {
-        return { text: '2° Sem', class: 'bg-purple-100 text-purple-800' };
+        return { text: '2° Cuatr', class: 'bg-purple-100 text-purple-800' };
     } else {
         return { text: 'Sin asignar', class: 'bg-gray-100 text-gray-600' };
     }
@@ -243,7 +248,7 @@ const buscarProfesores = () => {
 
 const limpiarFiltrosProfesores = () => {
     formProfesores.activo = '';
-    formProfesores.buscar = '';
+    formProfesores.buscar_profesores = '';
     formProfesores.get(route('expediente.index'));
 };
 
@@ -257,8 +262,8 @@ const buscarAlumnos = () => {
 
 const limpiarFiltrosAlumnos = () => {
     formAlumnos.activo = '';
-    formAlumnos.buscar = '';
-    formAlumnos.carrera = '';
+    formAlumnos.buscar_alumnos = '';
+    formAlumnos.carrera_alumnos = '';
     formAlumnos.get(route('expediente.index'));
 };
 
@@ -440,8 +445,13 @@ const profesorGuardado = () => {
     });
 };
 
-const eliminarProfesor = (profesor) => {
-    if (confirm(`¿Estás seguro de que deseas eliminar al profesor ${profesor.apellido}, ${profesor.nombre}?`)) {
+const eliminarProfesor = async (profesor) => {
+    const confirmacion = await dialogConfirm(
+        `¿Estás seguro de que deseas eliminar al profesor ${profesor.apellido}, ${profesor.nombre}?`,
+        'Confirmar eliminación'
+    );
+
+    if (confirmacion) {
         router.delete(route('profesores.destroy', profesor.id), {
             preserveScroll: true,
             onSuccess: () => {
@@ -455,8 +465,13 @@ const eliminarProfesor = (profesor) => {
     }
 };
 
-const eliminarAlumno = (alumno) => {
-    if (confirm(`¿Estás seguro de que deseas eliminar al alumno ${alumno.apellido}, ${alumno.nombre}?`)) {
+const eliminarAlumno = async (alumno) => {
+    const confirmacion = await dialogConfirm(
+        `¿Estás seguro de que deseas eliminar al alumno ${alumno.apellido}, ${alumno.nombre}?`,
+        'Confirmar eliminación'
+    );
+
+    if (confirmacion) {
         router.delete(route('alumnos.destroy', alumno.id), {
             preserveScroll: true,
             onSuccess: () => {
@@ -470,6 +485,36 @@ const eliminarAlumno = (alumno) => {
     }
 };
 
+// Funciones para manejar modales de Materia
+const mostrarModalMateria = ref(false);
+const materiaEditando = ref(null);
+
+const abrirModalNuevaMateria = () => {
+    materiaEditando.value = null;
+    mostrarModalMateria.value = true;
+};
+
+const abrirModalEditarMateria = (materia) => {
+    materiaEditando.value = materia;
+    mostrarModalMateria.value = true;
+};
+
+const cerrarModalMateria = () => {
+    mostrarModalMateria.value = false;
+    materiaEditando.value = null;
+};
+
+const materiaGuardada = () => {
+    router.reload({
+        only: ['materias'],
+        preserveScroll: true,
+        preserveState: true,
+        onSuccess: () => {
+            tabActivo.value = 'materias';
+        }
+    });
+};
+
 // Función para toggle del checkbox (solo modifica el estado local)
 const toggleCheckbox = (materiaId, campo) => {
     // Buscar la materia en el historial
@@ -478,40 +523,131 @@ const toggleCheckbox = (materiaId, campo) => {
         if (materia) {
             if (campo === 'cursada') {
                 // Toggle Regular (R): solo cursada, sin rendida
-                if (materia.cursada_value && !materia.rendida_value) {
-                    // Ya está marcado Regular, desmarcarlo
+                if (materia.cursada_value && !materia.rendida_value && !materia.equivalencia_value) {
+                    // Ya está marcado Regular, desmarcarlo todo
                     materia.cursada_value = false;
+                    materia.rendida_value = false;
+                    materia.libre_value = false;
+                    materia.equivalencia_value = false;
                 } else {
-                    // Marcarlo como Regular
+                    // Marcarlo como Regular y desmarcar todo lo demás
                     materia.cursada_value = true;
                     materia.rendida_value = false;
                     materia.libre_value = false;
+                    materia.equivalencia_value = false;
                 }
             } else if (campo === 'rendida') {
                 // Toggle Promocional (P): cursada Y rendida
-                if (materia.cursada_value && materia.rendida_value) {
-                    // Ya está marcado Promocional, desmarcarlo
+                if (materia.cursada_value && materia.rendida_value && !materia.equivalencia_value) {
+                    // Ya está marcado Promocional, desmarcarlo todo
+                    materia.cursada_value = false;
                     materia.rendida_value = false;
+                    materia.libre_value = false;
+                    materia.equivalencia_value = false;
                 } else {
-                    // Marcarlo como Promocional
+                    // Marcarlo como Promocional y desmarcar todo lo demás
                     materia.cursada_value = true;
                     materia.rendida_value = true;
                     materia.libre_value = false;
+                    materia.equivalencia_value = false;
                 }
             } else if (campo === 'equivalencia') {
                 // Toggle Equivalencia (E)
-                materia.equivalencia_value = !materia.equivalencia_value;
+                if (materia.equivalencia_value) {
+                    // Ya está marcado Equivalencia, desmarcarlo todo
+                    materia.cursada_value = false;
+                    materia.rendida_value = false;
+                    materia.libre_value = false;
+                    materia.equivalencia_value = false;
+                } else {
+                    // Marcarlo como Equivalencia y desmarcar todo lo demás
+                    materia.cursada_value = false;
+                    materia.rendida_value = false;
+                    materia.libre_value = false;
+                    materia.equivalencia_value = true;
+                }
             } else if (campo === 'libre') {
                 // Toggle Libre (L)
                 if (materia.libre_value) {
-                    materia.libre_value = false;
-                } else {
-                    materia.libre_value = true;
+                    // Ya está marcado Libre, desmarcarlo todo
                     materia.cursada_value = false;
                     materia.rendida_value = false;
+                    materia.libre_value = false;
+                    materia.equivalencia_value = false;
+                } else {
+                    // Marcarlo como Libre y desmarcar todo lo demás
+                    materia.cursada_value = false;
+                    materia.rendida_value = false;
+                    materia.libre_value = true;
+                    materia.equivalencia_value = false;
                 }
             }
             break;
+        }
+    }
+};
+
+// Función para toggle de checkboxes en filas nuevas (exclusión mutua)
+const toggleCheckboxFilaNueva = (fila, campo) => {
+    if (campo === 'cursada') {
+        // Toggle Regular (R): solo cursada, sin rendida
+        if (fila.cursada_value && !fila.rendida_value && !fila.equivalencia_value) {
+            // Ya está marcado Regular, desmarcarlo todo
+            fila.cursada_value = false;
+            fila.rendida_value = false;
+            fila.libre_value = false;
+            fila.equivalencia_value = false;
+        } else {
+            // Marcarlo como Regular y desmarcar todo lo demás
+            fila.cursada_value = true;
+            fila.rendida_value = false;
+            fila.libre_value = false;
+            fila.equivalencia_value = false;
+        }
+    } else if (campo === 'rendida') {
+        // Toggle Promocional (P): cursada Y rendida
+        if (fila.cursada_value && fila.rendida_value && !fila.equivalencia_value) {
+            // Ya está marcado Promocional, desmarcarlo todo
+            fila.cursada_value = false;
+            fila.rendida_value = false;
+            fila.libre_value = false;
+            fila.equivalencia_value = false;
+        } else {
+            // Marcarlo como Promocional y desmarcar todo lo demás
+            fila.cursada_value = true;
+            fila.rendida_value = true;
+            fila.libre_value = false;
+            fila.equivalencia_value = false;
+        }
+    } else if (campo === 'equivalencia') {
+        // Toggle Equivalencia (E)
+        if (fila.equivalencia_value) {
+            // Ya está marcado Equivalencia, desmarcarlo todo
+            fila.cursada_value = false;
+            fila.rendida_value = false;
+            fila.libre_value = false;
+            fila.equivalencia_value = false;
+        } else {
+            // Marcarlo como Equivalencia y desmarcar todo lo demás
+            fila.cursada_value = false;
+            fila.rendida_value = false;
+            fila.libre_value = false;
+            fila.equivalencia_value = true;
+        }
+    } else if (campo === 'libre') {
+        // Toggle Libre (L)
+        if (fila.libre_value) {
+            // Ya está marcado Libre, desmarcarlo todo
+            fila.cursada_value = false;
+            fila.rendida_value = false;
+            fila.libre_value = false;
+            fila.equivalencia_value = false;
+        } else {
+            // Marcarlo como Libre y desmarcar todo lo demás
+            fila.cursada_value = false;
+            fila.rendida_value = false;
+            fila.libre_value = true;
+            fila.equivalencia_value = false;
         }
     }
 };
@@ -788,13 +924,13 @@ const getEstadoBadge = (estado) => {
                                 <p class="text-sm text-gray-600">Crear y administrar materias del instituto</p>
                             </div>
                         </div>
-                        <Link
-                            :href="route('admin.materias.create')"
+                        <button
+                            @click="abrirModalNuevaMateria"
                             class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200"
                         >
                             <i class="bx bx-plus text-xl mr-2"></i>
                             Nueva Materia
-                        </Link>
+                        </button>
                     </div>
 
                     <!-- Filtros -->
@@ -803,7 +939,7 @@ const getEstadoBadge = (estado) => {
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Carrera</label>
                                 <select
-                                    v-model="formMaterias.carrera"
+                                    v-model="formMaterias.carrera_materias"
                                     class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
                                 >
                                     <option value="">Todas las carreras</option>
@@ -830,21 +966,21 @@ const getEstadoBadge = (estado) => {
                             </div>
 
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Semestre</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Cuatrimestre</label>
                                 <select
                                     v-model="formMaterias.semestre"
                                     class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
                                 >
-                                    <option value="">Ambos semestres</option>
-                                    <option value="1">1° Semestre</option>
-                                    <option value="2">2° Semestre</option>
+                                    <option value="">Ambos cuatrimestres</option>
+                                    <option value="1">1° Cuatrimestre</option>
+                                    <option value="2">2° Cuatrimestre</option>
                                 </select>
                             </div>
 
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Buscar</label>
                                 <input
-                                    v-model="formMaterias.buscar"
+                                    v-model="formMaterias.buscar_materias"
                                     type="text"
                                     placeholder="Nombre de materia..."
                                     class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
@@ -884,7 +1020,7 @@ const getEstadoBadge = (estado) => {
                                         Año
                                     </th>
                                     <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Semestre
+                                        Cuatrimestre
                                     </th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Resolución
@@ -908,8 +1044,8 @@ const getEstadoBadge = (estado) => {
                                         </span>
                                     </td>
                                     <td class="px-6 py-4 text-center">
-                                        <span :class="['inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium', getSemestreBadge(materia.semestre).class]">
-                                            {{ getSemestreBadge(materia.semestre).text }}
+                                        <span :class="['inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium', getCuatrimestreBadge(materia.semestre).class]">
+                                            {{ getCuatrimestreBadge(materia.semestre).text }}
                                         </span>
                                     </td>
                                     <td class="px-6 py-4">
@@ -917,13 +1053,13 @@ const getEstadoBadge = (estado) => {
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div class="flex items-center justify-end gap-2">
-                                            <Link
-                                                :href="route('admin.materias.edit', materia.id)"
+                                            <button
+                                                @click="abrirModalEditarMateria(materia)"
                                                 class="text-blue-600 hover:text-blue-900"
                                                 title="Editar"
                                             >
                                                 <i class="bx bx-edit text-lg"></i>
-                                            </Link>
+                                            </button>
                                             <button
                                                 @click="eliminarMateria(materia)"
                                                 class="text-red-600 hover:text-red-900"
@@ -991,7 +1127,7 @@ const getEstadoBadge = (estado) => {
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Buscar</label>
                                 <input
-                                    v-model="formProfesores.buscar"
+                                    v-model="formProfesores.buscar_profesores"
                                     type="text"
                                     placeholder="DNI, nombre o email..."
                                     class="w-full rounded-lg border-gray-300 focus:border-purple-500 focus:ring focus:ring-purple-200"
@@ -1102,7 +1238,7 @@ const getEstadoBadge = (estado) => {
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Carrera</label>
                                 <select
-                                    v-model="formAlumnos.carrera"
+                                    v-model="formAlumnos.carrera_alumnos"
                                     class="w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring focus:ring-green-200"
                                 >
                                     <option value="">Todas las carreras</option>
@@ -1115,7 +1251,7 @@ const getEstadoBadge = (estado) => {
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Buscar</label>
                                 <input
-                                    v-model="formAlumnos.buscar"
+                                    v-model="formAlumnos.buscar_alumnos"
                                     type="text"
                                     placeholder="DNI, nombre, legajo o email..."
                                     class="w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring focus:ring-green-200"
@@ -1569,7 +1705,18 @@ const getEstadoBadge = (estado) => {
                                                     class="w-full px-2 py-1 text-sm border border-green-500 rounded focus:ring-2 focus:ring-green-500"
                                                 >
                                                     <option value="">Seleccionar materia...</option>
-                                                    <option v-for="materia in materiasDisponibles.filter(m => m.anno + '° Año' === anno)" :key="materia.id" :value="materia.id">
+                                                    <option
+                                                        v-for="materia in materiasDisponibles.filter(m => {
+                                                            // Filtrar por año
+                                                            if ((m.anno + '° Año') !== anno) return false;
+
+                                                            // Excluir materias que ya están en el legajo de este año
+                                                            const yaExiste = materias.some(mat => mat.materia_id === m.id);
+                                                            return !yaExiste;
+                                                        })"
+                                                        :key="materia.id"
+                                                        :value="materia.id"
+                                                    >
                                                         {{ materia.nombre }}
                                                     </option>
                                                 </select>
@@ -1577,33 +1724,37 @@ const getEstadoBadge = (estado) => {
                                             <!-- Checkbox Regular -->
                                             <td class="px-2 py-2 text-center text-sm border-r">
                                                 <input
-                                                    v-model="fila.cursada_value"
                                                     type="checkbox"
-                                                    class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                                                    :checked="fila.cursada_value && !fila.rendida_value"
+                                                    @click="toggleCheckboxFilaNueva(fila, 'cursada')"
+                                                    class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
                                                 />
                                             </td>
                                             <!-- Checkbox Promocional -->
                                             <td class="px-2 py-2 text-center text-sm border-r">
                                                 <input
-                                                    v-model="fila.rendida_value"
                                                     type="checkbox"
-                                                    class="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500"
+                                                    :checked="fila.cursada_value && fila.rendida_value"
+                                                    @click="toggleCheckboxFilaNueva(fila, 'rendida')"
+                                                    class="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 cursor-pointer"
                                                 />
                                             </td>
                                             <!-- Checkbox Equivalencia -->
                                             <td class="px-2 py-2 text-center text-sm border-r">
                                                 <input
-                                                    v-model="fila.equivalencia_value"
                                                     type="checkbox"
-                                                    class="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 rounded focus:ring-purple-500"
+                                                    :checked="fila.equivalencia_value"
+                                                    @click="toggleCheckboxFilaNueva(fila, 'equivalencia')"
+                                                    class="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 rounded focus:ring-purple-500 cursor-pointer"
                                                 />
                                             </td>
                                             <!-- Checkbox Libre -->
                                             <td class="px-2 py-2 text-center text-sm border-r">
                                                 <input
-                                                    v-model="fila.libre_value"
                                                     type="checkbox"
-                                                    class="w-4 h-4 text-orange-600 bg-gray-100 border-gray-300 rounded focus:ring-orange-500"
+                                                    :checked="fila.libre_value"
+                                                    @click="toggleCheckboxFilaNueva(fila, 'libre')"
+                                                    class="w-4 h-4 text-orange-600 bg-gray-100 border-gray-300 rounded focus:ring-orange-500 cursor-pointer"
                                                 />
                                             </td>
                                             <!-- Nota -->
@@ -1691,6 +1842,15 @@ const getEstadoBadge = (estado) => {
             :carreras="carreras"
             @close="cerrarModalProfesor"
             @saved="profesorGuardado"
+        />
+
+        <MateriaModal
+            :show="mostrarModalMateria"
+            :materia="materiaEditando"
+            :carreras="carreras"
+            :duracionCarreras="duracionCarreras"
+            @close="cerrarModalMateria"
+            @saved="materiaGuardada"
         />
     </SidebarLayout>
 </template>

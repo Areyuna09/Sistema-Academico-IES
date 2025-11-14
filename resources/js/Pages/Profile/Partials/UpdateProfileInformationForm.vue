@@ -6,12 +6,20 @@ import TextInput from "@/Components/TextInput.vue";
 import { Link, useForm, usePage, router } from "@inertiajs/vue3";
 import { ref, computed } from "vue";
 
-defineProps({
+const props = defineProps({
     mustVerifyEmail: {
         type: Boolean,
     },
     status: {
         type: String,
+    },
+    alumno: {
+        type: Object,
+        default: null,
+    },
+    profesor: {
+        type: Object,
+        default: null,
     },
 });
 
@@ -20,6 +28,9 @@ const user = usePage().props.auth.user;
 const form = useForm({
     name: user.name,
     email: user.email,
+    telefono: props.alumno?.telefono || props.profesor?.telefono || '',
+    celular: props.alumno?.celular || props.profesor?.celular || '',
+    descripcion_personalizada: props.alumno?.descripcion_personalizada || '',
 });
 
 // Avatar upload
@@ -74,6 +85,33 @@ const deleteAvatar = () => {
 const triggerFileInput = () => {
     fileInput.value?.click();
 };
+
+// Determinar el rol para el badge
+const roleBadge = computed(() => {
+    if (props.alumno) return { text: 'ALUMNO', class: 'bg-blue-100 text-blue-800' };
+    if (props.profesor) return { text: 'PROFESOR', class: 'bg-purple-100 text-purple-800' };
+    return { text: 'ADMINISTRADOR', class: 'bg-gray-100 text-gray-800' };
+});
+
+// Información adicional según el rol
+const additionalInfo = computed(() => {
+    if (props.alumno) {
+        return {
+            dni: props.alumno.dni,
+            carrera: props.alumno.carrera?.nombre,
+            legajo: props.alumno.legajo,
+            curso: props.alumno.curso,
+            division: props.alumno.division,
+        };
+    }
+    if (props.profesor) {
+        return {
+            dni: props.profesor.dni,
+            carrera: props.profesor.carrera?.nombre,
+        };
+    }
+    return null;
+});
 </script>
 
 <template>
@@ -107,9 +145,12 @@ const triggerFileInput = () => {
                     </button>
                 </div>
 
-                <!-- User Name -->
+                <!-- User Name and Badge -->
                 <h2 class="text-xl md:text-2xl font-bold text-gray-900">{{ user.name }}</h2>
-                <p class="text-sm text-gray-500 mt-1">{{ user.email }}</p>
+                <span :class="['inline-block px-3 py-1 rounded-full text-xs font-bold mt-2', roleBadge.class]">
+                    {{ roleBadge.text }}
+                </span>
+                <p class="text-sm text-gray-500 mt-2">{{ user.email }}</p>
 
                 <!-- Avatar Actions -->
                 <div class="flex gap-3 mt-4">
@@ -175,6 +216,28 @@ const triggerFileInput = () => {
 
         <!-- Profile Form -->
         <form @submit.prevent="form.patch(route('profile.update'))" class="p-6 md:p-8 space-y-6">
+            <!-- Información adicional (solo lectura) - Arriba del formulario -->
+            <div v-if="additionalInfo" class="grid grid-cols-1 md:grid-cols-3 gap-4 pb-4 border-b border-gray-200">
+                <div v-if="additionalInfo.dni">
+                    <p class="text-xs font-semibold text-gray-500 uppercase">DNI</p>
+                    <p class="text-sm text-gray-900 font-medium mt-1">{{ additionalInfo.dni }}</p>
+                </div>
+                <div v-if="additionalInfo.carrera">
+                    <p class="text-xs font-semibold text-gray-500 uppercase">Carrera</p>
+                    <p class="text-sm text-gray-900 font-medium mt-1">{{ additionalInfo.carrera }}</p>
+                </div>
+                <div v-if="additionalInfo.legajo">
+                    <p class="text-xs font-semibold text-gray-500 uppercase">Legajo</p>
+                    <p class="text-sm text-gray-900 font-medium mt-1">{{ additionalInfo.legajo || 'Sin asignar' }}</p>
+                </div>
+                <div v-if="additionalInfo.curso">
+                    <p class="text-xs font-semibold text-gray-500 uppercase">Curso</p>
+                    <p class="text-sm text-gray-900 font-medium mt-1">
+                        {{ additionalInfo.curso }}° {{ additionalInfo.division ? `- Div. ${additionalInfo.division}` : '' }}
+                    </p>
+                </div>
+            </div>
+
             <!-- Name Field -->
             <div class="group">
                 <label for="name" class="block text-sm font-semibold text-gray-700 mb-2">
@@ -188,12 +251,20 @@ const triggerFileInput = () => {
                         id="name"
                         type="text"
                         v-model="form.name"
+                        :disabled="alumno || profesor"
+                        :class="[
+                            'pl-10 block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all',
+                            (alumno || profesor) ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'
+                        ]"
                         required
                         maxlength="100"
                         autocomplete="name"
-                        class="pl-10 block w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                     />
                 </div>
+                <p v-if="alumno || profesor" class="mt-1 text-xs text-gray-500">
+                    <i class="bx bx-info-circle"></i>
+                    El nombre no puede ser modificado. Contacta a administración para cambios.
+                </p>
                 <InputError class="mt-1 text-xs" :message="form.errors.name" />
             </div>
 
@@ -217,6 +288,73 @@ const triggerFileInput = () => {
                     />
                 </div>
                 <InputError class="mt-1 text-xs" :message="form.errors.email" />
+            </div>
+
+            <!-- Teléfono (solo para alumno y profesor) -->
+            <div v-if="alumno || profesor" class="group">
+                <label for="telefono" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Teléfono
+                </label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="bx bx-phone text-gray-400"></i>
+                    </div>
+                    <input
+                        id="telefono"
+                        type="text"
+                        v-model="form.telefono"
+                        placeholder="Ej: 2644123456"
+                        autocomplete="tel"
+                        pattern="[0-9]*"
+                        inputmode="numeric"
+                        maxlength="20"
+                        class="pl-10 block w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    />
+                </div>
+                <InputError class="mt-1 text-xs" :message="form.errors.telefono" />
+            </div>
+
+            <!-- Celular (solo para alumno y profesor) -->
+            <div v-if="alumno || profesor" class="group">
+                <label for="celular" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Celular
+                </label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="bx bx-mobile text-gray-400"></i>
+                    </div>
+                    <input
+                        id="celular"
+                        type="text"
+                        v-model="form.celular"
+                        placeholder="Ej: 2644567890"
+                        autocomplete="tel"
+                        pattern="[0-9]*"
+                        inputmode="numeric"
+                        maxlength="20"
+                        class="pl-10 block w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    />
+                </div>
+                <InputError class="mt-1 text-xs" :message="form.errors.celular" />
+            </div>
+
+            <!-- Descripción Personal (solo para alumnos) -->
+            <div v-if="alumno" class="group">
+                <label for="descripcion_personalizada" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Descripción Personal
+                </label>
+                <textarea
+                    id="descripcion_personalizada"
+                    v-model="form.descripcion_personalizada"
+                    class="block w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    rows="3"
+                    maxlength="500"
+                    placeholder="Escribe una breve descripción personal (opcional)"
+                ></textarea>
+                <p class="mt-1 text-xs text-gray-500">
+                    {{ form.descripcion_personalizada?.length || 0 }}/500 caracteres
+                </p>
+                <InputError class="mt-1 text-xs" :message="form.errors.descripcion_personalizada" />
             </div>
 
             <!-- Email Verification Alert -->

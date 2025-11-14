@@ -4,11 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Profesor;
 use App\Models\Carrera;
+use App\Traits\HandlesErrors;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class ProfesorController extends Controller
 {
+    use HandlesErrors;
     /**
      * Display a listing of the resource.
      */
@@ -39,23 +41,30 @@ class ProfesorController extends Controller
         ]);
 
         $validated = $request->validate([
-            'dni' => 'required|string|max:20|unique:tbl_profesores,dni',
-            'apellido' => 'required|string|max:255',
-            'nombre' => 'required|string|max:255',
+            'dni' => 'required|string|max:20|unique:tbl_profesores,dni|regex:/^[0-9]+$/',
+            'apellido' => 'required|string|max:100|regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$/',
+            'nombre' => 'required|string|max:100|regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$/',
             'email' => 'nullable|email|max:255',
             'carrera' => 'required|exists:tbl_carreras,Id',
             'division' => 'required|in:1,2',
             'materias' => 'nullable|array',
             'materias.*' => 'exists:tbl_materias,id',
         ], [
-            'dni.required' => 'El DNI es obligatorio',
-            'dni.unique' => 'Ya existe un profesor con este DNI',
-            'apellido.required' => 'El apellido es obligatorio',
-            'nombre.required' => 'El nombre es obligatorio',
-            'carrera.required' => 'La carrera es obligatoria',
-            'carrera.exists' => 'La carrera seleccionada no existe',
-            'division.required' => 'La división es obligatoria',
-            'division.in' => 'La división debe ser 1 o 2',
+            'dni.required' => 'El DNI es obligatorio.',
+            'dni.unique' => 'Ya existe un profesor con este DNI.',
+            'dni.regex' => 'El DNI debe contener solo números.',
+            'dni.max' => 'El DNI no puede exceder 20 caracteres.',
+            'apellido.required' => 'El apellido es obligatorio.',
+            'apellido.regex' => 'El apellido solo puede contener letras y espacios.',
+            'apellido.max' => 'El apellido no puede exceder 100 caracteres.',
+            'nombre.required' => 'El nombre es obligatorio.',
+            'nombre.regex' => 'El nombre solo puede contener letras y espacios.',
+            'nombre.max' => 'El nombre no puede exceder 100 caracteres.',
+            'email.email' => 'El email debe ser una dirección válida.',
+            'carrera.required' => 'La carrera es obligatoria.',
+            'carrera.exists' => 'La carrera seleccionada no existe.',
+            'division.required' => 'La división es obligatoria.',
+            'division.in' => 'La división debe ser 1 o 2.',
         ]);
 
         \Log::info('Validación exitosa', ['validated' => $validated]);
@@ -107,14 +116,14 @@ class ProfesorController extends Controller
         } catch (\Exception $e) {
             \DB::rollBack();
 
-            \Log::error('Error al crear profesor', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+            $this->handleError($e, 'crear profesor', [
+                'dni' => $validated['dni'] ?? null,
+                'nombre' => $validated['nombre'] ?? null
             ]);
 
             return back()
                 ->withInput()
-                ->withErrors(['error' => 'Error al crear el profesor: ' . $e->getMessage()]);
+                ->withErrors(['error' => $this->getFriendlyErrorMessage($e, 'Error al crear el profesor')]);
         }
     }
 
@@ -160,23 +169,30 @@ class ProfesorController extends Controller
         ]);
 
         $validated = $request->validate([
-            'dni' => 'required|string|max:20|unique:tbl_profesores,dni,' . $profesor->id . ',id',
-            'apellido' => 'required|string|max:255',
-            'nombre' => 'required|string|max:255',
+            'dni' => 'required|string|max:20|unique:tbl_profesores,dni,' . $profesor->id . ',id|regex:/^[0-9]+$/',
+            'apellido' => 'required|string|max:100|regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$/',
+            'nombre' => 'required|string|max:100|regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$/',
             'email' => 'nullable|email|max:255',
             'carrera' => 'required|exists:tbl_carreras,Id',
             'division' => 'required|in:1,2',
             'materias' => 'nullable|array',
             'materias.*' => 'exists:tbl_materias,id',
         ], [
-            'dni.required' => 'El DNI es obligatorio',
-            'dni.unique' => 'Ya existe otro profesor con este DNI',
-            'apellido.required' => 'El apellido es obligatorio',
-            'nombre.required' => 'El nombre es obligatorio',
-            'carrera.required' => 'La carrera es obligatoria',
-            'carrera.exists' => 'La carrera seleccionada no existe',
-            'division.required' => 'La división es obligatoria',
-            'division.in' => 'La división debe ser 1 o 2',
+            'dni.required' => 'El DNI es obligatorio.',
+            'dni.unique' => 'Ya existe otro profesor con este DNI.',
+            'dni.regex' => 'El DNI debe contener solo números.',
+            'dni.max' => 'El DNI no puede exceder 20 caracteres.',
+            'apellido.required' => 'El apellido es obligatorio.',
+            'apellido.regex' => 'El apellido solo puede contener letras y espacios.',
+            'apellido.max' => 'El apellido no puede exceder 100 caracteres.',
+            'nombre.required' => 'El nombre es obligatorio.',
+            'nombre.regex' => 'El nombre solo puede contener letras y espacios.',
+            'nombre.max' => 'El nombre no puede exceder 100 caracteres.',
+            'email.email' => 'El email debe ser una dirección válida.',
+            'carrera.required' => 'La carrera es obligatoria.',
+            'carrera.exists' => 'La carrera seleccionada no existe.',
+            'division.required' => 'La división es obligatoria.',
+            'division.in' => 'La división debe ser 1 o 2.',
         ]);
 
         try {
@@ -232,14 +248,14 @@ class ProfesorController extends Controller
         } catch (\Exception $e) {
             \DB::rollBack();
 
-            \Log::error('Error al actualizar profesor', [
+            $this->handleError($e, 'actualizar profesor', [
                 'profesor_id' => $profesor->id,
-                'error' => $e->getMessage(),
+                'dni' => $validated['dni'] ?? null
             ]);
 
             return back()
                 ->withInput()
-                ->withErrors(['error' => 'Error al actualizar el profesor: ' . $e->getMessage()]);
+                ->withErrors(['error' => $this->getFriendlyErrorMessage($e, 'Error al actualizar el profesor')]);
         }
     }
 
@@ -276,13 +292,12 @@ class ProfesorController extends Controller
                 ->with('success', 'Profesor eliminado exitosamente');
 
         } catch (\Exception $e) {
-            \Log::error('Error al eliminar profesor', [
-                'profesor_id' => $profesor->id,
-                'error' => $e->getMessage(),
+            $this->handleError($e, 'eliminar profesor', [
+                'profesor_id' => $profesor->id
             ]);
 
             return back()->withErrors([
-                'error' => 'Error al eliminar el profesor: ' . $e->getMessage()
+                'error' => $this->getFriendlyErrorMessage($e, 'Error al eliminar el profesor')
             ]);
         }
     }

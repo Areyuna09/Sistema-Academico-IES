@@ -4,11 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Alumno;
 use App\Models\Carrera;
+use App\Traits\HandlesErrors;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class AlumnoController extends Controller
 {
+    use HandlesErrors;
     /**
      * Display a listing of the resource.
      */
@@ -35,24 +37,35 @@ class AlumnoController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'dni' => 'required|string|max:20|unique:tbl_alumnos,dni',
-            'apellido' => 'required|string|max:255',
-            'nombre' => 'required|string|max:255',
+            'dni' => 'required|string|max:20|unique:tbl_alumnos,dni|regex:/^[0-9]+$/',
+            'apellido' => 'required|string|max:100|regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$/',
+            'nombre' => 'required|string|max:100|regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$/',
             'email' => 'nullable|email|max:255',
-            'telefono' => 'nullable|string|max:50',
-            'celular' => 'nullable|string|max:50',
-            'legajo' => 'nullable|string|max:50',
+            'telefono' => 'nullable|string|max:50|regex:/^[0-9\s\-\+\(\)]*$/',
+            'celular' => 'nullable|string|max:50|regex:/^[0-9\s\-\+\(\)]*$/',
+            'legajo' => 'nullable|string|max:50|regex:/^[a-zA-Z0-9\-\/]+$/',
             'anno' => 'nullable|integer|min:1900|max:' . (date('Y') + 1),
             'carrera' => 'required|exists:tbl_carreras,Id',
             'curso' => 'nullable|integer|min:1|max:6',
-            'division' => 'nullable|string|max:10',
+            'division' => 'nullable|string|max:10|regex:/^[a-zA-Z0-9]+$/',
         ], [
-            'dni.required' => 'El DNI es obligatorio',
-            'dni.unique' => 'Ya existe un alumno con este DNI',
-            'apellido.required' => 'El apellido es obligatorio',
-            'nombre.required' => 'El nombre es obligatorio',
-            'carrera.required' => 'La carrera es obligatoria',
-            'carrera.exists' => 'La carrera seleccionada no existe',
+            'dni.required' => 'El DNI es obligatorio.',
+            'dni.unique' => 'Ya existe un alumno con este DNI.',
+            'dni.regex' => 'El DNI debe contener solo números.',
+            'dni.max' => 'El DNI no puede exceder 20 caracteres.',
+            'apellido.required' => 'El apellido es obligatorio.',
+            'apellido.regex' => 'El apellido solo puede contener letras y espacios.',
+            'apellido.max' => 'El apellido no puede exceder 100 caracteres.',
+            'nombre.required' => 'El nombre es obligatorio.',
+            'nombre.regex' => 'El nombre solo puede contener letras y espacios.',
+            'nombre.max' => 'El nombre no puede exceder 100 caracteres.',
+            'email.email' => 'El email debe ser una dirección válida.',
+            'telefono.regex' => 'El teléfono solo puede contener números, espacios, guiones y paréntesis.',
+            'celular.regex' => 'El celular solo puede contener números, espacios, guiones y paréntesis.',
+            'legajo.regex' => 'El legajo solo puede contener letras, números, guiones y barras.',
+            'carrera.required' => 'La carrera es obligatoria.',
+            'carrera.exists' => 'La carrera seleccionada no existe.',
+            'division.regex' => 'La división solo puede contener letras y números.',
         ]);
 
         // Si no se proporciona año, usar el año actual
@@ -77,14 +90,14 @@ class AlumnoController extends Controller
                 ->with('success', 'Alumno creado exitosamente');
 
         } catch (\Exception $e) {
-            \Log::error('Error al crear alumno', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+            $this->handleError($e, 'crear alumno', [
+                'dni' => $validated['dni'] ?? null,
+                'nombre' => $validated['nombre'] ?? null
             ]);
 
             return back()
                 ->withInput()
-                ->withErrors(['error' => 'Error al crear el alumno: ' . $e->getMessage()]);
+                ->withErrors(['error' => $this->getFriendlyErrorMessage($e, 'Error al crear el alumno')]);
         }
     }
 
@@ -115,24 +128,35 @@ class AlumnoController extends Controller
     public function update(Request $request, Alumno $alumno)
     {
         $validated = $request->validate([
-            'dni' => 'required|string|max:20|unique:tbl_alumnos,dni,' . $alumno->id,
-            'apellido' => 'required|string|max:255',
-            'nombre' => 'required|string|max:255',
+            'dni' => 'required|string|max:20|unique:tbl_alumnos,dni,' . $alumno->id . '|regex:/^[0-9]+$/',
+            'apellido' => 'required|string|max:100|regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$/',
+            'nombre' => 'required|string|max:100|regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$/',
             'email' => 'nullable|email|max:255',
-            'telefono' => 'nullable|string|max:50',
-            'celular' => 'nullable|string|max:50',
-            'legajo' => 'nullable|string|max:50',
+            'telefono' => 'nullable|string|max:50|regex:/^[0-9\s\-\+\(\)]*$/',
+            'celular' => 'nullable|string|max:50|regex:/^[0-9\s\-\+\(\)]*$/',
+            'legajo' => 'nullable|string|max:50|regex:/^[a-zA-Z0-9\-\/]+$/',
             'anno' => 'nullable|integer|min:1900|max:' . (date('Y') + 1),
             'carrera' => 'required|exists:tbl_carreras,Id',
             'curso' => 'nullable|integer|min:1|max:6',
-            'division' => 'nullable|string|max:10',
+            'division' => 'nullable|string|max:10|regex:/^[a-zA-Z0-9]+$/',
         ], [
-            'dni.required' => 'El DNI es obligatorio',
-            'dni.unique' => 'Ya existe otro alumno con este DNI',
-            'apellido.required' => 'El apellido es obligatorio',
-            'nombre.required' => 'El nombre es obligatorio',
-            'carrera.required' => 'La carrera es obligatoria',
-            'carrera.exists' => 'La carrera seleccionada no existe',
+            'dni.required' => 'El DNI es obligatorio.',
+            'dni.unique' => 'Ya existe otro alumno con este DNI.',
+            'dni.regex' => 'El DNI debe contener solo números.',
+            'dni.max' => 'El DNI no puede exceder 20 caracteres.',
+            'apellido.required' => 'El apellido es obligatorio.',
+            'apellido.regex' => 'El apellido solo puede contener letras y espacios.',
+            'apellido.max' => 'El apellido no puede exceder 100 caracteres.',
+            'nombre.required' => 'El nombre es obligatorio.',
+            'nombre.regex' => 'El nombre solo puede contener letras y espacios.',
+            'nombre.max' => 'El nombre no puede exceder 100 caracteres.',
+            'email.email' => 'El email debe ser una dirección válida.',
+            'telefono.regex' => 'El teléfono solo puede contener números, espacios, guiones y paréntesis.',
+            'celular.regex' => 'El celular solo puede contener números, espacios, guiones y paréntesis.',
+            'legajo.regex' => 'El legajo solo puede contener letras, números, guiones y barras.',
+            'carrera.required' => 'La carrera es obligatoria.',
+            'carrera.exists' => 'La carrera seleccionada no existe.',
+            'division.regex' => 'La división solo puede contener letras y números.',
         ]);
 
         // Si no se proporciona año, usar el año actual
@@ -159,14 +183,14 @@ class AlumnoController extends Controller
                 ->with('success', 'Alumno actualizado exitosamente');
 
         } catch (\Exception $e) {
-            \Log::error('Error al actualizar alumno', [
+            $this->handleError($e, 'actualizar alumno', [
                 'alumno_id' => $alumno->id,
-                'error' => $e->getMessage(),
+                'dni' => $validated['dni'] ?? null
             ]);
 
             return back()
                 ->withInput()
-                ->withErrors(['error' => 'Error al actualizar el alumno: ' . $e->getMessage()]);
+                ->withErrors(['error' => $this->getFriendlyErrorMessage($e, 'Error al actualizar el alumno')]);
         }
     }
 
@@ -203,13 +227,12 @@ class AlumnoController extends Controller
                 ->with('success', 'Alumno eliminado exitosamente');
 
         } catch (\Exception $e) {
-            \Log::error('Error al eliminar alumno', [
-                'alumno_id' => $alumno->id,
-                'error' => $e->getMessage(),
+            $this->handleError($e, 'eliminar alumno', [
+                'alumno_id' => $alumno->id
             ]);
 
             return back()->withErrors([
-                'error' => 'Error al eliminar el alumno: ' . $e->getMessage()
+                'error' => $this->getFriendlyErrorMessage($e, 'Error al eliminar el alumno')
             ]);
         }
     }

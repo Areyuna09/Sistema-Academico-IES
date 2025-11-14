@@ -3,12 +3,14 @@ import { ref, computed } from "vue";
 import { useForm, Link, router } from "@inertiajs/vue3";
 import SidebarLayout from "@/Layouts/SidebarLayout.vue";
 import Dialog from "@/Components/Dialog.vue";
+import MateriaModal from "@/Components/MateriaModal.vue";
 import { useDialog } from "@/Composables/useDialog";
 
 const props = defineProps({
     materias: Object,
     carreras: Array,
     filtros: Object,
+    duracionCarreras: Object,
 });
 
 const form = useForm({
@@ -17,6 +19,33 @@ const form = useForm({
     anno: props.filtros?.anno || "",
     buscar: props.filtros?.buscar || "",
 });
+
+// Estado del modal
+const mostrarModalMateria = ref(false);
+const materiaEditando = ref(null);
+
+const abrirModalNuevaMateria = () => {
+    materiaEditando.value = null;
+    mostrarModalMateria.value = true;
+};
+
+const abrirModalEditarMateria = (materia) => {
+    materiaEditando.value = materia;
+    mostrarModalMateria.value = true;
+};
+
+const cerrarModalMateria = () => {
+    mostrarModalMateria.value = false;
+    materiaEditando.value = null;
+};
+
+const materiaGuardada = () => {
+    router.reload({
+        only: ['materias'],
+        preserveScroll: true,
+        preserveState: true,
+    });
+};
 
 const buscar = () => {
     form.get(route("admin.materias.index"), {
@@ -42,14 +71,23 @@ const eliminarMateria = async (materia) => {
     );
 
     if (confirmed) {
-        router.delete(route("admin.materias.destroy", materia.id));
+        router.delete(route("admin.materias.destroy", materia.id), {
+            preserveScroll: true,
+            onSuccess: () => {
+                router.reload({
+                    only: ['materias'],
+                    preserveScroll: true,
+                    preserveState: true,
+                });
+            }
+        });
     }
 };
 
-const getSemestreBadge = (semestre) => {
+const getCuatrimestreBadge = (semestre) => {
     return semestre === 1
-        ? { text: "1° Sem", class: "bg-blue-100 text-blue-800" }
-        : { text: "2° Sem", class: "bg-purple-100 text-purple-800" };
+        ? { text: "1° Cuatr", class: "bg-blue-100 text-blue-800" }
+        : { text: "2° Cuatr", class: "bg-purple-100 text-purple-800" };
 };
 </script>
 
@@ -69,13 +107,13 @@ const getSemestreBadge = (semestre) => {
         <div class="p-8 max-w-7xl mx-auto">
             <!-- Botón Nueva Materia -->
             <div class="flex justify-end mb-6">
-                <Link
-                    :href="route('admin.materias.create')"
+                <button
+                    @click="abrirModalNuevaMateria"
                     class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200"
                 >
                     <i class="bx bx-plus text-xl mr-2"></i>
                     Nueva Materia
-                </Link>
+                </button>
             </div>
 
             <!-- Filtros -->
@@ -126,15 +164,15 @@ const getSemestreBadge = (semestre) => {
                     <div>
                         <label
                             class="block text-sm font-medium text-gray-700 mb-1"
-                            >Semestre</label
+                            >Cuatrimestre</label
                         >
                         <select
                             v-model="form.semestre"
                             class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
                         >
-                            <option value="">Ambos semestres</option>
-                            <option value="1">1° Semestre</option>
-                            <option value="2">2° Semestre</option>
+                            <option value="">Ambos cuatrimestres</option>
+                            <option value="1">1° Cuatrimestre</option>
+                            <option value="2">2° Cuatrimestre</option>
                         </select>
                     </div>
 
@@ -193,18 +231,12 @@ const getSemestreBadge = (semestre) => {
                                 <th
                                     class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
                                 >
-                                    Semestre
+                                    Cuatrimestre
                                 </th>
                                 <th
                                     class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                                 >
                                     Resolución
-                                </th>
-                                <!-- ✅ Nuevo encabezado -->
-                                <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                >
-                                    Tipo
                                 </th>
                                 <th
                                     class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
@@ -242,12 +274,12 @@ const getSemestreBadge = (semestre) => {
                                     <span
                                         :class="[
                                             'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
-                                            getSemestreBadge(materia.semestre)
+                                            getCuatrimestreBadge(materia.semestre)
                                                 .class,
                                         ]"
                                     >
                                         {{
-                                            getSemestreBadge(materia.semestre)
+                                            getCuatrimestreBadge(materia.semestre)
                                                 .text
                                         }}
                                     </span>
@@ -257,32 +289,19 @@ const getSemestreBadge = (semestre) => {
                                         {{ materia.resolucion || "-" }}
                                     </div>
                                 </td>
-                                <!-- Nueva columna Tipo -->
-                                <td class="px-6 py-4">
-                                    <div
-                                        class="text-sm text-gray-700 capitalize"
-                                    >
-                                        {{ materia.tipo_materia || "-" }}
-                                    </div>
-                                </td>
                                 <td
                                     class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
                                 >
                                     <div
                                         class="flex items-center justify-end gap-2"
                                     >
-                                        <Link
-                                            :href="
-                                                route(
-                                                    'admin.materias.edit',
-                                                    materia.id
-                                                )
-                                            "
+                                        <button
+                                            @click="abrirModalEditarMateria(materia)"
                                             class="text-blue-600 hover:text-blue-900"
                                             title="Editar"
                                         >
                                             <i class="bx bx-edit text-lg"></i>
-                                        </Link>
+                                        </button>
                                         <button
                                             @click="eliminarMateria(materia)"
                                             class="text-red-600 hover:text-red-900"
@@ -295,7 +314,7 @@ const getSemestreBadge = (semestre) => {
                             </tr>
                             <tr v-if="materias.data.length === 0">
                                 <td
-                                    colspan="7"
+                                    colspan="6"
                                     class="px-6 py-8 text-center text-gray-500"
                                 >
                                     <i
@@ -336,5 +355,16 @@ const getSemestreBadge = (semestre) => {
 
         <!-- Dialog component -->
         <Dialog />
+
+        <!-- Modal de Materia -->
+        <MateriaModal
+            :show="mostrarModalMateria"
+            :materia="materiaEditando"
+            :carreras="carreras"
+            :duracionCarreras="duracionCarreras"
+            @close="cerrarModalMateria"
+            @saved="materiaGuardada"
+        />
     </SidebarLayout>
 </template>
+

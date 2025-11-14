@@ -15,9 +15,12 @@ use App\Models\Materia;
 use App\Models\User;
 use App\Models\Notificacion;
 use App\Services\EstadoAcademicoService;
+use App\Traits\HandlesErrors;
 
 class ExpedienteController extends Controller
 {
+    use HandlesErrors;
+
     public function index(Request $request)
     {
         $user = $request->user();
@@ -58,9 +61,9 @@ class ExpedienteController extends Controller
         // Query para materias
         $queryMaterias = Materia::with('carrera');
 
-        // Filtros para materias
-        if ($request->filled('carrera')) {
-            $queryMaterias->where('carrera', $request->carrera);
+        // Filtros para materias (solo si no estamos en otra tab)
+        if ($request->filled('carrera_materias')) {
+            $queryMaterias->where('carrera', $request->carrera_materias);
         }
         if ($request->filled('anno')) {
             $queryMaterias->where('anno', $request->anno);
@@ -68,8 +71,8 @@ class ExpedienteController extends Controller
         if ($request->filled('semestre')) {
             $queryMaterias->where('semestre', $request->semestre);
         }
-        if ($request->filled('buscar')) {
-            $queryMaterias->where('nombre', 'like', "%{$request->buscar}%");
+        if ($request->filled('buscar_materias')) {
+            $queryMaterias->where('nombre', 'like', "%{$request->buscar_materias}%");
         }
 
         $materias = $queryMaterias->orderBy('nombre', 'asc')
@@ -80,8 +83,8 @@ class ExpedienteController extends Controller
         $queryProfesores = \App\Models\Profesor::with(['carrera', 'user']);
 
         // Filtros para profesores
-        if ($request->filled('buscar')) {
-            $search = $request->buscar;
+        if ($request->filled('buscar_profesores')) {
+            $search = $request->buscar_profesores;
             $queryProfesores->where(function($q) use ($search) {
                 $q->where('nombre', 'like', "%{$search}%")
                   ->orWhere('apellido', 'like', "%{$search}%")
@@ -110,8 +113,8 @@ class ExpedienteController extends Controller
         $queryAlumnos = Alumno::with(['carrera', 'user']);
 
         // Filtros para alumnos
-        if ($request->filled('buscar')) {
-            $search = $request->buscar;
+        if ($request->filled('buscar_alumnos')) {
+            $search = $request->buscar_alumnos;
             $queryAlumnos->where(function($q) use ($search) {
                 $q->where('nombre', 'like', "%{$search}%")
                   ->orWhere('apellido', 'like', "%{$search}%")
@@ -121,8 +124,8 @@ class ExpedienteController extends Controller
             });
         }
         // Filtrar por carrera
-        if ($request->filled('carrera')) {
-            $queryAlumnos->where('carrera', $request->carrera);
+        if ($request->filled('carrera_alumnos')) {
+            $queryAlumnos->where('carrera', $request->carrera_alumnos);
         }
 
         $alumnos = $queryAlumnos->orderBy('apellido', 'asc')
@@ -183,6 +186,13 @@ class ExpedienteController extends Controller
             $notasPendientes = collect([]); // Colección vacía si falla
         }
 
+        // Obtener duración de cada carrera basado en las materias existentes
+        $duracionCarreras = [];
+        foreach ($carreras as $carrera) {
+            $maxAnno = Materia::where('carrera', $carrera->Id)->max('anno');
+            $duracionCarreras[$carrera->Id] = $maxAnno ? (int)$maxAnno : 4; // Default 4 si no tiene materias
+        }
+
         // Debug temporal
         \Log::info('AdminPanel Data', [
             'materias_count' => $materias->total(),
@@ -198,9 +208,10 @@ class ExpedienteController extends Controller
             'profesores' => $profesores,
             'alumnos' => $alumnos,
             'notasPendientes' => $notasPendientes,
-            'filtrosMaterias' => $request->only(['carrera', 'anno', 'semestre', 'buscar']),
-            'filtrosProfesores' => $request->only(['activo', 'buscar']),
-            'filtrosAlumnos' => $request->only(['activo', 'buscar', 'carrera']),
+            'duracionCarreras' => $duracionCarreras,
+            'filtrosMaterias' => $request->only(['carrera_materias', 'anno', 'semestre', 'buscar_materias']),
+            'filtrosProfesores' => $request->only(['activo', 'buscar_profesores']),
+            'filtrosAlumnos' => $request->only(['activo', 'buscar_alumnos', 'carrera_alumnos']),
         ]);
     }
 
@@ -359,6 +370,7 @@ class ExpedienteController extends Controller
 
                     return [
                         'id' => $materiaCursada->Id,  // ID para editar
+                        'materia_id' => $materiaCursada->materia,  // ID de la materia
                         'materia' => $materiaCursada->materiaRelacion ? $materiaCursada->materiaRelacion->nombre : 'Sin nombre',
                         'regular' => ($materiaCursada->cursada === '1' && !$esPromocional) ? '✓' : '',
                         'promocional' => $esPromocional ? '✓' : '',
@@ -582,13 +594,13 @@ class ExpedienteController extends Controller
             }
 
         } catch (\Exception $e) {
-            \Log::error('Error al guardar notas', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+            $this->handleError($e, 'guardar notas', [
+                'user_id' => $user->id,
+                'tipo_evaluacion' => $request->tipo_evaluacion
             ]);
 
             return response()->json([
-                'error' => 'Error al guardar las notas: ' . $e->getMessage()
+                'error' => $this->getFriendlyErrorMessage($e, 'Error al guardar las notas')
             ], 500);
         }
     }
@@ -894,14 +906,14 @@ class ExpedienteController extends Controller
 
         } catch (\Exception $e) {
             \DB::rollBack();
-            \Log::error('Error al aprobar nota', [
+
+            $this->handleError($e, 'aprobar nota', [
                 'nota_id' => $id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'aprobado_por' => $user->id
             ]);
 
             return response()->json([
-                'error' => 'Error al aprobar la nota: ' . $e->getMessage()
+                'error' => $this->getFriendlyErrorMessage($e, 'Error al aprobar la nota')
             ], 500);
         }
     }
@@ -1028,13 +1040,13 @@ class ExpedienteController extends Controller
             ], 200);
 
         } catch (\Exception $e) {
-            \Log::error('Error al rechazar nota', [
+            $this->handleError($e, 'rechazar nota', [
                 'nota_id' => $id,
-                'error' => $e->getMessage()
+                'rechazado_por' => $user->id
             ]);
 
             return response()->json([
-                'error' => 'Error al rechazar la nota: ' . $e->getMessage()
+                'error' => $this->getFriendlyErrorMessage($e, 'Error al rechazar la nota')
             ], 500);
         }
     }
@@ -1082,13 +1094,13 @@ class ExpedienteController extends Controller
             ], 200);
 
         } catch (\Exception $e) {
-            \Log::error('Error al actualizar configuración académica', [
+            $this->handleError($e, 'actualizar configuración académica', [
                 'profesor_materia_id' => $profesorMateriaId,
-                'error' => $e->getMessage()
+                'configurado_por' => $user->id
             ]);
 
             return response()->json([
-                'error' => 'Error al actualizar la configuración: ' . $e->getMessage()
+                'error' => $this->getFriendlyErrorMessage($e, 'Error al actualizar la configuración')
             ], 500);
         }
     }
@@ -1118,12 +1130,45 @@ class ExpedienteController extends Controller
         try {
             $alumnoMateria = AlumnoMateria::findOrFail($alumnoMateriaId);
 
+            // Validar que solo se marque un estado a la vez
+            $cursada = $request->cursada ?? $alumnoMateria->cursada;
+            $rendida = $request->rendida ?? $alumnoMateria->rendida;
+            $libre = $request->libre ?? $alumnoMateria->libre;
+            $equivalencia = $request->equivalencia ?? $alumnoMateria->equivalencia;
+
+            // Contar estados marcados (excluyendo la combinación válida de Regular y Promocional)
+            $estadosMarcados = 0;
+
+            // Regular (cursada sin rendida)
+            if ($cursada == '1' && $rendida == '0') {
+                $estadosMarcados++;
+            }
+            // Promocional (cursada con rendida)
+            if ($cursada == '1' && $rendida == '1') {
+                $estadosMarcados++;
+            }
+            // Libre
+            if ($libre == 1) {
+                $estadosMarcados++;
+            }
+            // Equivalencia
+            if ($equivalencia == 1) {
+                $estadosMarcados++;
+            }
+
+            // Validar que solo haya un estado marcado
+            if ($estadosMarcados > 1) {
+                return response()->json([
+                    'error' => 'Solo se puede marcar un estado por materia (Regular, Promocional, Libre o Equivalencia)'
+                ], 400);
+            }
+
             // Actualizar los campos
             $alumnoMateria->update([
-                'cursada' => $request->cursada ?? $alumnoMateria->cursada,
-                'rendida' => $request->rendida ?? $alumnoMateria->rendida,
-                'libre' => $request->libre ?? $alumnoMateria->libre,
-                'equivalencia' => $request->equivalencia ?? $alumnoMateria->equivalencia,
+                'cursada' => $cursada,
+                'rendida' => $rendida,
+                'libre' => $libre,
+                'equivalencia' => $equivalencia,
                 'nota' => $request->nota ?? $alumnoMateria->nota,
                 'fecha' => $request->fecha ?? $alumnoMateria->fecha,
                 'libro' => $request->libro ?? $alumnoMateria->libro,
@@ -1148,13 +1193,13 @@ class ExpedienteController extends Controller
             ], 200);
 
         } catch (\Exception $e) {
-            \Log::error('Error al actualizar estado de materia', [
+            $this->handleError($e, 'actualizar estado de materia', [
                 'alumno_materia_id' => $alumnoMateriaId,
-                'error' => $e->getMessage()
+                'modificado_por' => $user->id
             ]);
 
             return response()->json([
-                'error' => 'Error al actualizar: ' . $e->getMessage()
+                'error' => $this->getFriendlyErrorMessage($e, 'Error al actualizar el estado de la materia')
             ], 500);
         }
     }
@@ -1192,13 +1237,12 @@ class ExpedienteController extends Controller
             return response()->json($materias, 200);
 
         } catch (\Exception $e) {
-            \Log::error('Error al obtener materias disponibles', [
-                'carrera_id' => $request->carrera_id,
-                'error' => $e->getMessage()
+            $this->handleError($e, 'obtener materias disponibles', [
+                'carrera_id' => $request->carrera_id
             ]);
 
             return response()->json([
-                'error' => 'Error al obtener materias: ' . $e->getMessage()
+                'error' => $this->getFriendlyErrorMessage($e, 'Error al obtener las materias disponibles')
             ], 500);
         }
     }
@@ -1241,6 +1285,39 @@ class ExpedienteController extends Controller
                 ], 400);
             }
 
+            // Validar que solo se marque un estado a la vez
+            $cursada = $request->cursada ? '1' : '0';
+            $rendida = $request->rendida ? '1' : '0';
+            $libre = $request->libre ? 1 : 0;
+            $equivalencia = $request->equivalencia ? 1 : 0;
+
+            // Contar estados marcados
+            $estadosMarcados = 0;
+
+            // Regular (cursada sin rendida)
+            if ($cursada == '1' && $rendida == '0') {
+                $estadosMarcados++;
+            }
+            // Promocional (cursada con rendida)
+            if ($cursada == '1' && $rendida == '1') {
+                $estadosMarcados++;
+            }
+            // Libre
+            if ($libre == 1) {
+                $estadosMarcados++;
+            }
+            // Equivalencia
+            if ($equivalencia == 1) {
+                $estadosMarcados++;
+            }
+
+            // Validar que solo haya un estado marcado
+            if ($estadosMarcados > 1) {
+                return response()->json([
+                    'error' => 'Solo se puede marcar un estado por materia (Regular, Promocional, Libre o Equivalencia)'
+                ], 400);
+            }
+
             // Crear el registro en el legajo
             $alumnoMateria = AlumnoMateria::create([
                 'alumno' => $request->alumno_id,
@@ -1250,10 +1327,10 @@ class ExpedienteController extends Controller
                 'fecha' => $request->fecha ?? null,
                 'libro' => $request->libro ?? null,
                 'folio' => $request->folio ?? null,
-                'cursada' => $request->cursada ? '1' : '0',
-                'rendida' => $request->rendida ? '1' : '0',
-                'libre' => $request->libre ? 1 : 0,
-                'equivalencia' => $request->equivalencia ? 1 : 0,
+                'cursada' => $cursada,
+                'rendida' => $rendida,
+                'libre' => $libre,
+                'equivalencia' => $equivalencia,
             ]);
 
             \Log::info('Materia agregada manualmente al legajo', [
@@ -1270,15 +1347,14 @@ class ExpedienteController extends Controller
             ], 201);
 
         } catch (\Exception $e) {
-            \Log::error('Error al agregar materia al legajo', [
+            $this->handleError($e, 'agregar materia al legajo', [
                 'alumno_id' => $request->alumno_id,
                 'materia_id' => $request->materia_id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'agregado_por' => $user->id
             ]);
 
             return response()->json([
-                'error' => 'Error al agregar materia: ' . $e->getMessage()
+                'error' => $this->getFriendlyErrorMessage($e, 'Error al agregar materia al legajo')
             ], 500);
         }
     }

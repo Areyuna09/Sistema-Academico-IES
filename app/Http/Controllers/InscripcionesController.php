@@ -10,6 +10,7 @@ use App\Models\Inscripcion;
 use App\Models\Configuracion;
 use App\Models\Notificacion;
 use App\Services\MotorCorrelativasService;
+use App\Traits\HandlesErrors;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
@@ -21,6 +22,7 @@ use Inertia\Inertia;
  */
 class InscripcionesController extends Controller
 {
+    use HandlesErrors;
     protected MotorCorrelativasService $motorCorrelativas;
 
     public function __construct(MotorCorrelativasService $motorCorrelativas)
@@ -378,8 +380,13 @@ class InscripcionesController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
 
+            $this->handleError($e, 'procesar inscripciones', [
+                'alumno_id' => $alumno->id,
+                'materias_count' => count($materiasIds ?? [])
+            ]);
+
             return redirect()->route('inscripciones.index')
-                ->with('error', 'Error al procesar inscripciones: ' . $e->getMessage());
+                ->with('error', $this->getFriendlyErrorMessage($e, 'Error al procesar las inscripciones'));
         }
     }
 

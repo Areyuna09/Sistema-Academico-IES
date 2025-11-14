@@ -47,6 +47,30 @@ class ProfileController extends Controller
             ]);
         }
 
+        // Si es profesor, cargar información adicional
+        if ($user->profesor_id) {
+            $profesor = $user->profesor()->with('carreraRelacion')->first();
+
+            return Inertia::render('Profile/Edit', [
+                'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
+                'status' => session('status'),
+                'profesor' => $profesor ? [
+                    'id' => $profesor->id,
+                    'dni' => $profesor->dni,
+                    'nombre' => $profesor->nombre,
+                    'apellido' => $profesor->apellido,
+                    'nombre_completo' => $profesor->apellido . ', ' . $profesor->nombre,
+                    'email' => $profesor->email,
+                    'telefono' => $profesor->telefono,
+                    'celular' => $profesor->celular,
+                    'carrera' => $profesor->carreraRelacion ? [
+                        'id' => $profesor->carreraRelacion->Id,
+                        'nombre' => $profesor->carreraRelacion->nombre,
+                    ] : null,
+                ] : null,
+            ]);
+        }
+
         return Inertia::render('Profile/Edit', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => session('status'),
@@ -88,6 +112,24 @@ class ProfileController extends Controller
             }
 
             $alumno->save();
+        }
+
+        // Si es profesor, actualizar también la tabla de profesores
+        if ($user->profesor_id && $user->profesor) {
+            $profesor = $user->profesor;
+
+            // Actualizar campos del profesor
+            if ($request->has('telefono')) {
+                $profesor->telefono = $request->telefono;
+            }
+            if ($request->has('celular')) {
+                $profesor->celular = $request->celular;
+            }
+            if ($request->has('email')) {
+                $profesor->email = $request->email;
+            }
+
+            $profesor->save();
         }
 
         return Redirect::route('profile.edit')->with('status', 'profile-updated');
