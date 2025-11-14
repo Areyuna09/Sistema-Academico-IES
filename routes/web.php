@@ -93,6 +93,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/carreras', [App\Http\Controllers\Academic\PlanEstudioController::class, 'listCarreras'])->name('plan-estudio.carreras');
     Route::get('/carreras/{carrera}/plan', [App\Http\Controllers\Academic\PlanEstudioController::class, 'showCarreraPlan'])->name('plan-estudio.carrera');
 
+    // Gestión de planes de estudio (múltiples planes por carrera)
+    Route::get('/carreras/{carrera}/planes/{plan}', [App\Http\Controllers\Academic\PlanEstudioController::class, 'showPlan'])->name('plan-estudio.show');
+    Route::post('/carreras/{carrera}/planes/{plan}/materias', [App\Http\Controllers\Academic\PlanEstudioController::class, 'asignarMateria'])->name('plan-estudio.asignar-materia');
+    Route::delete('/carreras/{carrera}/planes/{plan}/materias/{materia}', [App\Http\Controllers\Academic\PlanEstudioController::class, 'quitarMateria'])->name('plan-estudio.quitar-materia');
+
     // Notificaciones
     Route::get('/notificaciones', [NotificacionesController::class, 'index'])->name('notificaciones.index');
     Route::get('/notificaciones/contador', [NotificacionesController::class, 'contador'])->name('notificaciones.contador');

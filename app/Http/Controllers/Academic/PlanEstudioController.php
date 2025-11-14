@@ -7,6 +7,8 @@ use App\Models\Alumno;
 use App\Models\Carrera;
 use App\Models\Materia;
 use App\Models\AlumnoMateria;
+use App\Models\PlanEstudio;
+use App\Models\PlanEstudioMateria;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -208,35 +210,75 @@ class PlanEstudioController extends Controller
 
     /**
      * GET /api/carreras/{carrera}/plan
-     * Devuelve el plan base (materias) sin estados de alumnos.
+     * Devuelve el plan activo de la carrera con sus materias asignadas.
+     * Si no hay plan activo, devuelve todas las materias de la carrera (comportamiento legacy).
      */
     public function showCarreraPlan(Carrera $carrera)
     {
         Log::info('Mostrar plan base de carrera', ['carrera_id' => $carrera->Id]);
-        $materias = $carrera->materias()
-            ->select(['id', 'nombre', 'anno', 'semestre'])
-            ->orderBy('anno', 'asc')
-            ->orderBy('semestre', 'asc')
-            ->orderBy('nombre', 'asc')
-            ->get()
-            ->map(function ($m) {
-                return [
-                    'id' => (int) $m->id,
-                    'nombre' => $m->nombre,
-                    'anio' => $m->anno,
-                    'cuatrimestre' => $m->semestre,
-                    'creditos' => null,
-                ];
-            });
 
-        $payload = [
-            'carrera' => [
-                'id' => $carrera->Id,
-                'nombre' => $carrera->nombre,
-            ],
-            'materias' => $materias,
-        ];
-        Log::debug('Cantidad de materias en plan de carrera', ['count' => count($materias)]);
+        // Buscar el plan activo de la carrera
+        $planActivo = $carrera->planActivo()->first();
+
+        if ($planActivo) {
+            // Si existe un plan activo, devolver solo las materias asignadas a ese plan
+            $materias = $planActivo->materias()
+                ->select(['tbl_materias.id', 'tbl_materias.nombre', 'tbl_materias.anno', 'tbl_materias.semestre'])
+                ->get()
+                ->map(function ($m) {
+                    return [
+                        'id' => (int) $m->id,
+                        'nombre' => $m->nombre,
+                        'anio' => $m->anno,
+                        'cuatrimestre' => $m->semestre,
+                        'creditos' => null,
+                        'orden' => $m->pivot->orden ?? 0,
+                    ];
+                });
+
+            $payload = [
+                'carrera' => [
+                    'id' => $carrera->Id,
+                    'nombre' => $carrera->nombre,
+                ],
+                'plan' => [
+                    'id' => $planActivo->id,
+                    'nombre' => $planActivo->nombre,
+                    'anio' => $planActivo->anio,
+                    'activo' => $planActivo->activo,
+                ],
+                'materias' => $materias,
+            ];
+            Log::debug('Materias del plan activo', ['plan_id' => $planActivo->id, 'count' => count($materias)]);
+        } else {
+            // Comportamiento legacy: si no hay plan, devolver todas las materias de la carrera
+            $materias = $carrera->materias()
+                ->select(['id', 'nombre', 'anno', 'semestre'])
+                ->orderBy('anno', 'asc')
+                ->orderBy('semestre', 'asc')
+                ->orderBy('nombre', 'asc')
+                ->get()
+                ->map(function ($m) {
+                    return [
+                        'id' => (int) $m->id,
+                        'nombre' => $m->nombre,
+                        'anio' => $m->anno,
+                        'cuatrimestre' => $m->semestre,
+                        'creditos' => null,
+                    ];
+                });
+
+            $payload = [
+                'carrera' => [
+                    'id' => $carrera->Id,
+                    'nombre' => $carrera->nombre,
+                ],
+                'plan' => null,
+                'materias' => $materias,
+            ];
+            Log::debug('Materias sin plan (legacy)', ['count' => count($materias)]);
+        }
+
         return response()->json($payload);
     }
 
@@ -254,5 +296,143 @@ class PlanEstudioController extends Controller
 
         Log::debug('Cantidad de carreras devueltas', ['count' => $carreras->count()]);
         return response()->json($carreras);
+    }
+
+    /**
+     * POST /api/carreras/{carrera}/planes/{plan}/materias
+     * Asignar una materia a un plan de estudio específico
+     */
+    public function asignarMateria(Request $request, Carrera $carrera, PlanEstudio $plan)
+    {
+        Log::info('Asignar materia a plan', [
+            'carrera_id' => $carrera->Id,
+            'plan_id' => $plan->id,
+            'user_id' => optional($request->user())->id,
+        ]);
+
+        // Validar que el plan pertenece a la carrera
+        if ((int) $plan->carrera_id !== (int) $carrera->Id) {
+            return response()->json(['message' => 'El plan no pertenece a esta carrera.'], 422);
+        }
+
+        $data = $request->validate([
+            'materia_id' => 'required|integer|exists:tbl_materias,id',
+            'orden' => 'nullable|integer',
+        ]);
+
+        // Verificar que la materia pertenece a la carrera
+        $materia = Materia::find($data['materia_id']);
+        if ((int) $materia->carrera !== (int) $carrera->Id) {
+            return response()->json(['message' => 'La materia no pertenece a esta carrera.'], 422);
+        }
+
+        // Verificar que no esté ya asignada
+        $existe = PlanEstudioMateria::where('plan_estudio_id', $plan->id)
+            ->where('materia_id', $data['materia_id'])
+            ->exists();
+
+        if ($existe) {
+            return response()->json(['message' => 'La materia ya está asignada a este plan.'], 422);
+        }
+
+        // Asignar materia al plan
+        $orden = $data['orden'] ?? PlanEstudioMateria::where('plan_estudio_id', $plan->id)->max('orden') + 1;
+
+        PlanEstudioMateria::create([
+            'plan_estudio_id' => $plan->id,
+            'materia_id' => $data['materia_id'],
+            'orden' => $orden,
+        ]);
+
+        Log::info('Materia asignada a plan correctamente', [
+            'plan_id' => $plan->id,
+            'materia_id' => $data['materia_id'],
+        ]);
+
+        return response()->json(['message' => 'Materia asignada correctamente al plan.']);
+    }
+
+    /**
+     * DELETE /api/carreras/{carrera}/planes/{plan}/materias/{materia}
+     * Quitar una materia de un plan de estudio (sin eliminarla del sistema)
+     */
+    public function quitarMateria(Request $request, Carrera $carrera, PlanEstudio $plan, Materia $materia)
+    {
+        Log::info('Quitar materia de plan', [
+            'carrera_id' => $carrera->Id,
+            'plan_id' => $plan->id,
+            'materia_id' => $materia->id,
+            'user_id' => optional($request->user())->id,
+        ]);
+
+        // Validar que el plan pertenece a la carrera
+        if ((int) $plan->carrera_id !== (int) $carrera->Id) {
+            return response()->json(['message' => 'El plan no pertenece a esta carrera.'], 422);
+        }
+
+        // Buscar y eliminar la relación
+        $eliminado = PlanEstudioMateria::where('plan_estudio_id', $plan->id)
+            ->where('materia_id', $materia->id)
+            ->delete();
+
+        if (!$eliminado) {
+            return response()->json(['message' => 'La materia no está asignada a este plan.'], 404);
+        }
+
+        Log::info('Materia quitada del plan correctamente', [
+            'plan_id' => $plan->id,
+            'materia_id' => $materia->id,
+        ]);
+
+        return response()->json(['message' => 'Materia quitada del plan correctamente.']);
+    }
+
+    /**
+     * GET /api/carreras/{carrera}/planes/{plan}
+     * Obtener un plan de estudio específico con sus materias
+     */
+    public function showPlan(Carrera $carrera, PlanEstudio $plan)
+    {
+        Log::info('Mostrar plan de estudio específico', [
+            'carrera_id' => $carrera->Id,
+            'plan_id' => $plan->id,
+        ]);
+
+        // Validar que el plan pertenece a la carrera
+        if ((int) $plan->carrera_id !== (int) $carrera->Id) {
+            return response()->json(['message' => 'El plan no pertenece a esta carrera.'], 404);
+        }
+
+        // Cargar materias del plan
+        $materias = $plan->materias()
+            ->select(['tbl_materias.id', 'tbl_materias.nombre', 'tbl_materias.anno', 'tbl_materias.semestre'])
+            ->get()
+            ->map(function ($m) {
+                return [
+                    'id' => (int) $m->id,
+                    'nombre' => $m->nombre,
+                    'anio' => $m->anno,
+                    'cuatrimestre' => $m->semestre,
+                    'creditos' => null,
+                    'orden' => $m->pivot->orden ?? 0,
+                ];
+            });
+
+        $payload = [
+            'plan' => [
+                'id' => $plan->id,
+                'nombre' => $plan->nombre,
+                'anio' => $plan->anio,
+                'resolucion' => $plan->resolucion,
+                'activo' => $plan->activo,
+            ],
+            'carrera' => [
+                'id' => $carrera->Id,
+                'nombre' => $carrera->nombre,
+            ],
+            'materias' => $materias,
+        ];
+
+        return response()->json($payload);
     }
 }

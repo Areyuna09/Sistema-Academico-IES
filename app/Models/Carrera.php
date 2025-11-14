@@ -52,4 +52,21 @@ class Carrera extends Model
     {
         return $this->hasMany(ReglaCorrelativa::class, 'carrera_id', 'Id');
     }
+
+    /**
+     * Relación: Planes de estudio de esta carrera
+     */
+    public function planesEstudio()
+    {
+        return $this->hasMany(PlanEstudio::class, 'carrera_id', 'Id');
+    }
+
+    /**
+     * Obtener el plan de estudio activo
+     */
+    public function planActivo()
+    {
+        return $this->hasOne(PlanEstudio::class, 'carrera_id', 'Id')
+            ->where('activo', true);
+    }
 }

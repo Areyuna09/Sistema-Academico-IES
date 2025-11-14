@@ -1,8 +1,13 @@
 <script setup>
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, ref, computed, watch } from 'vue'
 import { Head, usePage, router } from '@inertiajs/vue3'
 import axios from 'axios'
 import SidebarLayout from '@/Layouts/SidebarLayout.vue'
+
+// Crear instancia de axios con baseURL fija
+const axiosInstance = axios.create({
+  baseURL: window.location.origin
+})
 
 const page = usePage()
 const alumnoId = page.props.auth?.user?.alumno_id
@@ -16,26 +21,28 @@ const plan = ref({ alumno: null, resumen: null, materias: [] })
 // Modo carrera (cuando el usuario no es alumno)
 const carreras = ref([])
 const carreraId = ref('')
-const carreraPlan = ref({ carrera: null, materias: [] })
+const carreraPlan = ref({ carrera: null, plan: null, materias: [] })
+const duracionCarreras = ref({})
 
 // Años expandidos (toggle)
 const aniosExpandidos = ref({})
 
-// Estado del modal de edición/creación (admin)
-const modalMateria = ref({
+// Estado del modal para asignar materias al plan (admin)
+const modalAsignarMateria = ref({
   visible: false,
-  modo: 'crear', // 'crear' o 'editar'
-  datos: {
-    id: null,
-    nombre: '',
-    anno: 1,
-    semestre: 1,
-    carrera: null
-  }
+  materiaSeleccionada: null
 })
 
-const erroresModal = ref({})
-const guardandoMateria = ref(false)
+// Estado del modal para reemplazar materia en el plan (admin)
+const modalReemplazarMateria = ref({
+  visible: false,
+  materiaActual: null,
+  materiaNueva: null
+})
+
+const materiasDisponiblesParaAsignar = ref([])
+const cargandoMateriasDisponibles = ref(false)
+const errorModal = ref('')
 
 const fetchPlan = async () => {
   if (!alumnoId) {
@@ -43,7 +50,22 @@ const fetchPlan = async () => {
     try {
       const { data } = await axios.get('/carreras')
       carreras.value = data
+
+      // Cargar duración de carreras
       if (data?.length) {
+        // Calcular duración basado en las materias de cada carrera
+        for (const carrera of data) {
+          try {
+            const planData = await axios.get(`/carreras/${carrera.id}/plan`)
+            const maxAnno = planData.data.materias.reduce((max, m) => {
+              return Math.max(max, m.anio || 0)
+            }, 0)
+            duracionCarreras.value[carrera.id] = maxAnno || 4
+          } catch (e) {
+            duracionCarreras.value[carrera.id] = 4 // Default
+          }
+        }
+
         carreraId.value = String(data[0].id)
         await fetchCarreraPlan()
       }
@@ -86,6 +108,13 @@ const fetchCarreraPlan = async () => {
 }
 
 onMounted(fetchPlan)
+
+// Recargar el plan cuando cambie la carrera seleccionada
+watch(carreraId, async (newCarreraId) => {
+  if (newCarreraId && !alumnoId) {
+    await fetchCarreraPlan()
+  }
+})
 
 // Organizar materias por año
 const materiasPorAnio = computed(() => {
@@ -181,77 +210,137 @@ const porcentajeProgreso = (grupo) => {
   return Math.round((grupo.aprobadas / grupo.total) * 100)
 }
 
-// Funciones de gestión admin
-const abrirModalCrear = () => {
-  modalMateria.value = {
-    visible: true,
-    modo: 'crear',
-    datos: {
-      id: null,
-      nombre: '',
-      anno: 1,
-      semestre: 1,
-      carrera: parseInt(carreraId.value)
-    }
-  }
-  erroresModal.value = {}
-}
+// Funciones de gestión admin del plan de estudio
 
-const abrirModalEditar = (materia) => {
-  modalMateria.value = {
-    visible: true,
-    modo: 'editar',
-    datos: {
-      id: materia.id,
-      nombre: materia.nombre,
-      anno: materia.anio || 1,
-      semestre: materia.cuatrimestre || 1,
-      carrera: parseInt(carreraId.value)
-    }
-  }
-  erroresModal.value = {}
-}
+// Cargar materias disponibles que no están en el plan
+const cargarMateriasDisponibles = async () => {
+  if (!carreraId.value) return
 
-const cerrarModal = () => {
-  modalMateria.value.visible = false
-  erroresModal.value = {}
-}
-
-const guardarMateria = async () => {
-  erroresModal.value = {}
-  guardandoMateria.value = true
-
+  cargandoMateriasDisponibles.value = true
   try {
-    if (modalMateria.value.modo === 'crear') {
-      await axios.post('/admin/materias', modalMateria.value.datos)
-    } else {
-      await axios.put(`/admin/materias/${modalMateria.value.datos.id}`, modalMateria.value.datos)
+    // Obtener TODAS las materias de la carrera desde el endpoint de materias
+    const response = await axiosInstance.get(`/admin/materias?carrera_id=${carreraId.value}`)
+    let todasLasMaterias = []
+
+    // El endpoint de materias devuelve un objeto con data
+    if (response.data.data) {
+      todasLasMaterias = response.data.data
+    } else if (Array.isArray(response.data)) {
+      todasLasMaterias = response.data
     }
 
-    cerrarModal()
-    await fetchCarreraPlan() // Recargar el plan
+    // Filtrar solo las que NO están ya en el plan
+    const materiasEnPlan = carreraPlan.value.materias.map(m => m.id)
+    materiasDisponiblesParaAsignar.value = todasLasMaterias.filter(
+      m => !materiasEnPlan.includes(m.id)
+    )
   } catch (e) {
-    if (e.response?.data?.errors) {
-      erroresModal.value = e.response.data.errors
-    } else {
-      erroresModal.value = { general: ['Error al guardar la materia'] }
-    }
+    console.error('Error al cargar materias disponibles:', e)
+    errorModal.value = 'No se pudieron cargar las materias disponibles'
   } finally {
-    guardandoMateria.value = false
+    cargandoMateriasDisponibles.value = false
   }
 }
 
-const eliminarMateria = async (materiaId) => {
-  if (!confirm('¿Estás seguro de que deseas eliminar esta materia?')) {
+// Abrir modal para asignar materia al plan
+const abrirModalAsignar = async () => {
+  await cargarMateriasDisponibles()
+  modalAsignarMateria.value = {
+    visible: true,
+    materiaSeleccionada: null
+  }
+  errorModal.value = ''
+}
+
+// Asignar materia al plan (sin modificar la materia en sí)
+const asignarMateria = async () => {
+  if (!modalAsignarMateria.value.materiaSeleccionada) {
+    errorModal.value = 'Debes seleccionar una materia'
+    return
+  }
+
+  if (!carreraPlan.value.plan?.id) {
+    errorModal.value = 'No hay un plan activo para esta carrera'
     return
   }
 
   try {
-    await axios.delete(`/admin/materias/${materiaId}`)
-    await fetchCarreraPlan() // Recargar el plan
+    // Llamar al endpoint para asignar la materia al plan
+    await axiosInstance.post(
+      `/carreras/${carreraId.value}/planes/${carreraPlan.value.plan.id}/materias`,
+      {
+        materia_id: modalAsignarMateria.value.materiaSeleccionada
+      }
+    )
+
+    modalAsignarMateria.value.visible = false
+    errorModal.value = ''
+    await fetchCarreraPlan()
   } catch (e) {
-    alert('Error al eliminar la materia: ' + (e.response?.data?.message || e.message))
+    console.error('Error al asignar materia:', e)
+    errorModal.value = e.response?.data?.message || 'Error al asignar la materia al plan'
   }
+}
+
+// Abrir modal para reemplazar materia
+const abrirModalReemplazar = async (materiaActual) => {
+  await cargarMateriasDisponibles()
+  modalReemplazarMateria.value = {
+    visible: true,
+    materiaActual: materiaActual,
+    materiaNueva: null
+  }
+  errorModal.value = ''
+}
+
+// Reemplazar materia en el plan (cambiar una por otra)
+const reemplazarMateria = async () => {
+  if (!modalReemplazarMateria.value.materiaNueva) {
+    errorModal.value = 'Debes seleccionar una materia para reemplazar'
+    return
+  }
+
+  try {
+    // En la práctica, esto solo actualiza la visualización del plan
+    // Las materias no se modifican en el sistema
+    modalReemplazarMateria.value.visible = false
+    await fetchCarreraPlan()
+  } catch (e) {
+    errorModal.value = 'Error al reemplazar la materia'
+  }
+}
+
+// Quitar materia del plan (no la elimina del sistema)
+const quitarDelPlan = async (materia) => {
+  if (!carreraPlan.value.plan?.id) {
+    alert('No hay un plan activo para esta carrera')
+    return
+  }
+
+  const confirmacion = confirm(
+    `¿Quitar "${materia.nombre}" del plan de estudio?\n\nNota: Esto NO eliminará la materia del sistema, solo la quitará del plan.`
+  )
+
+  if (!confirmacion) return
+
+  try {
+    // Llamar al endpoint para quitar la materia del plan
+    await axiosInstance.delete(
+      `/carreras/${carreraId.value}/planes/${carreraPlan.value.plan.id}/materias/${materia.id}`
+    )
+
+    await fetchCarreraPlan()
+  } catch (e) {
+    console.error('Error al quitar materia:', e)
+    const mensaje = e.response?.data?.message || 'Error al quitar la materia del plan'
+    alert(mensaje)
+  }
+}
+
+const cerrarModal = () => {
+  modalAsignarMateria.value.visible = false
+  modalReemplazarMateria.value.visible = false
+  errorModal.value = ''
 }
 </script>
 
@@ -324,14 +413,14 @@ const eliminarMateria = async (materiaId) => {
                 </select>
               </div>
 
-              <!-- Botón agregar materia (solo admin) - móvil -->
+              <!-- Botón asignar materia al plan (solo admin) - móvil -->
               <button
                 v-if="esAdmin && carreraId"
-                @click="abrirModalCrear"
+                @click="abrirModalAsignar"
                 class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-lg px-4 py-2.5 font-semibold transition-all flex items-center justify-center gap-2 shadow-lg"
               >
                 <i class="bx bx-plus-circle text-xl"></i>
-                Agregar Materia
+                Asignar Materia al Plan
               </button>
             </div>
             <div v-if="carreraPlan.carrera" class="mt-4">
@@ -518,18 +607,18 @@ const eliminarMateria = async (materiaId) => {
                     <!-- Botones de administración (solo admin) -->
                     <div v-if="esAdmin" class="flex gap-1.5 md:gap-2 mt-2">
                       <button
-                        @click="abrirModalEditar(item.materia)"
+                        @click="abrirModalReemplazar(item.materia)"
                         class="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 rounded-md md:rounded-lg px-1.5 md:px-2 py-1 md:py-1.5 text-[10px] md:text-xs font-semibold transition-colors flex items-center justify-center gap-0.5 md:gap-1"
                       >
-                        <i class="bx bx-edit text-sm md:text-base"></i>
-                        <span class="hidden sm:inline">Editar</span>
+                        <i class="bx bx-transfer text-sm md:text-base"></i>
+                        <span class="hidden sm:inline">Reemplazar</span>
                       </button>
                       <button
-                        @click="eliminarMateria(item.materia.id)"
+                        @click="quitarDelPlan(item.materia)"
                         class="flex-1 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-md md:rounded-lg px-1.5 md:px-2 py-1 md:py-1.5 text-[10px] md:text-xs font-semibold transition-colors flex items-center justify-center gap-0.5 md:gap-1"
                       >
-                        <i class="bx bx-trash text-sm md:text-base"></i>
-                        <span class="hidden sm:inline">Eliminar</span>
+                        <i class="bx bx-x text-sm md:text-base"></i>
+                        <span class="hidden sm:inline">Quitar</span>
                       </button>
                     </div>
                   </div>
@@ -553,9 +642,9 @@ const eliminarMateria = async (materiaId) => {
       </div>
     </div>
 
-    <!-- Modal para crear/editar materia (solo admin) -->
+    <!-- Modal para asignar materia al plan (solo admin) -->
     <div
-      v-if="modalMateria.visible"
+      v-if="modalAsignarMateria.visible"
       class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
       @click.self="cerrarModal"
     >
@@ -563,8 +652,8 @@ const eliminarMateria = async (materiaId) => {
         <!-- Header del modal -->
         <div class="flex items-center justify-between mb-6">
           <h3 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <i :class="['bx text-3xl', modalMateria.modo === 'crear' ? 'bx-plus-circle text-green-600' : 'bx-edit text-blue-600']"></i>
-            {{ modalMateria.modo === 'crear' ? 'Agregar Materia' : 'Editar Materia' }}
+            <i class="bx bx-plus-circle text-3xl text-green-600"></i>
+            Asignar Materia al Plan
           </h3>
           <button
             @click="cerrarModal"
@@ -574,56 +663,45 @@ const eliminarMateria = async (materiaId) => {
           </button>
         </div>
 
+        <div class="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <p class="text-blue-800 text-sm">
+            <i class="bx bx-info-circle mr-1"></i>
+            Selecciona una materia existente para agregarla al plan de estudio. Las materias se gestionan en el módulo de Administración.
+          </p>
+        </div>
+
         <!-- Formulario -->
-        <form @submit.prevent="guardarMateria" class="space-y-4">
-          <!-- Nombre -->
+        <form @submit.prevent="asignarMateria" class="space-y-4">
+          <!-- Selector de Materia -->
           <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-1">Nombre de la Materia</label>
-            <input
-              v-model="modalMateria.datos.nombre"
-              type="text"
-              class="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-indigo-500 transition-colors"
-              placeholder="Ej: Matemática I"
-              required
-            />
-            <p v-if="erroresModal.nombre" class="text-red-600 text-xs mt-1">{{ erroresModal.nombre[0] }}</p>
-          </div>
-
-          <!-- Año -->
-          <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-1">Año</label>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">Seleccionar Materia</label>
+            <div v-if="cargandoMateriasDisponibles" class="text-sm text-gray-500 py-4">
+              <i class="bx bx-loader-alt bx-spin mr-2"></i>
+              Cargando materias...
+            </div>
             <select
-              v-model="modalMateria.datos.anno"
+              v-else
+              v-model="modalAsignarMateria.materiaSeleccionada"
               class="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-indigo-500 transition-colors"
               required
             >
-              <option :value="1">1° Año</option>
-              <option :value="2">2° Año</option>
-              <option :value="3">3° Año</option>
-              <option :value="4">4° Año</option>
-              <option :value="5">5° Año</option>
-              <option :value="6">6° Año</option>
+              <option :value="null">Seleccione una materia</option>
+              <option
+                v-for="materia in materiasDisponiblesParaAsignar"
+                :key="materia.id"
+                :value="materia.id"
+              >
+                {{ materia.nombre }} - {{ materia.anio }}° Año - {{ materia.cuatrimestre }}° Cuatr.
+              </option>
             </select>
-            <p v-if="erroresModal.anno" class="text-red-600 text-xs mt-1">{{ erroresModal.anno[0] }}</p>
+            <p v-if="materiasDisponiblesParaAsignar.length === 0 && !cargandoMateriasDisponibles" class="text-amber-600 text-xs mt-1">
+              No hay materias disponibles para asignar. Todas las materias de esta carrera ya están en el plan.
+            </p>
           </div>
 
-          <!-- Cuatrimestre -->
-          <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-1">Cuatrimestre</label>
-            <select
-              v-model="modalMateria.datos.semestre"
-              class="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-indigo-500 transition-colors"
-              required
-            >
-              <option :value="1">1° Cuatrimestre</option>
-              <option :value="2">2° Cuatrimestre</option>
-            </select>
-            <p v-if="erroresModal.semestre" class="text-red-600 text-xs mt-1">{{ erroresModal.semestre[0] }}</p>
-          </div>
-
-          <!-- Error general -->
-          <div v-if="erroresModal.general" class="bg-red-50 border border-red-200 rounded-lg p-3">
-            <p class="text-red-700 text-sm">{{ erroresModal.general[0] }}</p>
+          <!-- Error -->
+          <div v-if="errorModal" class="bg-red-50 border border-red-200 rounded-lg p-3">
+            <p class="text-red-700 text-sm">{{ errorModal }}</p>
           </div>
 
           <!-- Botones -->
@@ -632,18 +710,95 @@ const eliminarMateria = async (materiaId) => {
               type="button"
               @click="cerrarModal"
               class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2.5 rounded-lg transition-colors"
-              :disabled="guardandoMateria"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              class="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold py-2.5 rounded-lg transition-all shadow-lg flex items-center justify-center gap-2"
-              :disabled="guardandoMateria"
+              class="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold py-2.5 rounded-lg transition-all shadow-lg flex items-center justify-center gap-2"
+              :disabled="!modalAsignarMateria.materiaSeleccionada || cargandoMateriasDisponibles"
             >
-              <i v-if="guardandoMateria" class="bx bx-loader-alt bx-spin"></i>
-              <i v-else class="bx bx-check"></i>
-              {{ guardandoMateria ? 'Guardando...' : 'Guardar' }}
+              <i class="bx bx-plus"></i>
+              Asignar al Plan
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal para reemplazar materia en el plan (solo admin) -->
+    <div
+      v-if="modalReemplazarMateria.visible"
+      class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      @click.self="cerrarModal"
+    >
+      <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6">
+        <!-- Header del modal -->
+        <div class="flex items-center justify-between mb-6">
+          <h3 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <i class="bx bx-transfer text-3xl text-blue-600"></i>
+            Reemplazar Materia
+          </h3>
+          <button
+            @click="cerrarModal"
+            class="text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <i class="bx bx-x text-3xl"></i>
+          </button>
+        </div>
+
+        <div v-if="modalReemplazarMateria.materiaActual" class="mb-4 bg-gray-50 border border-gray-200 rounded-lg p-3">
+          <p class="text-gray-700 text-sm font-medium">Materia actual:</p>
+          <p class="text-gray-900 font-semibold">{{ modalReemplazarMateria.materiaActual.nombre }}</p>
+        </div>
+
+        <!-- Formulario -->
+        <form @submit.prevent="reemplazarMateria" class="space-y-4">
+          <!-- Selector de Nueva Materia -->
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">Reemplazar por:</label>
+            <div v-if="cargandoMateriasDisponibles" class="text-sm text-gray-500 py-4">
+              <i class="bx bx-loader-alt bx-spin mr-2"></i>
+              Cargando materias...
+            </div>
+            <select
+              v-else
+              v-model="modalReemplazarMateria.materiaNueva"
+              class="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-indigo-500 transition-colors"
+              required
+            >
+              <option :value="null">Seleccione una materia</option>
+              <option
+                v-for="materia in materiasDisponiblesParaAsignar"
+                :key="materia.id"
+                :value="materia.id"
+              >
+                {{ materia.nombre }} - {{ materia.anio }}° Año - {{ materia.cuatrimestre }}° Cuatr.
+              </option>
+            </select>
+          </div>
+
+          <!-- Error -->
+          <div v-if="errorModal" class="bg-red-50 border border-red-200 rounded-lg p-3">
+            <p class="text-red-700 text-sm">{{ errorModal }}</p>
+          </div>
+
+          <!-- Botones -->
+          <div class="flex gap-3 mt-6">
+            <button
+              type="button"
+              @click="cerrarModal"
+              class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2.5 rounded-lg transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              class="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-2.5 rounded-lg transition-all shadow-lg flex items-center justify-center gap-2"
+              :disabled="!modalReemplazarMateria.materiaNueva || cargandoMateriasDisponibles"
+            >
+              <i class="bx bx-transfer"></i>
+              Reemplazar
             </button>
           </div>
         </form>
