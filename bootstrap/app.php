@@ -15,14 +15,16 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             \App\Http\Middleware\ForceUtf8Response::class,
             \App\Http\Middleware\HandleInertiaRequests::class,
+            \App\Http\Middleware\CompartirConfiguracionModulos::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
         ]);
 
-        // Registrar middleware de roles
+        // Registrar middleware de roles y módulos
         $middleware->alias([
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
             'directivo' => \App\Http\Middleware\DirectivoMiddleware::class,
             'supervisor' => \App\Http\Middleware\SupervisorMiddleware::class,
+            'modulo' => \App\Http\Middleware\VerificarModuloActivo::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -42,28 +42,32 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     // Rutas de inscripciones
-    Route::get('/inscripciones', [InscripcionesController::class, 'index'])->name('inscripciones.index');
-    Route::post('/inscripciones', [InscripcionesController::class, 'store'])->name('inscripciones.store');
-    Route::get('/inscripciones/confirmacion', [InscripcionesController::class, 'confirmacion'])->name('inscripciones.confirmacion');
-    Route::get('/inscripciones/comprobante/pdf', [InscripcionesController::class, 'descargarComprobante'])->name('inscripciones.comprobante.pdf');
+    Route::middleware('modulo:inscripciones')->group(function () {
+        Route::get('/inscripciones', [InscripcionesController::class, 'index'])->name('inscripciones.index');
+        Route::post('/inscripciones', [InscripcionesController::class, 'store'])->name('inscripciones.store');
+        Route::get('/inscripciones/confirmacion', [InscripcionesController::class, 'confirmacion'])->name('inscripciones.confirmacion');
+        Route::get('/inscripciones/comprobante/pdf', [InscripcionesController::class, 'descargarComprobante'])->name('inscripciones.comprobante.pdf');
+    });
 
     // Rutas de expediente
-    Route::get('/expediente', [ExpedienteController::class, 'index'])->name('expediente.index');
-    // Rutas específicas ANTES de la ruta genérica {id}
-    Route::get('/expediente/materias-disponibles', [ExpedienteController::class, 'materiasDisponibles'])->name('expediente.materias-disponibles');
-    Route::get('/expediente/alumnos/profesor', [ExpedienteController::class, 'obtenerAlumnosProfesor'])->name('expediente.alumnos-profesor');
-    Route::post('/expediente/buscar-dni', [ExpedienteController::class, 'buscarPorDni'])->name('expediente.buscar-dni');
-    Route::post('/expediente/agregar-materia', [ExpedienteController::class, 'agregarMateria'])->name('expediente.agregar-materia');
-    Route::put('/expediente/materia/{alumnoMateriaId}', [ExpedienteController::class, 'actualizarEstadoMateria'])->name('expediente.actualizar-estado-materia');
-    Route::post('/expediente/asistencia/guardar', [ExpedienteController::class, 'guardarAsistencia'])->name('expediente.guardar-asistencia');
-    Route::post('/expediente/asistencia/guardar-final', [ExpedienteController::class, 'guardarAsistenciaFinal'])->name('expediente.guardar-asistencia-final');
-    Route::post('/expediente/notas/guardar', [ExpedienteController::class, 'guardarNotas'])->name('expediente.guardar-notas');
-    Route::post('/expediente/notas/guardar-finales', [ExpedienteController::class, 'guardarNotasFinales'])->name('expediente.guardar-notas-finales');
-    Route::post('/expediente/aprobar-nota/{id}', [ExpedienteController::class, 'aprobarNota'])->name('expediente.aprobar-nota');
-    Route::post('/expediente/rechazar-nota/{id}', [ExpedienteController::class, 'rechazarNota'])->name('expediente.rechazar-nota');
-    Route::post('/expediente/configurar-parametros/{profesorMateriaId}', [ExpedienteController::class, 'configurarParametrosAcademicos'])->name('expediente.configurar-parametros');
-    // Ruta genérica al final
-    Route::get('/expediente/{id}', [ExpedienteController::class, 'show'])->name('expediente.show');
+    Route::middleware('modulo:expediente')->group(function () {
+        Route::get('/expediente', [ExpedienteController::class, 'index'])->name('expediente.index');
+        // Rutas específicas ANTES de la ruta genérica {id}
+        Route::get('/expediente/materias-disponibles', [ExpedienteController::class, 'materiasDisponibles'])->name('expediente.materias-disponibles');
+        Route::get('/expediente/alumnos/profesor', [ExpedienteController::class, 'obtenerAlumnosProfesor'])->name('expediente.alumnos-profesor');
+        Route::post('/expediente/buscar-dni', [ExpedienteController::class, 'buscarPorDni'])->name('expediente.buscar-dni');
+        Route::post('/expediente/agregar-materia', [ExpedienteController::class, 'agregarMateria'])->name('expediente.agregar-materia');
+        Route::put('/expediente/materia/{alumnoMateriaId}', [ExpedienteController::class, 'actualizarEstadoMateria'])->name('expediente.actualizar-estado-materia');
+        Route::post('/expediente/asistencia/guardar', [ExpedienteController::class, 'guardarAsistencia'])->name('expediente.guardar-asistencia');
+        Route::post('/expediente/asistencia/guardar-final', [ExpedienteController::class, 'guardarAsistenciaFinal'])->name('expediente.guardar-asistencia-final');
+        Route::post('/expediente/notas/guardar', [ExpedienteController::class, 'guardarNotas'])->name('expediente.guardar-notas');
+        Route::post('/expediente/notas/guardar-finales', [ExpedienteController::class, 'guardarNotasFinales'])->name('expediente.guardar-notas-finales');
+        Route::post('/expediente/aprobar-nota/{id}', [ExpedienteController::class, 'aprobarNota'])->name('expediente.aprobar-nota');
+        Route::post('/expediente/rechazar-nota/{id}', [ExpedienteController::class, 'rechazarNota'])->name('expediente.rechazar-nota');
+        Route::post('/expediente/configurar-parametros/{profesorMateriaId}', [ExpedienteController::class, 'configurarParametrosAcademicos'])->name('expediente.configurar-parametros');
+        // Ruta genérica al final
+        Route::get('/expediente/{id}', [ExpedienteController::class, 'show'])->name('expediente.show');
+    });
 
     // Rutas de gestión de alumnos
     Route::resource('alumnos', AlumnoController::class)->parameters([
@@ -76,12 +80,14 @@ Route::middleware('auth')->group(function () {
     ]);
 
     // Rutas de mesas de examen (alumnos)
-    Route::get('/mesas', [InscripcionesMesaController::class, 'index'])->name('mesas.index');
-    Route::post('/mesas/{mesa}/inscribir', [InscripcionesMesaController::class, 'inscribir'])->name('mesas.inscribir');
-    Route::delete('/mesas/{mesa}/cancelar', [InscripcionesMesaController::class, 'cancelar'])->name('mesas.cancelar');
-    Route::get('/mesas/confirmacion/{inscripcion}', [InscripcionesMesaController::class, 'confirmacion'])->name('mesas.confirmacion');
-    Route::get('/mesas/comprobante/{inscripcion}/pdf', [InscripcionesMesaController::class, 'descargarComprobante'])->name('mesas.comprobante.pdf');
-    Route::get('/mis-mesas', [InscripcionesMesaController::class, 'misInscripciones'])->name('mesas.mis-inscripciones');
+    Route::middleware('modulo:mesas_examen')->group(function () {
+        Route::get('/mesas', [InscripcionesMesaController::class, 'index'])->name('mesas.index');
+        Route::post('/mesas/{mesa}/inscribir', [InscripcionesMesaController::class, 'inscribir'])->name('mesas.inscribir');
+        Route::delete('/mesas/{mesa}/cancelar', [InscripcionesMesaController::class, 'cancelar'])->name('mesas.cancelar');
+        Route::get('/mesas/confirmacion/{inscripcion}', [InscripcionesMesaController::class, 'confirmacion'])->name('mesas.confirmacion');
+        Route::get('/mesas/comprobante/{inscripcion}/pdf', [InscripcionesMesaController::class, 'descargarComprobante'])->name('mesas.comprobante.pdf');
+        Route::get('/mis-mesas', [InscripcionesMesaController::class, 'misInscripciones'])->name('mesas.mis-inscripciones');
+    });
 
     // Plan de Estudio
     Route::get('/plan-estudio', function () {
@@ -91,9 +97,11 @@ Route::middleware('auth')->group(function () {
     // API del Plan de Estudio con sesiones web
     Route::get('/alumnos/{alumno}/plan-estudio', [App\Http\Controllers\Academic\PlanEstudioController::class, 'showAlumnoPlan'])->name('plan-estudio.alumno');
     Route::get('/carreras', [App\Http\Controllers\Academic\PlanEstudioController::class, 'listCarreras'])->name('plan-estudio.carreras');
+    Route::get('/carreras/{carrera}/planes', [App\Http\Controllers\Academic\PlanEstudioController::class, 'listPlanesCarrera'])->name('plan-estudio.planes');
     Route::get('/carreras/{carrera}/plan', [App\Http\Controllers\Academic\PlanEstudioController::class, 'showCarreraPlan'])->name('plan-estudio.carrera');
 
     // Gestión de planes de estudio (múltiples planes por carrera)
+    Route::post('/admin/carreras/{carrera}/planes', [App\Http\Controllers\Academic\PlanEstudioController::class, 'crearPlan'])->name('plan-estudio.crear')->middleware('can:manage-plans');
     Route::get('/carreras/{carrera}/planes/{plan}', [App\Http\Controllers\Academic\PlanEstudioController::class, 'showPlan'])->name('plan-estudio.show');
     Route::post('/carreras/{carrera}/planes/{plan}/materias', [App\Http\Controllers\Academic\PlanEstudioController::class, 'asignarMateria'])->name('plan-estudio.asignar-materia');
     Route::delete('/carreras/{carrera}/planes/{plan}/materias/{materia}', [App\Http\Controllers\Academic\PlanEstudioController::class, 'quitarMateria'])->name('plan-estudio.quitar-materia');
@@ -118,6 +126,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/usuarios/{usuario}/toggle', [UsuariosController::class, 'toggle'])->name('usuarios.toggle');
     Route::delete('/usuarios/{usuario}', [UsuariosController::class, 'destroy'])->name('usuarios.destroy');
     Route::post('/usuarios/{usuario}/reset-password', [UsuariosController::class, 'resetPassword'])->name('usuarios.reset-password');
+    Route::get('/usuarios/generar-automaticos/preview', [UsuariosController::class, 'previewUsuariosAutomaticos'])->name('usuarios.generar-automaticos.preview');
+    Route::post('/usuarios/generar-automaticos', [UsuariosController::class, 'generarUsuariosAutomaticos'])->name('usuarios.generar-automaticos');
 
     // Gestión de Carreras
     Route::get('/carreras', [CarrerasController::class, 'index'])->name('carreras.index');
@@ -126,6 +136,24 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/carreras/{carrera}/editar', [CarrerasController::class, 'edit'])->name('carreras.edit');
     Route::put('/carreras/{carrera}', [CarrerasController::class, 'update'])->name('carreras.update');
     Route::delete('/carreras/{carrera}', [CarrerasController::class, 'destroy'])->name('carreras.destroy');
+
+    // Gestión de Planes de Estudio
+    Route::prefix('planes-estudio')->name('planes-estudio.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Admin\PlanesEstudioController::class, 'index'])->name('index');
+        Route::post('/carreras/{carrera}/planes', [App\Http\Controllers\Admin\PlanesEstudioController::class, 'store'])->name('store');
+        Route::get('/planes/{plan}', [App\Http\Controllers\Admin\PlanesEstudioController::class, 'show'])->name('show');
+        Route::put('/planes/{plan}', [App\Http\Controllers\Admin\PlanesEstudioController::class, 'update'])->name('update');
+        Route::delete('/planes/{plan}', [App\Http\Controllers\Admin\PlanesEstudioController::class, 'destroy'])->name('destroy');
+        Route::post('/planes/{plan}/clonar', [App\Http\Controllers\Admin\PlanesEstudioController::class, 'clonar'])->name('clonar');
+        Route::patch('/planes/{plan}/toggle-activo', [App\Http\Controllers\Admin\PlanesEstudioController::class, 'toggleActivo'])->name('toggle-activo');
+        Route::patch('/planes/{plan}/toggle-vigente', [App\Http\Controllers\Admin\PlanesEstudioController::class, 'toggleVigente'])->name('toggle-vigente');
+
+        // Gestión de materias del plan
+        Route::get('/planes/{plan}/materias', [App\Http\Controllers\Admin\PlanesEstudioController::class, 'getMaterias'])->name('materias');
+        Route::post('/planes/{plan}/materias', [App\Http\Controllers\Admin\PlanesEstudioController::class, 'agregarMateria'])->name('agregar-materia');
+        Route::delete('/planes/{plan}/materias/{materia}', [App\Http\Controllers\Admin\PlanesEstudioController::class, 'quitarMateria'])->name('quitar-materia');
+        Route::post('/planes/{plan}/reemplazar-materia', [App\Http\Controllers\Admin\PlanesEstudioController::class, 'reemplazarMateria'])->name('reemplazar-materia');
+    });
 
     // Gestión de Materias
     Route::get('/materias', [MateriasController::class, 'index'])->name('materias.index');

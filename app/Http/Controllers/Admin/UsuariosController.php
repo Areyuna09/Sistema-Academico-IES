@@ -14,6 +14,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
+use App\Http\Requests\StoreUsuarioRequest;
+use App\Http\Requests\UpdateUsuarioRequest;
 
 class UsuariosController extends Controller
 {
@@ -347,5 +349,148 @@ class UsuariosController extends Controller
         ]);
 
         return back()->with('success', 'Contraseña reseteada exitosamente.');
+    }
+
+    /**
+     * Vista previa de usuarios a generar automáticamente
+     */
+    public function previewUsuariosAutomaticos()
+    {
+        // 1. Buscar alumnos sin usuario asignado
+        $alumnosSinUsuario = Alumno::whereDoesntHave('user')
+            ->get()
+            ->map(function ($alumno) {
+                $dni_duplicado = User::where('dni', $alumno->dni)->exists();
+
+                return [
+                    'id' => $alumno->id,
+                    'nombre_completo' => trim($alumno->apellido . ', ' . $alumno->nombre),
+                    'dni' => $alumno->dni,
+                    'email' => $alumno->email ?: $alumno->dni . '@alumno.ies.edu.ar',
+                    'email_generado' => !$alumno->email,
+                    'tipo' => 4,
+                    'tipo_texto' => 'Alumno',
+                    'dni_duplicado' => $dni_duplicado,
+                ];
+            });
+
+        // 2. Buscar profesores sin usuario asignado
+        $profesoresSinUsuario = Profesor::whereDoesntHave('user')
+            ->get()
+            ->map(function ($profesor) {
+                $dni_duplicado = User::where('dni', $profesor->dni)->exists();
+
+                return [
+                    'id' => $profesor->id,
+                    'nombre_completo' => trim($profesor->apellido . ', ' . $profesor->nombre),
+                    'dni' => $profesor->dni,
+                    'email' => $profesor->email ?: $profesor->dni . '@profesor.ies.edu.ar',
+                    'email_generado' => !$profesor->email,
+                    'tipo' => 3,
+                    'tipo_texto' => 'Profesor',
+                    'dni_duplicado' => $dni_duplicado,
+                ];
+            });
+
+        return response()->json([
+            'alumnos' => $alumnosSinUsuario,
+            'profesores' => $profesoresSinUsuario,
+            'total' => $alumnosSinUsuario->count() + $profesoresSinUsuario->count(),
+            'total_alumnos' => $alumnosSinUsuario->count(),
+            'total_profesores' => $profesoresSinUsuario->count(),
+        ]);
+    }
+
+    /**
+     * Generar usuarios automáticamente para alumnos y profesores sin usuario
+     */
+    public function generarUsuariosAutomaticos(Request $request)
+    {
+        \Log::info('Iniciando generación automática de usuarios');
+
+        $usuariosCreados = 0;
+        $errores = [];
+
+        try {
+            \DB::beginTransaction();
+
+            // 1. Buscar alumnos sin usuario asignado
+            $alumnosSinUsuario = Alumno::whereDoesntHave('user')->get();
+
+            foreach ($alumnosSinUsuario as $alumno) {
+                try {
+                    // Verificar si ya existe un usuario con ese DNI
+                    if (User::where('dni', $alumno->dni)->exists()) {
+                        $errores[] = "Alumno {$alumno->nombre} {$alumno->apellido} - DNI {$alumno->dni} ya tiene usuario";
+                        continue;
+                    }
+
+                    User::create([
+                        'name' => trim($alumno->nombre . ' ' . $alumno->apellido),
+                        'email' => $alumno->email ?: $alumno->dni . '@alumno.ies.edu.ar',
+                        'dni' => $alumno->dni,
+                        'clave' => Hash::make($alumno->dni), // Contraseña = DNI
+                        'tipo' => 4, // Alumno
+                        'activo' => true,
+                        'alumno_id' => $alumno->id,
+                    ]);
+
+                    $usuariosCreados++;
+                    \Log::info("Usuario creado para alumno: {$alumno->nombre} {$alumno->apellido}");
+
+                } catch (\Exception $e) {
+                    $errores[] = "Error al crear usuario para alumno {$alumno->nombre}: " . $e->getMessage();
+                    \Log::error("Error al crear usuario para alumno {$alumno->id}: " . $e->getMessage());
+                }
+            }
+
+            // 2. Buscar profesores sin usuario asignado
+            $profesoresSinUsuario = Profesor::whereDoesntHave('user')->get();
+
+            foreach ($profesoresSinUsuario as $profesor) {
+                try {
+                    // Verificar si ya existe un usuario con ese DNI
+                    if (User::where('dni', $profesor->dni)->exists()) {
+                        $errores[] = "Profesor {$profesor->nombre} {$profesor->apellido} - DNI {$profesor->dni} ya tiene usuario";
+                        continue;
+                    }
+
+                    User::create([
+                        'name' => trim($profesor->nombre . ' ' . $profesor->apellido),
+                        'email' => $profesor->email ?: $profesor->dni . '@profesor.ies.edu.ar',
+                        'dni' => $profesor->dni,
+                        'clave' => Hash::make($profesor->dni), // Contraseña = DNI
+                        'tipo' => 3, // Profesor
+                        'activo' => true,
+                        'profesor_id' => $profesor->id,
+                    ]);
+
+                    $usuariosCreados++;
+                    \Log::info("Usuario creado para profesor: {$profesor->nombre} {$profesor->apellido}");
+
+                } catch (\Exception $e) {
+                    $errores[] = "Error al crear usuario para profesor {$profesor->nombre}: " . $e->getMessage();
+                    \Log::error("Error al crear usuario para profesor {$profesor->id}: " . $e->getMessage());
+                }
+            }
+
+            \DB::commit();
+
+            $mensaje = "Se crearon {$usuariosCreados} usuario(s) automáticamente.";
+            if (count($errores) > 0) {
+                $mensaje .= " Hubo " . count($errores) . " error(es).";
+            }
+
+            return back()->with([
+                'success' => $mensaje,
+                'errores' => $errores
+            ]);
+
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            \Log::error('Error en generación automática de usuarios: ' . $e->getMessage());
+
+            return back()->with('error', 'Error al generar usuarios: ' . $e->getMessage());
+        }
     }
 }

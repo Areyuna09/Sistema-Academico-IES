@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue';
-import { useForm, router } from '@inertiajs/vue3';
+import { Head, useForm, router } from '@inertiajs/vue3';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
 import Dialog from '@/Components/Dialog.vue';
 import { useDialog } from '@/Composables/useDialog';
@@ -129,6 +129,8 @@ const submit = () => {
 </script>
 
 <template>
+    <Head title="Editar Configuración" />
+
     <SidebarLayout :user="$page.props.auth.user">
         <template #header>
             <div>

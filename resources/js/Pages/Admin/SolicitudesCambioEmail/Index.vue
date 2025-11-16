@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue';
-import { Link, router } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
 import Dialog from '@/Components/Dialog.vue';
 import { useDialog } from '@/Composables/useDialog';
@@ -101,6 +101,8 @@ const formatDate = (date) => {
 </script>
 
 <template>
+    <Head title="Solicitudes de Cambio de Email" />
+
     <SidebarLayout :user="$page.props.auth.user">
         <template #header>
             <div class="flex items-center justify-between">

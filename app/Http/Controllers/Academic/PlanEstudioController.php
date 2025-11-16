@@ -212,20 +212,44 @@ class PlanEstudioController extends Controller
      * GET /api/carreras/{carrera}/plan
      * Devuelve el plan activo de la carrera con sus materias asignadas.
      * Si no hay plan activo, devuelve todas las materias de la carrera (comportamiento legacy).
+     * Si el usuario es profesor, marca las materias que dicta con el campo 'es_mi_materia'.
      */
     public function showCarreraPlan(Carrera $carrera)
     {
-        Log::info('Mostrar plan base de carrera', ['carrera_id' => $carrera->Id]);
+        $user = request()->user();
+        Log::info('Mostrar plan base de carrera', [
+            'carrera_id' => $carrera->Id,
+            'user_id' => optional($user)->id,
+            'tipo' => optional($user)->tipo,
+            'profesor_id' => optional($user)->profesor_id,
+        ]);
+
+        // Obtener IDs de materias que el profesor dicta (si es profesor)
+        $materiasProfesorIds = [];
+        if ($user && $user->profesor_id) {
+            $profesor = $user->profesor;
+            if ($profesor) {
+                $materiasProfesorIds = $profesor->materias()
+                    ->where('tbl_materias.carrera', $carrera->Id)
+                    ->pluck('tbl_materias.id')
+                    ->toArray();
+
+                Log::debug('Materias del profesor en esta carrera', [
+                    'count' => count($materiasProfesorIds),
+                    'materia_ids' => $materiasProfesorIds,
+                ]);
+            }
+        }
 
         // Buscar el plan activo de la carrera
         $planActivo = $carrera->planActivo()->first();
 
         if ($planActivo) {
-            // Si existe un plan activo, devolver solo las materias asignadas a ese plan
+            // Si existe un plan activo, devolver todas las materias asignadas a ese plan
             $materias = $planActivo->materias()
                 ->select(['tbl_materias.id', 'tbl_materias.nombre', 'tbl_materias.anno', 'tbl_materias.semestre'])
                 ->get()
-                ->map(function ($m) {
+                ->map(function ($m) use ($materiasProfesorIds) {
                     return [
                         'id' => (int) $m->id,
                         'nombre' => $m->nombre,
@@ -233,6 +257,7 @@ class PlanEstudioController extends Controller
                         'cuatrimestre' => $m->semestre,
                         'creditos' => null,
                         'orden' => $m->pivot->orden ?? 0,
+                        'es_mi_materia' => in_array($m->id, $materiasProfesorIds), // Marca si el profesor la dicta
                     ];
                 });
 
@@ -258,13 +283,14 @@ class PlanEstudioController extends Controller
                 ->orderBy('semestre', 'asc')
                 ->orderBy('nombre', 'asc')
                 ->get()
-                ->map(function ($m) {
+                ->map(function ($m) use ($materiasProfesorIds) {
                     return [
                         'id' => (int) $m->id,
                         'nombre' => $m->nombre,
                         'anio' => $m->anno,
                         'cuatrimestre' => $m->semestre,
                         'creditos' => null,
+                        'es_mi_materia' => in_array($m->id, $materiasProfesorIds), // Marca si el profesor la dicta
                     ];
                 });
 
@@ -283,12 +309,117 @@ class PlanEstudioController extends Controller
     }
 
     /**
+     * POST /api/carreras/{carrera}/planes
+     * Crear un nuevo plan de estudio para una carrera
+     */
+    public function crearPlan(Request $request, Carrera $carrera)
+    {
+        $data = $request->validate([
+            'nombre' => 'required|string|max:255',
+            'anio' => 'required|integer',
+            'resolucion' => 'nullable|string|max:255',
+            'activo' => 'boolean',
+        ]);
+
+        // Si se marca como activo, desactivar otros planes
+        if ($data['activo'] ?? false) {
+            $carrera->planesEstudio()->update(['activo' => false]);
+        }
+
+        $plan = $carrera->planesEstudio()->create([
+            'nombre' => $data['nombre'],
+            'anio' => $data['anio'],
+            'resolucion' => $data['resolucion'] ?? null,
+            'activo' => $data['activo'] ?? false,
+        ]);
+
+        Log::info('Plan de estudio creado', ['plan_id' => $plan->id, 'carrera_id' => $carrera->Id]);
+
+        return response()->json([
+            'message' => 'Plan de estudio creado exitosamente',
+            'plan' => [
+                'id' => $plan->id,
+                'nombre' => $plan->nombre,
+                'anio' => $plan->anio,
+                'resolucion' => $plan->resolucion,
+                'activo' => $plan->activo,
+            ],
+        ], 201);
+    }
+
+    /**
+     * GET /api/carreras/{carrera}/planes
+     * Lista todos los planes de estudio de una carrera
+     */
+    public function listPlanesCarrera(Carrera $carrera)
+    {
+        Log::info('Listar planes de carrera', ['carrera_id' => $carrera->Id]);
+
+        $planes = $carrera->planesEstudio()
+            ->orderBy('activo', 'desc') // Activos primero
+            ->orderBy('anio', 'desc') // Más recientes primero
+            ->get()
+            ->map(function ($plan) {
+                return [
+                    'id' => $plan->id,
+                    'nombre' => $plan->nombre,
+                    'anio' => $plan->anio,
+                    'resolucion' => $plan->resolucion,
+                    'activo' => $plan->activo,
+                ];
+            });
+
+        return response()->json([
+            'carrera' => [
+                'id' => $carrera->Id,
+                'nombre' => $carrera->nombre,
+            ],
+            'planes' => $planes,
+        ]);
+    }
+
+    /**
      * GET /api/carreras
      * Lista de carreras básicas para selección en UI.
+     * Si el usuario es profesor, solo devuelve las carreras en las que dicta materias.
      */
     public function listCarreras()
     {
-        Log::info('Listado de carreras solicitado', ['user_id' => optional(request()->user())->id]);
+        $user = request()->user();
+        Log::info('Listado de carreras solicitado', [
+            'user_id' => optional($user)->id,
+            'tipo' => optional($user)->tipo,
+            'profesor_id' => optional($user)->profesor_id,
+        ]);
+
+        // Si es profesor, solo mostrar las carreras en las que dicta materias
+        if ($user && $user->profesor_id) {
+            $profesor = $user->profesor;
+
+            if ($profesor) {
+                // Obtener IDs únicos de carreras de las materias que dicta el profesor
+                $carreraIds = $profesor->materias()
+                    ->pluck('tbl_materias.carrera')
+                    ->unique()
+                    ->filter()
+                    ->toArray();
+
+                $carreras = Carrera::query()
+                    ->whereIn('Id', $carreraIds)
+                    ->select(['Id as id', 'nombre'])
+                    ->orderBy('nombre', 'asc')
+                    ->get();
+
+                Log::debug('Carreras del profesor devueltas', [
+                    'count' => $carreras->count(),
+                    'carrera_ids' => $carreraIds,
+                ]);
+
+                return response()->json($carreras);
+            }
+        }
+
+        // Para admin o usuarios sin restricciones, devolver todas las carreras
         $carreras = Carrera::query()
             ->select(['Id as id', 'nombre'])
             ->orderBy('nombre', 'asc')

@@ -62,6 +62,14 @@ const isProfesor = computed(() => {
     return page.props.auth.user?.tipo === 3;
 });
 
+// Obtener configuración de módulos
+const modulosConfig = computed(() => page.props.modulosConfig || {});
+
+// Verificar si un módulo está activo
+const estaModuloActivo = (clave) => {
+    return modulosConfig.value[clave] !== false; // Por defecto activo si no existe
+};
+
 // Menú items con íconos de Boxicons
 const menuItems = computed(() => {
     const baseItems = [
@@ -70,6 +78,7 @@ const menuItems = computed(() => {
             route: "dashboard",
             icon: "bx-home-alt",
             path: "/dashboard",
+            modulo: "dashboard",
         },
         {
             name: "Inscripciones",
@@ -77,6 +86,7 @@ const menuItems = computed(() => {
             icon: "bx-clipboard",
             path: "/inscripciones",
             onlyAlumno: true,
+            modulo: "inscripciones",
         },
         {
             name: "Mesas",
@@ -85,41 +95,57 @@ const menuItems = computed(() => {
             path: "/mesas",
             external: true,
             onlyAlumno: true,
+            modulo: "mesas_examen",
         },
         {
             name: "Expediente",
             route: "expediente",
             icon: "bx-folder-open",
             path: "/expediente",
+            modulo: "expediente",
         },
     ];
 
-    // Plan de Estudio para todos los usuarios
-    baseItems.push({
-        name: "Plan de Estudio",
-        route: "plan-estudio",
-        icon: "bx-book-bookmark",
-        path: "/plan-estudio",
-    });
+    // Plan de Estudio - solo para alumnos y profesores (admin lo ve en Parámetros)
+    if (page.props.auth.user?.tipo === 3 || page.props.auth.user?.tipo === 4) {
+        // Profesores y Alumnos: ir a la vista de consulta
+        baseItems.push({
+            name: "Plan de Estudio",
+            route: "plan-estudio",
+            icon: "bx-book-bookmark",
+            path: "/plan-estudio",
+        });
+    }
 
-    // Filtrar items según tipo de usuario
+    // Filtrar items según tipo de usuario y configuración de módulos
+    let filteredItems = baseItems;
+
     if (page.props.auth.user?.tipo === 4) {
         // Alumno: mostrar items de alumno y comunes
-        return baseItems.filter(
+        filteredItems = baseItems.filter(
             (item) => item.onlyAlumno || !item.hasOwnProperty("onlyAlumno")
         );
     } else if (page.props.auth.user?.tipo === 3) {
-        // Profesor: mostrar inicio, expediente (agregado dinámicamente) y parámetros
-        return baseItems.filter((item) => !item.onlyAlumno);
+        // Profesor: mostrar inicio, expediente y parámetros (no items de alumno)
+        filteredItems = baseItems.filter((item) => !item.onlyAlumno);
     } else {
-        // Admin: mostrar inicio, expediente (agregado dinámicamente) y parámetros
-        return baseItems.filter((item) => !item.onlyAlumno);
+        // Admin: mostrar inicio, expediente y parámetros (no items de alumno)
+        filteredItems = baseItems.filter((item) => !item.onlyAlumno);
     }
+
+    // Filtrar por módulos activos
+    return filteredItems.filter((item) => {
+        // Si el item no tiene módulo asociado, mostrarlo siempre
+        if (!item.modulo) return true;
+        // Si tiene módulo, verificar si está activo
+        return estaModuloActivo(item.modulo);
+    });
 });
 
-// Subitems de Parámetros (solo para admin/profesor)
+// Subitems de Parámetros (solo para admin)
 const parametrosItems = computed(() => {
-    if (!isAdminOrProfesor.value) return [];
+    // Solo mostrar para admin (tipo 1 y 2), no para profesores
+    if (![1, 2].includes(page.props.auth.user?.tipo)) return [];
 
     return [
         {
@@ -133,6 +159,12 @@ const parametrosItems = computed(() => {
             route: "admin.carreras.index",
             icon: "bx-briefcase",
             path: "/admin/carreras",
+        },
+        {
+            name: "Planes de Estudio",
+            route: "admin.planes-estudio.index",
+            icon: "bx-book-content",
+            path: "/admin/planes-estudio",
         },
         {
             name: "Períodos Lectivos",
@@ -276,8 +308,8 @@ const parametrosItems = computed(() => {
                 </transition>
             </component>
 
-            <!-- Dropdown de Parámetros (solo para admin/profesor) -->
-            <div v-if="isAdminOrProfesor" class="space-y-1">
+            <!-- Dropdown de Parámetros (solo para admin) -->
+            <div v-if="[1, 2].includes(page.props.auth.user?.tipo)" class="space-y-1">
                 <!-- Botón principal de Parámetros -->
                 <button
                     @click="showParametrosMenu = !showParametrosMenu"
@@ -380,7 +412,7 @@ const parametrosItems = computed(() => {
                         class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center overflow-hidden ring-2 ring-gray-600"
                     >
                         <img
-                            v-if="user?.avatar"
+                            v-if="user?.avatar && estaModuloActivo('avatares')"
                             :src="`/storage/${user.avatar}`"
                             :alt="user.name"
                             class="w-full h-full object-cover"

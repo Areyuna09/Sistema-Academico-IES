@@ -1,5 +1,5 @@
 <script setup>
-import { useForm, Link } from '@inertiajs/vue3';
+import { Head, useForm, Link } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
 
@@ -55,6 +55,8 @@ const submit = () => {
 </script>
 
 <template>
+    <Head title="Editar Período" />
+
     <SidebarLayout :user="$page.props.auth.user">
         <template #header>
             <div>

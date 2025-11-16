@@ -21,6 +21,8 @@ const plan = ref({ alumno: null, resumen: null, materias: [] })
 // Modo carrera (cuando el usuario no es alumno)
 const carreras = ref([])
 const carreraId = ref('')
+const planesDisponibles = ref([]) // Lista de planes de la carrera seleccionada
+const planSeleccionadoId = ref(null) // ID del plan seleccionado
 const carreraPlan = ref({ carrera: null, plan: null, materias: [] })
 const duracionCarreras = ref({})
 
@@ -38,6 +40,16 @@ const modalReemplazarMateria = ref({
   visible: false,
   materiaActual: null,
   materiaNueva: null
+})
+
+// Estado del modal para crear nuevo plan (admin)
+const modalNuevoPlan = ref({
+  visible: false,
+  nombre: '',
+  anio: new Date().getFullYear(),
+  resolucion: '',
+  activo: false,
+  guardando: false
 })
 
 const materiasDisponiblesParaAsignar = ref([])
@@ -94,8 +106,24 @@ const fetchCarreraPlan = async () => {
   if (!carreraId.value) return
   loading.value = true
   try {
-    const { data } = await axios.get(`/carreras/${carreraId.value}/plan`)
+    // Cargar lista de planes disponibles de esta carrera
+    const { data: planesData } = await axios.get(`/carreras/${carreraId.value}/planes`)
+    planesDisponibles.value = planesData.planes || []
+
+    // Si hay planes, seleccionar el activo por defecto
+    if (planesDisponibles.value.length > 0) {
+      const planActivo = planesDisponibles.value.find(p => p.activo)
+      planSeleccionadoId.value = planActivo ? planActivo.id : planesDisponibles.value[0].id
+    }
+
+    // Cargar el plan seleccionado (o el plan activo por defecto)
+    const endpoint = planSeleccionadoId.value
+      ? `/carreras/${carreraId.value}/planes/${planSeleccionadoId.value}`
+      : `/carreras/${carreraId.value}/plan`
+
+    const { data } = await axios.get(endpoint)
     carreraPlan.value = data
+
     // Expandir primer año
     if (materiasPorAnioCarrera.value.length > 0) {
       aniosExpandidos.value[materiasPorAnioCarrera.value[0].anio] = true
@@ -113,6 +141,25 @@ onMounted(fetchPlan)
 watch(carreraId, async (newCarreraId) => {
   if (newCarreraId && !alumnoId) {
     await fetchCarreraPlan()
+  }
+})
+
+// Recargar el plan cuando cambie el plan seleccionado
+watch(planSeleccionadoId, async (newPlanId) => {
+  if (newPlanId && carreraId.value && !alumnoId) {
+    loading.value = true
+    try {
+      const { data } = await axios.get(`/carreras/${carreraId.value}/planes/${newPlanId}`)
+      carreraPlan.value = data
+      // Expandir primer año
+      if (materiasPorAnioCarrera.value.length > 0) {
+        aniosExpandidos.value[materiasPorAnioCarrera.value[0].anio] = true
+      }
+    } catch (e) {
+      error.value = 'No se pudo cargar el plan seleccionado.'
+    } finally {
+      loading.value = false
+    }
   }
 })
 
@@ -243,6 +290,48 @@ const cargarMateriasDisponibles = async () => {
 }
 
 // Abrir modal para asignar materia al plan
+const abrirModalNuevoPlan = () => {
+  modalNuevoPlan.value = {
+    visible: true,
+    nombre: '',
+    anio: new Date().getFullYear(),
+    resolucion: '',
+    activo: false,
+    guardando: false
+  }
+  errorModal.value = ''
+}
+
+const cerrarModalNuevoPlan = () => {
+  modalNuevoPlan.value.visible = false
+}
+
+const crearNuevoPlan = async () => {
+  if (!modalNuevoPlan.value.nombre || !modalNuevoPlan.value.anio) {
+    errorModal.value = 'El nombre y año son obligatorios'
+    return
+  }
+
+  modalNuevoPlan.value.guardando = true
+  errorModal.value = ''
+
+  try {
+    await axiosInstance.post(`/admin/carreras/${carreraId.value}/planes`, {
+      nombre: modalNuevoPlan.value.nombre,
+      anio: modalNuevoPlan.value.anio,
+      resolucion: modalNuevoPlan.value.resolucion,
+      activo: modalNuevoPlan.value.activo
+    })
+
+    cerrarModalNuevoPlan()
+    await fetchCarreraPlan() // Recargar para ver el nuevo plan
+  } catch (error) {
+    errorModal.value = error.response?.data?.message || 'Error al crear el plan'
+  } finally {
+    modalNuevoPlan.value.guardando = false
+  }
+}
+
 const abrirModalAsignar = async () => {
   await cargarMateriasDisponibles()
   modalAsignarMateria.value = {
@@ -412,6 +501,30 @@ const cerrarModal = () => {
                   </option>
                 </select>
               </div>
+
+              <!-- Selector de Plan de Estudio -->
+              <div v-if="planesDisponibles.length > 0">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Plan de Estudio:</label>
+                <select
+                  v-model="planSeleccionadoId"
+                  class="w-full border-2 border-gray-300 rounded-lg px-4 py-2.5 text-gray-900 focus:outline-none focus:border-indigo-500 transition-colors"
+                >
+                  <option v-for="plan in planesDisponibles" :key="plan.id" :value="plan.id">
+                    {{ plan.nombre }} ({{ plan.anio }})
+                    <span v-if="plan.activo" class="text-green-600">★ Activo</span>
+                  </option>
+                </select>
+              </div>
+
+              <!-- Botón crear nuevo plan (solo admin) -->
+              <button
+                v-if="esAdmin && carreraId"
+                @click="abrirModalNuevoPlan"
+                class="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg px-4 py-2.5 font-semibold transition-all flex items-center justify-center gap-2 shadow-lg"
+              >
+                <i class="bx bx-plus text-xl"></i>
+                Crear Nuevo Plan de Estudio
+              </button>
 
               <!-- Botón asignar materia al plan (solo admin) - móvil -->
               <button
@@ -799,6 +912,40 @@ const cerrarModal = () => {
             >
               <i class="bx bx-transfer"></i>
               Reemplazar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal Crear Nuevo Plan -->
+    <div v-if="modalNuevoPlan.visible" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+        <h3 class="text-2xl font-bold text-gray-900 mb-4">Crear Nuevo Plan de Estudio</h3>
+        <form @submit.prevent="crearNuevoPlan" class="space-y-4">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">Nombre del Plan *</label>
+            <input v-model="modalNuevoPlan.nombre" type="text" required class="w-full border-2 border-gray-300 rounded-lg px-4 py-2" placeholder="Ej: Plan 2025">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">Año *</label>
+            <input v-model.number="modalNuevoPlan.anio" type="number" required class="w-full border-2 border-gray-300 rounded-lg px-4 py-2">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">Resolución</label>
+            <input v-model="modalNuevoPlan.resolucion" type="text" class="w-full border-2 border-gray-300 rounded-lg px-4 py-2" placeholder="Número de resolución">
+          </div>
+          <div class="flex items-center">
+            <input v-model="modalNuevoPlan.activo" type="checkbox" class="mr-2">
+            <label class="text-sm text-gray-700">Marcar como plan activo</label>
+          </div>
+          <div v-if="errorModal" class="bg-red-50 border border-red-200 rounded-lg p-3">
+            <p class="text-red-700 text-sm">{{ errorModal }}</p>
+          </div>
+          <div class="flex gap-3 mt-6">
+            <button type="button" @click="cerrarModalNuevoPlan" class="flex-1 px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">Cancelar</button>
+            <button type="submit" :disabled="modalNuevoPlan.guardando" class="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50">
+              {{ modalNuevoPlan.guardando ? 'Creando...' : 'Crear Plan' }}
             </button>
           </div>
         </form>

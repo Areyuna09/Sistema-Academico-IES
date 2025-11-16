@@ -92,6 +92,8 @@ const getCuatrimestreBadge = (semestre) => {
 </script>
 
 <template>
+    <Head title="Gestión de Materias" />
+
     <SidebarLayout :user="$page.props.auth.user">
         <template #header>
             <div>

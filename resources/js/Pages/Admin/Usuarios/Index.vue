@@ -3,7 +3,9 @@ import { ref, computed } from 'vue';
 import { Link, router, useForm } from '@inertiajs/vue3';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
 import Dialog from '@/Components/Dialog.vue';
+import Modal from '@/Components/Modal.vue';
 import { useDialog } from '@/Composables/useDialog';
+import axios from 'axios';
 
 const props = defineProps({
     usuarios: Object,
@@ -71,9 +73,68 @@ const getTipoBadge = (tipo) => {
     };
     return badges[tipo] || { text: 'Usuario', class: 'bg-gray-100 text-gray-800' };
 };
+
+const showPreviewModal = ref(false);
+const previewData = ref(null);
+const cargandoPreview = ref(false);
+const generandoUsuarios = ref(false);
+
+const generarUsuariosAutomaticos = async () => {
+    try {
+        cargandoPreview.value = true;
+        const response = await axios.get(route('admin.usuarios.generar-automaticos.preview'));
+        previewData.value = response.data;
+
+        if (previewData.value.total === 0) {
+            await showConfirm(
+                'No hay alumnos ni profesores sin usuario asignado.',
+                'Sin usuarios para crear',
+                { showCancel: false }
+            );
+            return;
+        }
+
+        showPreviewModal.value = true;
+    } catch (error) {
+        console.error('Error al obtener vista previa:', error);
+        await showConfirm(
+            'Error al obtener la lista de usuarios a crear. Por favor, intente nuevamente.',
+            'Error',
+            { showCancel: false }
+        );
+    } finally {
+        cargandoPreview.value = false;
+    }
+};
+
+const confirmarCreacion = async () => {
+    const confirmed = await showConfirm(
+        `¿Confirma la creación de ${previewData.value.total} usuario(s)?\n\nEsta acción no se puede deshacer.`,
+        'Confirmar creación'
+    );
+
+    if (confirmed) {
+        showPreviewModal.value = false;
+        generandoUsuarios.value = true;
+        router.post(route('admin.usuarios.generar-automaticos'), {}, {
+            preserveScroll: true,
+            onFinish: () => {
+                generandoUsuarios.value = false;
+                previewData.value = null;
+            }
+        });
+    }
+};
+
+const cerrarPreview = () => {
+    showPreviewModal.value = false;
+    previewData.value = null;
+};
 </script>
 
 <template>
+    <Head title="Gestión de Usuarios" />
+
     <SidebarLayout :user="$page.props.auth.user">
         <template #header>
             <div>
@@ -87,13 +148,25 @@ const getTipoBadge = (tipo) => {
             <div class="bg-white rounded-lg shadow-md p-6 mb-6">
                 <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
                     <h2 class="text-lg font-semibold text-gray-800">Usuarios del Sistema</h2>
-                    <Link
-                        :href="route('admin.usuarios.create')"
-                        class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200"
-                    >
-                        <i class="bx bx-plus text-xl mr-2"></i>
-                        Nuevo Usuario
-                    </Link>
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <button
+                            @click="generarUsuariosAutomaticos"
+                            :disabled="cargandoPreview || generandoUsuarios"
+                            class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors duration-200"
+                        >
+                            <i :class="cargandoPreview || generandoUsuarios ? 'bx bx-loader-alt bx-spin' : 'bx bx-user-plus'" class="text-xl mr-2"></i>
+                            <span v-if="cargandoPreview">Cargando...</span>
+                            <span v-else-if="generandoUsuarios">Generando...</span>
+                            <span v-else>Generar Usuarios Automáticos</span>
+                        </button>
+                        <Link
+                            :href="route('admin.usuarios.create')"
+                            class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200"
+                        >
+                            <i class="bx bx-plus text-xl mr-2"></i>
+                            Nuevo Usuario
+                        </Link>
+                    </div>
                 </div>
 
                 <!-- Filtros -->
@@ -274,6 +347,149 @@ const getTipoBadge = (tipo) => {
                 </div>
             </div>
         </div>
+
+        <!-- Modal de Vista Previa -->
+        <Modal :show="showPreviewModal" @close="cerrarPreview" max-width="2xl">
+            <div class="p-6">
+                <!-- Header -->
+                <div class="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-900">Vista Previa - Usuarios a Crear</h2>
+                        <p class="text-sm text-gray-600 mt-1">
+                            Revise la información antes de confirmar la creación
+                        </p>
+                    </div>
+                    <button
+                        @click="cerrarPreview"
+                        class="text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                        <i class="bx bx-x text-3xl"></i>
+                    </button>
+                </div>
+
+                <!-- Resumen -->
+                <div v-if="previewData" class="mb-6 grid grid-cols-3 gap-4">
+                    <div class="bg-blue-50 rounded-lg p-4 text-center">
+                        <div class="text-3xl font-bold text-blue-600">{{ previewData.total }}</div>
+                        <div class="text-sm text-gray-600 mt-1">Total Usuarios</div>
+                    </div>
+                    <div class="bg-green-50 rounded-lg p-4 text-center">
+                        <div class="text-3xl font-bold text-green-600">{{ previewData.total_alumnos }}</div>
+                        <div class="text-sm text-gray-600 mt-1">Alumnos</div>
+                    </div>
+                    <div class="bg-purple-50 rounded-lg p-4 text-center">
+                        <div class="text-3xl font-bold text-purple-600">{{ previewData.total_profesores }}</div>
+                        <div class="text-sm text-gray-600 mt-1">Profesores</div>
+                    </div>
+                </div>
+
+                <!-- Información importante -->
+                <div class="mb-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <div class="flex items-start gap-3">
+                        <i class="bx bx-info-circle text-yellow-600 text-xl flex-shrink-0 mt-0.5"></i>
+                        <div class="text-sm text-yellow-800">
+                            <p class="font-semibold mb-1">Información importante:</p>
+                            <ul class="list-disc list-inside space-y-1">
+                                <li>El <strong>usuario (DNI)</strong> y la <strong>contraseña</strong> serán el DNI de cada persona</li>
+                                <li>Los emails marcados con <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800"><i class="bx bx-mail-send text-xs mr-1"></i>Generado</span> son creados automáticamente</li>
+                                <li>Las entradas con <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800"><i class="bx bx-error text-xs mr-1"></i>DNI Duplicado</span> serán omitidas</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabla de usuarios -->
+                <div v-if="previewData" class="max-h-96 overflow-y-auto border border-gray-200 rounded-lg">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50 sticky top-0">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DNI</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <!-- Alumnos -->
+                            <template v-if="previewData.alumnos.length > 0">
+                                <tr v-for="alumno in previewData.alumnos" :key="'alumno-' + alumno.id" class="hover:bg-gray-50">
+                                    <td class="px-4 py-3 text-sm text-gray-900">{{ alumno.nombre_completo }}</td>
+                                    <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ alumno.dni }}</td>
+                                    <td class="px-4 py-3 text-sm text-gray-600">
+                                        <div class="flex items-center gap-2">
+                                            <span>{{ alumno.email }}</span>
+                                            <span v-if="alumno.email_generado" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                                                <i class="bx bx-mail-send text-xs mr-1"></i>Generado
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3 text-sm">
+                                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                            {{ alumno.tipo_texto }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3 text-sm">
+                                        <span v-if="alumno.dni_duplicado" class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-800">
+                                            <i class="bx bx-error text-xs mr-1"></i>DNI Duplicado
+                                        </span>
+                                        <span v-else class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
+                                            <i class="bx bx-check text-xs mr-1"></i>Listo
+                                        </span>
+                                    </td>
+                                </tr>
+                            </template>
+
+                            <!-- Profesores -->
+                            <template v-if="previewData.profesores.length > 0">
+                                <tr v-for="profesor in previewData.profesores" :key="'profesor-' + profesor.id" class="hover:bg-gray-50">
+                                    <td class="px-4 py-3 text-sm text-gray-900">{{ profesor.nombre_completo }}</td>
+                                    <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ profesor.dni }}</td>
+                                    <td class="px-4 py-3 text-sm text-gray-600">
+                                        <div class="flex items-center gap-2">
+                                            <span>{{ profesor.email }}</span>
+                                            <span v-if="profesor.email_generado" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                                                <i class="bx bx-mail-send text-xs mr-1"></i>Generado
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3 text-sm">
+                                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                                            {{ profesor.tipo_texto }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3 text-sm">
+                                        <span v-if="profesor.dni_duplicado" class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-800">
+                                            <i class="bx bx-error text-xs mr-1"></i>DNI Duplicado
+                                        </span>
+                                        <span v-else class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
+                                            <i class="bx bx-check text-xs mr-1"></i>Listo
+                                        </span>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Footer con botones -->
+                <div class="mt-6 flex justify-end gap-3 pt-4 border-t border-gray-200">
+                    <button
+                        @click="cerrarPreview"
+                        class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg transition-colors duration-200"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        @click="confirmarCreacion"
+                        class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors duration-200 flex items-center gap-2"
+                    >
+                        <i class="bx bx-check-circle text-xl"></i>
+                        Crear {{ previewData?.total }} Usuario(s)
+                    </button>
+                </div>
+            </div>
+        </Modal>
 
         <!-- Dialog component -->
         <Dialog />

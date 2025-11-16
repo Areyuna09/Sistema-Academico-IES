@@ -21,6 +21,8 @@ const submit = () => {
 </script>
 
 <template>
+    <Head title="Crear Materia" />
+
     <SidebarLayout :user="$page.props.auth.user">
         <template #header>
             <div>

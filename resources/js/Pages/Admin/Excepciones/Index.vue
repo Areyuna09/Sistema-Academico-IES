@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { router, useForm } from '@inertiajs/vue3';
+import { Head, router, useForm } from '@inertiajs/vue3';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
 import Dialog from '@/Components/Dialog.vue';
 import { useDialog } from '@/Composables/useDialog';
@@ -114,6 +114,8 @@ const alumnoNombre = computed(() => (alumnoId) => {
 </script>
 
 <template>
+    <Head title="Excepciones a Correlativas" />
+
     <SidebarLayout :user="$page.props.auth.user">
         <template #header>
             <div>

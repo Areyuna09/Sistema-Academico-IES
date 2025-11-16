@@ -26,8 +26,8 @@ class ConfiguracionModulosController extends Controller
             'comunicacion' => 'Notificaciones y Comunicación',
             'validaciones' => 'Validaciones y Reglas',
             'permisos' => 'Permisos y Accesos',
-            'reportes' => 'Reportes y Estadísticas',
             'avanzado' => 'Funcionalidades Avanzadas',
+            'firmas_digitales' => 'Firmas Digitales',
         ];
 
         return Inertia::render('Admin/ConfiguracionModulos/Index', [
@@ -50,6 +50,9 @@ class ConfiguracionModulosController extends Controller
 
         $modulo->activo = !$modulo->activo;
         $modulo->save();
+
+        // Limpiar cache de módulos
+        \Cache::forget('modulos_config');
 
         \Log::info('Módulo actualizado', [
             'modulo' => $modulo->clave,
@@ -80,6 +83,9 @@ class ConfiguracionModulosController extends Controller
             $modulo->save();
         }
 
+        // Limpiar cache de módulos
+        \Cache::forget('modulos_config');
+
         \Log::info('Actualización masiva de módulos', [
             'cantidad' => count($validated['modulos']),
             'usuario' => auth()->user()->nombre,
@@ -94,6 +100,9 @@ class ConfiguracionModulosController extends Controller
     public function resetDefaults()
     {
         \Artisan::call('db:seed', ['--class' => 'ConfiguracionModulosSeeder']);
+
+        // Limpiar cache de módulos
+        \Cache::forget('modulos_config');
 
         \Log::warning('Configuración de módulos restablecida a valores por defecto', [
             'usuario' => auth()->user()->nombre,

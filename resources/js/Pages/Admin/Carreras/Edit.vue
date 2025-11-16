@@ -1,5 +1,5 @@
 <script setup>
-import { useForm, Link } from '@inertiajs/vue3';
+import { Head, useForm, Link } from '@inertiajs/vue3';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
 
 const props = defineProps({
@@ -17,6 +17,8 @@ const submit = () => {
 </script>
 
 <template>
+    <Head title="Editar Carrera" />
+
     <SidebarLayout :user="$page.props.auth.user">
         <template #header>
             <div>

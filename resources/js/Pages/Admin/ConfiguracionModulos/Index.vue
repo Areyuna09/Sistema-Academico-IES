@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { useForm, router } from '@inertiajs/vue3';
+import { Head, useForm, router } from '@inertiajs/vue3';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
 
 const props = defineProps({
@@ -103,6 +103,8 @@ const contarTotalPorCategoria = (categoria) => {
 </script>
 
 <template>
+    <Head title="Configuración de Módulos" />
+
     <SidebarLayout :user="$page.props.auth.user">
         <template #header>
             <div>

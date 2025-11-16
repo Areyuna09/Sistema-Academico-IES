@@ -1,5 +1,5 @@
 <script setup>
-import { useForm } from '@inertiajs/vue3';
+import { Head, useForm } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
 import { Link } from '@inertiajs/vue3';
@@ -74,6 +74,8 @@ const submit = () => {
 </script>
 
 <template>
+    <Head title="Editar Mesa de Examen" />
+
     <SidebarLayout :user="$page.props.auth.user">
         <template #header>
             <div>

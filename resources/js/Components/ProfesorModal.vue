@@ -1,6 +1,6 @@
 <script setup>
 import { useForm } from '@inertiajs/vue3';
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import axios from 'axios';
 
 const props = defineProps({
@@ -35,6 +35,47 @@ const profesorActual = ref(null);
 
 const materiasDisponibles = ref([]);
 const cargandoMaterias = ref(false);
+
+// Computed para agrupar materias por plan
+const materiasAgrupadasPorPlan = computed(() => {
+    const grupos = {};
+
+    materiasDisponibles.value.forEach(materia => {
+        if (materia.planes && materia.planes.length > 0) {
+            // Agregar materia a cada plan al que pertenece
+            materia.planes.forEach(plan => {
+                if (!grupos[plan.id]) {
+                    grupos[plan.id] = {
+                        plan: plan,
+                        materias: []
+                    };
+                }
+                grupos[plan.id].materias.push(materia);
+            });
+        } else {
+            // Materias sin plan
+            if (!grupos['sin_plan']) {
+                grupos['sin_plan'] = {
+                    plan: { id: null, nombre: 'Sin plan asignado', vigente: false },
+                    materias: []
+                };
+            }
+            grupos['sin_plan'].materias.push(materia);
+        }
+    });
+
+    // Convertir a array y ordenar: vigente primero, luego por año descendente
+    return Object.values(grupos).sort((a, b) => {
+        // Sin plan al final
+        if (a.plan.id === null) return 1;
+        if (b.plan.id === null) return -1;
+        // Vigente primero
+        if (a.plan.vigente && !b.plan.vigente) return -1;
+        if (!a.plan.vigente && b.plan.vigente) return 1;
+        // Por año descendente
+        return (b.plan.anio || 0) - (a.plan.anio || 0);
+    });
+});
 
 // Si hay un profesor (modo edición), cargar sus datos
 watch(() => props.profesor, (nuevoProfesor) => {
@@ -277,7 +318,7 @@ const close = () => {
                             </div>
                         </div>
 
-                        <!-- Materias disponibles -->
+                        <!-- Materias disponibles agrupadas por plan -->
                         <div v-if="form.carrera">
                             <label class="block text-sm font-medium text-gray-700 mb-2">
                                 Materias a dictar
@@ -288,32 +329,57 @@ const close = () => {
                             <div v-else-if="materiasDisponibles.length === 0" class="text-sm text-gray-500 py-4">
                                 No hay materias disponibles para esta carrera
                             </div>
-                            <div v-else class="border border-gray-300 rounded-lg max-h-64 overflow-y-auto">
-                                <div class="divide-y divide-gray-200">
+                            <div v-else class="space-y-3 max-h-96 overflow-y-auto">
+                                <!-- Grupo por cada plan -->
+                                <div
+                                    v-for="grupo in materiasAgrupadasPorPlan"
+                                    :key="grupo.plan.id || 'sin_plan'"
+                                    class="border rounded-lg overflow-hidden"
+                                    :class="grupo.plan.id === null ? 'border-yellow-300' : (grupo.plan.vigente ? 'border-blue-300' : 'border-gray-300')"
+                                >
+                                    <!-- Header del plan -->
                                     <div
-                                        v-for="materia in materiasDisponibles"
-                                        :key="materia.id"
-                                        class="flex items-center p-3 hover:bg-gray-50"
+                                        class="px-3 py-2 font-medium text-sm flex items-center justify-between"
+                                        :class="grupo.plan.id === null ? 'bg-yellow-50 text-yellow-900' : (grupo.plan.vigente ? 'bg-blue-50 text-blue-900' : 'bg-gray-50 text-gray-900')"
                                     >
-                                        <input
-                                            :id="'materia-' + materia.id"
-                                            v-model="form.materias"
-                                            :value="materia.id"
-                                            type="checkbox"
-                                            class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-                                        />
-                                        <label
-                                            :for="'materia-' + materia.id"
-                                            class="ml-3 text-sm text-gray-700 cursor-pointer flex-1"
+                                        <span>
+                                            {{ grupo.plan.nombre }}
+                                            <span v-if="grupo.plan.vigente" class="ml-1" title="Plan vigente para nuevos inscriptos">✓</span>
+                                        </span>
+                                        <span class="text-xs font-normal opacity-75">
+                                            {{ grupo.materias.length }} {{ grupo.materias.length === 1 ? 'materia' : 'materias' }}
+                                        </span>
+                                    </div>
+
+                                    <!-- Lista de materias del plan -->
+                                    <div class="divide-y divide-gray-200">
+                                        <div
+                                            v-for="materia in grupo.materias"
+                                            :key="materia.id"
+                                            class="flex items-start p-3 hover:bg-gray-50"
                                         >
-                                            {{ materia.nombre }}
-                                            <span class="text-gray-500 ml-2">({{ materia.anno }}° Año)</span>
-                                        </label>
+                                            <input
+                                                :id="'materia-' + materia.id + '-plan-' + (grupo.plan.id || 'sin_plan')"
+                                                v-model="form.materias"
+                                                :value="materia.id"
+                                                type="checkbox"
+                                                class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 mt-0.5"
+                                            />
+                                            <label
+                                                :for="'materia-' + materia.id + '-plan-' + (grupo.plan.id || 'sin_plan')"
+                                                class="ml-3 text-sm text-gray-700 cursor-pointer flex-1"
+                                            >
+                                                <div class="font-medium">{{ materia.nombre }}</div>
+                                                <div class="text-xs text-gray-500 mt-0.5">
+                                                    {{ materia.anno }}° Año - Cuatrimestre {{ materia.semestre }}
+                                                </div>
+                                            </label>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                             <p class="mt-2 text-xs text-gray-500">
-                                Seleccione las materias que este profesor dictará
+                                Las materias están agrupadas por plan de estudio. Seleccione las que este profesor dictará.
                             </p>
                         </div>
                         <div v-else class="p-4 bg-blue-50 border border-blue-200 rounded-lg">

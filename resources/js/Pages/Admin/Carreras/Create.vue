@@ -1,5 +1,5 @@
 <script setup>
-import { useForm, Link } from '@inertiajs/vue3';
+import { Head, useForm, Link } from '@inertiajs/vue3';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
 
 const form = useForm({
@@ -13,6 +13,8 @@ const submit = () => {
 </script>
 
 <template>
+    <Head title="Crear Carrera" />
+
     <SidebarLayout :user="$page.props.auth.user">
         <template #header>
             <div>

@@ -443,7 +443,7 @@ class ExpedienteController extends Controller
                 'materia_id' => $materia->id,
                 'materia' => $materia->materiaRelacion->nombre ?? 'Sin nombre',
                 'carrera' => $materia->carreraRelacion->nombre ?? 'Sin carrera',
-                'cursado' => $materia->cursado ?? 'N/A',
+                'cursado' => $materia->materiaRelacion->semestre ?? $materia->cursado ?? 'N/A',
                 'division' => $materia->division ?? 'N/A',
                 'alumnos' => $alumnos,
                 'total_alumnos' => $alumnos->count(),
@@ -1220,17 +1220,36 @@ class ExpedienteController extends Controller
         ]);
 
         try {
-            // Obtener todas las materias de la carrera
+            // Obtener todas las materias de la carrera con sus planes
             $materias = Materia::where('carrera', $request->carrera_id)
                 ->orderBy('anno', 'asc')
+                ->orderBy('semestre', 'asc')
                 ->orderBy('nombre', 'asc')
                 ->get()
                 ->map(function($materia) {
+                    // Obtener los planes a los que pertenece esta materia
+                    $planes = \App\Models\PlanEstudio::whereHas('materias', function($query) use ($materia) {
+                        $query->where('materia_id', $materia->id);
+                    })
+                    ->where('carrera_id', $materia->carrera)
+                    ->where('activo', true) // Solo planes activos
+                    ->orderBy('anio', 'desc')
+                    ->get(['id', 'nombre', 'anio', 'vigente'])
+                    ->map(function($plan) {
+                        return [
+                            'id' => $plan->id,
+                            'nombre' => $plan->nombre,
+                            'anio' => $plan->anio,
+                            'vigente' => $plan->vigente
+                        ];
+                    });
+
                     return [
                         'id' => $materia->id,
                         'nombre' => $materia->nombre,
                         'anno' => $materia->anno,
                         'semestre' => $materia->semestre,
+                        'planes' => $planes
                     ];
                 });
 

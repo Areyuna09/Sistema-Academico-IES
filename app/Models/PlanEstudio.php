@@ -14,10 +14,13 @@ class PlanEstudio extends Model
         'anio',
         'resolucion',
         'activo',
+        'vigente',
+        'descripcion',
     ];
 
     protected $casts = [
         'activo' => 'boolean',
+        'vigente' => 'boolean',
         'anio' => 'integer',
     ];
 

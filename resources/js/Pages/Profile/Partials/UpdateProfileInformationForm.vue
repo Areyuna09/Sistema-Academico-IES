@@ -23,7 +23,12 @@ const props = defineProps({
     },
 });
 
-const user = usePage().props.auth.user;
+const page = usePage();
+const user = page.props.auth.user;
+const modulosConfig = computed(() => page.props.modulosConfig || {});
+const estaModuloActivo = (clave) => {
+    return modulosConfig.value[clave] !== false;
+};
 
 const form = useForm({
     name: user.name,
@@ -119,8 +124,8 @@ const additionalInfo = computed(() => {
         <!-- Avatar Section - Centered Header -->
         <div class="p-6 md:p-8 border-b border-gray-100">
             <div class="flex flex-col items-center text-center">
-                <!-- Avatar -->
-                <div class="relative group mb-4">
+                <!-- Avatar (solo si el módulo está activo) -->
+                <div v-if="estaModuloActivo('avatares')" class="relative group mb-4">
                     <div class="w-24 h-24 md:w-28 md:h-28 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-blue-600 shadow-md">
                         <img
                             v-if="currentAvatar"
@@ -145,6 +150,15 @@ const additionalInfo = computed(() => {
                     </button>
                 </div>
 
+                <!-- Avatar simple (solo iniciales cuando el módulo está desactivado) -->
+                <div v-else class="relative mb-4">
+                    <div class="w-24 h-24 md:w-28 md:h-28 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-blue-600 shadow-md">
+                        <div class="w-full h-full flex items-center justify-center text-white text-3xl md:text-4xl font-bold">
+                            {{ user.name.charAt(0).toUpperCase() }}
+                        </div>
+                    </div>
+                </div>
+
                 <!-- User Name and Badge -->
                 <h2 class="text-xl md:text-2xl font-bold text-gray-900">{{ user.name }}</h2>
                 <span :class="['inline-block px-3 py-1 rounded-full text-xs font-bold mt-2', roleBadge.class]">
@@ -152,8 +166,8 @@ const additionalInfo = computed(() => {
                 </span>
                 <p class="text-sm text-gray-500 mt-2">{{ user.email }}</p>
 
-                <!-- Avatar Actions -->
-                <div class="flex gap-3 mt-4">
+                <!-- Avatar Actions (solo si el módulo está activo) -->
+                <div v-if="estaModuloActivo('avatares')" class="flex gap-3 mt-4">
                     <input
                         ref="fileInput"
                         type="file"
@@ -194,7 +208,7 @@ const additionalInfo = computed(() => {
                     </button>
                 </div>
 
-                <InputError class="mt-2 text-xs" :message="avatarForm.errors.avatar" />
+                <InputError v-if="estaModuloActivo('avatares')" class="mt-2 text-xs" :message="avatarForm.errors.avatar" />
 
                 <!-- Success message -->
                 <Transition

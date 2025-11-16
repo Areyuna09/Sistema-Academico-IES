@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
-import { useForm, Link } from '@inertiajs/vue3';
+import { Head, useForm, Link } from '@inertiajs/vue3';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
 
 const props = defineProps({
@@ -89,6 +89,8 @@ const mostrarVinculacionProfesor = computed(() => form.tipo == 3);
 </script>
 
 <template>
+    <Head title="Crear Usuario" />
+
     <SidebarLayout :user="$page.props.auth.user">
         <template #header>
             <div>

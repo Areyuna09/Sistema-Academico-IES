@@ -6,6 +6,10 @@ import { usePage } from '@inertiajs/vue3';
 const page = usePage();
 const configuracion = computed(() => page.props.configuracion || {});
 const nombreInstitucion = computed(() => configuracion.value.nombre_institucion || 'IES Gral. Manuel Belgrano');
+const modulosConfig = computed(() => page.props.modulosConfig || {});
+const estaModuloActivo = (clave) => {
+    return modulosConfig.value[clave] !== false;
+};
 
 const logoUrl = computed(() => {
     const logoClaroUrl = configuracion.value.logo_url || '/images/logo-ies-original.png';
@@ -207,7 +211,7 @@ const getInitials = (name) => {
                                     class="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center overflow-hidden ring-2 ring-gray-600 group-hover:ring-blue-500 transition-all"
                                 >
                                     <img
-                                        v-if="profile.avatar"
+                                        v-if="profile.avatar && estaModuloActivo('avatares')"
                                         :src="`/storage/${profile.avatar}`"
                                         :alt="profile.name"
                                         class="w-full h-full object-cover"

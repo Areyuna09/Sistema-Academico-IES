@@ -1,5 +1,5 @@
 <script setup>
-import { Link } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
 
 const props = defineProps({
@@ -8,6 +8,8 @@ const props = defineProps({
 </script>
 
 <template>
+    <Head title="Configuración del Sistema" />
+
     <SidebarLayout :user="$page.props.auth.user">
         <template #header>
             <div>

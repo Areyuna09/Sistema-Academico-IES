@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { useForm, Link, router } from '@inertiajs/vue3';
+import { Head, useForm, Link, router } from '@inertiajs/vue3';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
 import Dialog from '@/Components/Dialog.vue';
 import { useDialog } from '@/Composables/useDialog';
@@ -75,6 +75,8 @@ const estaEnInscripcion = (periodo) => {
 </script>
 
 <template>
+    <Head title="Períodos Lectivos" />
+
     <SidebarLayout :user="$page.props.auth.user">
         <template #header>
             <div>
