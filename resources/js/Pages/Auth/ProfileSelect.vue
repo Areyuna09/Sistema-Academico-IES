@@ -22,6 +22,7 @@ const logoUrl = computed(() => {
 
 const savedProfiles = ref([]);
 const loggingIn = ref(false);
+const errorMessage = ref(null);
 
 // Cargar perfiles guardados del localStorage
 onMounted(() => {
@@ -75,11 +76,16 @@ const selectProfile = (profile) => {
 
                 // Si la contraseña es incorrecta, eliminar el perfil guardado
                 if (errors.dni || errors.password) {
-                    alert('La contraseña guardada ya no es válida. Por favor, inicia sesión nuevamente.');
-                    // Ir al login con DNI prellenado
-                    sessionStorage.setItem('selected_profile_dni', profile.dni);
-                    sessionStorage.setItem('from_profile_select', 'true');
-                    router.visit(route('login'));
+                    errorMessage.value = 'La contraseña guardada ya no es válida. Por favor, inicia sesión nuevamente.';
+
+                    // Ocultar mensaje después de 5 segundos y redirigir
+                    setTimeout(() => {
+                        errorMessage.value = null;
+                        // Ir al login con DNI prellenado
+                        sessionStorage.setItem('selected_profile_dni', profile.dni);
+                        sessionStorage.setItem('from_profile_select', 'true');
+                        router.visit(route('login'));
+                    }, 5000);
                 }
             },
             onFinish: () => {
@@ -131,6 +137,27 @@ const getInitials = (name) => {
         </div>
 
         <div class="w-full max-w-md relative z-10">
+            <!-- Error Message -->
+            <Transition
+                enter-active-class="transition-all duration-300 ease-out"
+                enter-from-class="opacity-0 -translate-y-4"
+                enter-to-class="opacity-100 translate-y-0"
+                leave-active-class="transition-all duration-200 ease-in"
+                leave-from-class="opacity-100 translate-y-0"
+                leave-to-class="opacity-0 -translate-y-4"
+            >
+                <div
+                    v-if="errorMessage"
+                    class="mb-4 bg-red-500/90 backdrop-blur-sm border border-red-400 text-white px-6 py-4 rounded-xl shadow-lg flex items-start gap-3"
+                >
+                    <i class="bx bx-error-circle text-2xl flex-shrink-0"></i>
+                    <div class="flex-1">
+                        <p class="font-medium text-sm">{{ errorMessage }}</p>
+                        <p class="text-xs text-red-100 mt-1">Redirigiendo al login en 5 segundos...</p>
+                    </div>
+                </div>
+            </Transition>
+
             <!-- Profile Selection Card -->
             <div class="bg-gray-800/95 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-700/50 animate-slide-up overflow-hidden">
                 <!-- Header con gradiente -->

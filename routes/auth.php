@@ -31,7 +31,7 @@ Route::middleware('guest')->group(function () {
         ->name('password.email');
 
     Route::post('solicitud-cambio-email', [SolicitudCambioEmailController::class, 'store'])
-        ->middleware('throttle:3,1') // Máximo 3 intentos por minuto
+        ->middleware('throttle:10,1') // Máximo 10 intentos por minuto (aumentado para desarrollo)
         ->name('solicitud-cambio-email.store');
 
     Route::get('reset-password/{token}', [NewPasswordController::class, 'create'])

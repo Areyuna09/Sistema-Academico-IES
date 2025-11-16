@@ -1,9 +1,47 @@
-import { onMounted } from 'vue';
+import { onMounted, watch } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 
 export function useProfileSaver() {
+    const page = usePage();
+
+    // Función para actualizar el perfil en localStorage
+    const updateProfileInLocalStorage = (user) => {
+        if (!user || !user.dni) return;
+
+        const stored = localStorage.getItem('saved_profiles');
+        if (!stored) return;
+
+        try {
+            let savedProfiles = JSON.parse(stored);
+            const profileIndex = savedProfiles.findIndex(p => p.dni === user.dni);
+
+            if (profileIndex >= 0) {
+                // Actualizar datos del perfil (mantener DNI y password)
+                savedProfiles[profileIndex] = {
+                    ...savedProfiles[profileIndex],
+                    name: user.name,
+                    email: user.email,
+                    avatar: user.avatar,
+                    tipo: user.tipo,
+                };
+
+                localStorage.setItem('saved_profiles', JSON.stringify(savedProfiles));
+                console.log('Perfil actualizado en localStorage:', savedProfiles[profileIndex]);
+            }
+        } catch (e) {
+            console.error('Error updating profile in localStorage:', e);
+        }
+    };
+
+    // Escuchar cambios en el usuario (especialmente avatar)
+    watch(() => page.props.auth?.user?.avatar, (newAvatar, oldAvatar) => {
+        if (newAvatar !== oldAvatar) {
+            const user = page.props.auth?.user;
+            updateProfileInLocalStorage(user);
+        }
+    });
+
     onMounted(() => {
-        const page = usePage();
         const user = page.props.auth?.user;
 
         // Verificar si hay datos de perfil para guardar
