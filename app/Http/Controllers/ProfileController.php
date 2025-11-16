@@ -49,7 +49,19 @@ class ProfileController extends Controller
 
         // Si es profesor, cargar información adicional
         if ($user->profesor_id) {
-            $profesor = $user->profesor()->with('carreraRelacion')->first();
+            $profesor = $user->profesor;
+
+            // Cargar la relación de carrera
+            $carreraData = null;
+            if ($profesor && $profesor->carrera) {
+                $carreraRelacion = \App\Models\Carrera::find($profesor->carrera);
+                if ($carreraRelacion) {
+                    $carreraData = [
+                        'id' => $carreraRelacion->Id,
+                        'nombre' => $carreraRelacion->nombre,
+                    ];
+                }
+            }
 
             return Inertia::render('Profile/Edit', [
                 'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
@@ -61,12 +73,9 @@ class ProfileController extends Controller
                     'apellido' => $profesor->apellido,
                     'nombre_completo' => $profesor->apellido . ', ' . $profesor->nombre,
                     'email' => $profesor->email,
-                    'telefono' => $profesor->telefono,
-                    'celular' => $profesor->celular,
-                    'carrera' => $profesor->carreraRelacion ? [
-                        'id' => $profesor->carreraRelacion->Id,
-                        'nombre' => $profesor->carreraRelacion->nombre,
-                    ] : null,
+                    'telefono' => $profesor->telefono ?? null,
+                    'celular' => $profesor->celular ?? null,
+                    'carrera' => $carreraData,
                 ] : null,
             ]);
         }
