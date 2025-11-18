@@ -2,7 +2,7 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import Sidebar from '@/Components/Layout/Sidebar.vue';
 import Navbar from '@/Components/Layout/Navbar.vue';
-import { useProfileSaver } from '@/composables/useProfileSaver';
+import { useProfileSaver } from '@/Composables/useProfileSaver';
 
 // Activar guardado de perfil automático
 useProfileSaver();

@@ -52,9 +52,9 @@ const handleLogout = () => {
     // El logout redirigirá a login, y desde ahí se mostrará la selección de perfiles
 };
 
-// Verificar si el usuario es admin o profesor
-const isAdminOrProfesor = computed(() => {
-    return [1, 3].includes(page.props.auth.user?.tipo);
+// ✅ CAMBIO: Solo verificar si es Admin (tipo 1)
+const isAdmin = computed(() => {
+    return page.props.auth.user?.tipo === 1;
 });
 
 // Verificar si es profesor
@@ -72,14 +72,14 @@ const menuItems = computed(() => {
             path: "/dashboard",
         },
         {
-            name: "Inscripciones",
+            name: "Inscripciones a materias",
             route: "inscripciones",
             icon: "bx-clipboard",
             path: "/inscripciones",
             onlyAlumno: true,
         },
         {
-            name: "Mesas",
+            name: "Inscripciones a Mesas",
             route: "mesas",
             icon: "bx-calendar-event",
             path: "/mesas",
@@ -109,17 +109,17 @@ const menuItems = computed(() => {
             (item) => item.onlyAlumno || !item.hasOwnProperty("onlyAlumno")
         );
     } else if (page.props.auth.user?.tipo === 3) {
-        // Profesor: mostrar inicio, expediente (agregado dinámicamente) y parámetros
+        // Profesor: mostrar inicio, expediente y plan de estudio (SIN parámetros)
         return baseItems.filter((item) => !item.onlyAlumno);
     } else {
-        // Admin: mostrar inicio, expediente (agregado dinámicamente) y parámetros
+        // Admin: mostrar inicio, expediente, plan de estudio y parámetros
         return baseItems.filter((item) => !item.onlyAlumno);
     }
 });
 
-// Subitems de Parámetros (solo para admin/profesor)
+// ✅ CAMBIO: Subitems de Parámetros (SOLO para admin, NO para profesores)
 const parametrosItems = computed(() => {
-    if (!isAdminOrProfesor.value) return [];
+    if (!isAdmin.value) return [];
 
     return [
         {
@@ -276,8 +276,8 @@ const parametrosItems = computed(() => {
                 </transition>
             </component>
 
-            <!-- Dropdown de Parámetros (solo para admin/profesor) -->
-            <div v-if="isAdminOrProfesor" class="space-y-1">
+            <!-- ✅ CAMBIO: Dropdown de Parámetros (SOLO para admin) -->
+            <div v-if="isAdmin" class="space-y-1">
                 <!-- Botón principal de Parámetros -->
                 <button
                     @click="showParametrosMenu = !showParametrosMenu"

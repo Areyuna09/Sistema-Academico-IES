@@ -170,7 +170,7 @@ const accesosRapidos = computed(() => {
     } else if (props.tipoUsuario === 'alumno') {
         return [
             {
-                titulo: 'Inscripciones',
+                titulo: 'Inscripciones a materias',
                 descripcion: 'Materias del cuatrimestre',
                 icono: 'bx-clipboard',
                 color: 'blue',
@@ -190,7 +190,7 @@ const accesosRapidos = computed(() => {
                 href: '/expediente'
             },
             {
-                titulo: 'Mesas de Examen',
+                titulo: 'Inscripciones a Mesas de Examen',
                 descripcion: 'Inscripción a exámenes',
                 icono: 'bx-calendar-event',
                 color: 'purple',

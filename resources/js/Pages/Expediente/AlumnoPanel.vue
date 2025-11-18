@@ -44,7 +44,8 @@ const obtenerColorAsistencia = (porcentaje) => {
 <template>
     <Head title="Mi Expediente" />
 
-    <SidebarLayout>
+    <!-- ✅ AGREGADO: :user="$page.props.auth.user" -->
+    <SidebarLayout :user="$page.props.auth.user">
         <template #header>
             <div>
                 <h1 class="text-xl font-semibold text-white">Mi Expediente Académico</h1>
