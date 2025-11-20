@@ -15,10 +15,13 @@ const props = defineProps({
 
 const emit = defineEmits(["update:sidebarOpen", "closeSidebar"]);
 
+// Fallback al usuario de auth si no se pasa el prop
+const page = usePage();
+const user = computed(() => props.user || page.props.auth?.user);
+
 const hoveredItem = ref(null);
 const showUserMenu = ref(false);
 const showParametrosMenu = ref(false);
-const page = usePage();
 
 // Verificar si una ruta está activa
 const isActive = (routeName) => {
@@ -81,7 +84,7 @@ const menuItems = computed(() => {
             modulo: "dashboard",
         },
         {
-            name: "Inscripciones",
+            name: "Inscripciones a Materias",
             route: "inscripciones",
             icon: "bx-clipboard",
             path: "/inscripciones",
@@ -89,7 +92,7 @@ const menuItems = computed(() => {
             modulo: "inscripciones",
         },
         {
-            name: "Mesas",
+            name: "Inscripciones a Mesas",
             route: "mesas",
             icon: "bx-calendar-event",
             path: "/mesas",

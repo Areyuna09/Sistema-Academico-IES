@@ -195,12 +195,16 @@
             margin-bottom: 3px;
         }
 
-        /* Footer */
+        /* Footer - Fijo abajo */
         .footer {
-            margin-top: 20px;
-            padding-top: 10px;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 10px 12mm;
             border-top: 1px solid #e2e8f0;
             text-align: center;
+            background: white;
         }
         .footer-row {
             display: flex;
@@ -211,20 +215,6 @@
         }
         .footer-col {
             flex: 1;
-        }
-        .footer-signature {
-            margin-top: 15px;
-            padding-top: 10px;
-        }
-        .signature-line {
-            border-top: 1px solid #1e293b;
-            width: 150px;
-            margin: 0 auto 5px;
-        }
-        .signature-label {
-            font-size: 8px;
-            color: #475569;
-            font-weight: bold;
         }
         .footer-note {
             margin-top: 8px;
@@ -298,6 +288,10 @@
                 <td class="value">{{ number_format($alumno->dni, 0, ',', '.') }}</td>
             </tr>
             <tr>
+                <td class="label">Carrera:</td>
+                <td class="value">{{ $alumno->carreraRelacion->nombre ?? 'Sin especificar' }}</td>
+            </tr>
+            <tr>
                 <td class="label">Año de Cursada:</td>
                 <td class="value">{{ $alumno->curso }}° Año</td>
             </tr>
@@ -313,9 +307,10 @@
             <thead>
                 <tr>
                     <th style="width: 5%">#</th>
-                    <th style="width: 55%">Materia</th>
+                    <th style="width: 40%">Materia</th>
                     <th style="width: 20%">Año / Cuatrimestre</th>
-                    <th style="width: 20%">Estado</th>
+                    <th style="width: 15%">División</th>
+                    <th style="width: 20%">Turno</th>
                 </tr>
             </thead>
             <tbody>
@@ -331,7 +326,18 @@
                         </div>
                     </td>
                     <td>
-                        <span class="status-badge">Confirmada</span>
+                        <div class="materia-details">
+                            {{ $inscripcion->division ?? '-' }}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="materia-details">
+                            @if($inscripcion->cursado)
+                                {{ ucfirst($inscripcion->cursado) }}
+                            @else
+                                -
+                            @endif
+                        </div>
                     </td>
                 </tr>
                 @endforeach

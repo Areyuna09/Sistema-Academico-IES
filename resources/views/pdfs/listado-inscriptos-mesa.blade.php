@@ -143,32 +143,32 @@
             margin-bottom: 3px;
         }
 
-        /* Footer */
+        /* Footer - Fijo abajo */
         .footer {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
-            text-align: center;
-            font-size: 8px;
-            color: #94a3b8;
-            padding: 10px 0;
+            padding: 10px 15mm;
             border-top: 1px solid #e2e8f0;
-        }
-
-        /* Firma */
-        .firma-section {
-            margin-top: 30px;
             text-align: center;
+            background: white;
         }
-        .firma-linea {
-            width: 200px;
-            border-top: 1px solid #1a1a1a;
-            margin: 0 auto 5px;
+        .footer-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 7px;
+            color: #64748b;
         }
-        .firma-texto {
-            font-size: 9px;
-            color: #475569;
+        .footer-col {
+            flex: 1;
+        }
+        .footer-note {
+            margin-top: 6px;
+            font-size: 6px;
+            color: #94a3b8;
+            font-style: italic;
         }
     </style>
 </head>
@@ -220,10 +220,11 @@
                 <tr>
                     <th style="width: 5%">N°</th>
                     <th style="width: 12%">DNI</th>
-                    <th style="width: 35%">Alumno</th>
-                    <th style="width: 13%">Estado</th>
-                    <th style="width: 10%">Nota</th>
-                    <th style="width: 25%">Observaciones</th>
+                    <th style="width: 30%">Alumno</th>
+                    <th style="width: 15%">Legajo</th>
+                    <th style="width: 8%">Año</th>
+                    <th style="width: 15%">Condición</th>
+                    <th style="width: 15%">Fecha Insc.</th>
                 </tr>
             </thead>
             <tbody>
@@ -232,13 +233,10 @@
                         <td class="text-center">{{ $index + 1 }}</td>
                         <td>{{ $inscripcion->alumno->dni }}</td>
                         <td>{{ $inscripcion->alumno->apellido }}, {{ $inscripcion->alumno->nombre }}</td>
-                        <td class="text-center">
-                            <span class="estado estado-{{ $inscripcion->estado }}">
-                                {{ ucfirst($inscripcion->estado) }}
-                            </span>
-                        </td>
-                        <td class="text-center">{{ $inscripcion->nota ?? '-' }}</td>
-                        <td></td>
+                        <td class="text-center">{{ $inscripcion->alumno->legajo ?? '-' }}</td>
+                        <td class="text-center">{{ $inscripcion->alumno->curso ?? '-' }}°</td>
+                        <td class="text-center">{{ $inscripcion->condicion ?? 'Regular' }}</td>
+                        <td class="text-center">{{ $inscripcion->created_at ? $inscripcion->created_at->format('d/m/Y') : '-' }}</td>
                     </tr>
                 @endforeach
             </tbody>
@@ -265,15 +263,34 @@
         </div>
     @endif
 
-    <!-- Firma -->
-    <div class="firma-section">
-        <div class="firma-linea"></div>
-        <div class="firma-texto">Firma del Responsable</div>
-    </div>
-
     <!-- Footer -->
     <div class="footer">
-        {{ $configuracion->nombre_institucion ?? 'IES Gral. Manuel Belgrano' }} - Sistema Académico
+        <div class="footer-row">
+            <div class="footer-col">
+                <strong>Secretaría Académica</strong><br>
+                {{ $configuracion->nombre_institucion ?? 'IES Gral. Manuel Belgrano' }}<br>
+                @if($configuracion && $configuracion->direccion)
+                    {{ $configuracion->direccion }}
+                @endif
+            </div>
+            <div class="footer-col">
+                <strong>Contacto</strong><br>
+                @if($configuracion && $configuracion->email)
+                    {{ $configuracion->email }}<br>
+                @endif
+                @if($configuracion && $configuracion->telefono)
+                    Tel: {{ $configuracion->telefono }}
+                @endif
+            </div>
+        </div>
+
+        <div class="footer-note">
+            @if($configuracion && $configuracion->footer_documentos)
+                {!! nl2br(e($configuracion->footer_documentos)) !!}<br>
+            @endif
+            Documento generado automáticamente el {{ now()->format('d/m/Y') }} a las {{ now()->format('H:i') }}hs.<br>
+            © {{ date('Y') }} {{ $configuracion->nombre_institucion ?? 'IES Gral. Manuel Belgrano' }} - Todos los derechos reservados
+        </div>
     </div>
 </body>
 </html>

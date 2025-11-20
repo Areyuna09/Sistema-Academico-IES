@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Materia;
 use App\Models\Carrera;
+use App\Models\PlanEstudio;
+use App\Models\PlanEstudioMateria;
 use App\Traits\HandlesErrors;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -118,13 +120,36 @@ class MateriasController extends Controller
                     ->withErrors(['nombre' => 'Ya existe una materia con este nombre en esta carrera.']);
             }
 
-            Materia::create($validated);
+            $materia = Materia::create($validated);
 
             \Log::info('Materia creada', [
+                'materia_id' => $materia->id,
                 'materia' => $validated['nombre'],
                 'carrera' => $validated['carrera'],
                 'creado_por' => auth()->id()
             ]);
+
+            // Agregar automáticamente al plan activo de la carrera si existe
+            $planActivo = PlanEstudio::where('carrera_id', $validated['carrera'])
+                ->where('activo', true)
+                ->first();
+
+            if ($planActivo) {
+                // Obtener el siguiente orden disponible
+                $maxOrden = PlanEstudioMateria::where('plan_estudio_id', $planActivo->id)->max('orden') ?? 0;
+
+                PlanEstudioMateria::create([
+                    'plan_estudio_id' => $planActivo->id,
+                    'materia_id' => $materia->id,
+                    'orden' => $maxOrden + 1,
+                ]);
+
+                \Log::info('Materia agregada automáticamente al plan activo', [
+                    'materia_id' => $materia->id,
+                    'plan_id' => $planActivo->id,
+                    'orden' => $maxOrden + 1,
+                ]);
+            }
 
             return back()->with('success', 'Materia creada exitosamente.');
 
@@ -205,13 +230,52 @@ class MateriasController extends Controller
                     ->withErrors(['nombre' => 'Ya existe una materia con este nombre en esta carrera.']);
             }
 
+            // Detectar si cambió la carrera
+            $carreraCambio = $materia->carrera != $validated['carrera'];
+            $carreraAnterior = $materia->carrera;
+
             $materia->update($validated);
 
             \Log::info('Materia actualizada', [
                 'materia_id' => $materia->id,
                 'nombre' => $validated['nombre'],
+                'carrera_cambio' => $carreraCambio,
                 'actualizado_por' => auth()->id()
             ]);
+
+            // Si cambió la carrera, actualizar los planes de estudio
+            if ($carreraCambio) {
+                // Eliminar de planes de la carrera anterior
+                PlanEstudioMateria::whereHas('planEstudio', function($query) use ($carreraAnterior) {
+                    $query->where('carrera_id', $carreraAnterior);
+                })->where('materia_id', $materia->id)->delete();
+
+                \Log::info('Materia eliminada de planes de carrera anterior', [
+                    'materia_id' => $materia->id,
+                    'carrera_anterior' => $carreraAnterior,
+                ]);
+
+                // Agregar al plan activo de la nueva carrera si existe
+                $planActivoNuevo = PlanEstudio::where('carrera_id', $validated['carrera'])
+                    ->where('activo', true)
+                    ->first();
+
+                if ($planActivoNuevo) {
+                    $maxOrden = PlanEstudioMateria::where('plan_estudio_id', $planActivoNuevo->id)->max('orden') ?? 0;
+
+                    PlanEstudioMateria::create([
+                        'plan_estudio_id' => $planActivoNuevo->id,
+                        'materia_id' => $materia->id,
+                        'orden' => $maxOrden + 1,
+                    ]);
+
+                    \Log::info('Materia agregada al plan activo de nueva carrera', [
+                        'materia_id' => $materia->id,
+                        'plan_id' => $planActivoNuevo->id,
+                        'nueva_carrera' => $validated['carrera'],
+                    ]);
+                }
+            }
 
             return back()->with('success', 'Materia actualizada exitosamente.');
 
@@ -242,9 +306,40 @@ class MateriasController extends Controller
             return back()->withErrors(['error' => 'No se puede eliminar una materia con alumnos que la hayan cursado.']);
         }
 
-        $materia->delete();
+        try {
+            \DB::beginTransaction();
 
-        // Redirigir de vuelta sin especificar ruta (para que Inertia maneje el refresh)
-        return back()->with('success', 'Materia eliminada exitosamente.');
+            // Eliminar la materia de todos los planes de estudio donde esté asignada
+            $relacionesEliminadas = PlanEstudioMateria::where('materia_id', $materia->id)->delete();
+
+            if ($relacionesEliminadas > 0) {
+                \Log::info('Materia eliminada de planes de estudio', [
+                    'materia_id' => $materia->id,
+                    'planes_afectados' => $relacionesEliminadas,
+                ]);
+            }
+
+            // Eliminar la materia
+            $materia->delete();
+
+            \DB::commit();
+
+            \Log::info('Materia eliminada exitosamente', [
+                'materia_id' => $materia->id,
+                'eliminado_por' => auth()->id(),
+            ]);
+
+            // Redirigir de vuelta sin especificar ruta (para que Inertia maneje el refresh)
+            return back()->with('success', 'Materia eliminada exitosamente.');
+
+        } catch (\Exception $e) {
+            \DB::rollBack();
+
+            $this->handleError($e, 'eliminar materia', [
+                'materia_id' => $materia->id,
+            ]);
+
+            return back()->withErrors(['error' => $this->getFriendlyErrorMessage($e, 'Error al eliminar la materia')]);
+        }
     }
 }

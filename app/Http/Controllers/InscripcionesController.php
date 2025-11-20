@@ -507,8 +507,8 @@ class InscripcionesController extends Controller
         // Configurar orientación y tamaño
         $pdf->setPaper('A4', 'portrait');
 
-        // Descargar PDF
-        return $pdf->download('comprobante-inscripcion-' . $alumno->dni . '.pdf');
+        // Mostrar PDF en navegador (vista previa)
+        return $pdf->stream('comprobante-inscripcion-' . $alumno->dni . '.pdf');
     }
 
 }

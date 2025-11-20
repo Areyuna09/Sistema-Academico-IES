@@ -110,44 +110,44 @@ const aniosOrdenados = computed(() => {
             </div>
 
             <!-- Estadísticas Generales -->
-            <div class="grid grid-cols-2 md:grid-cols-5 gap-2 md:gap-4">
-                <div class="bg-white border border-gray-200 rounded-lg p-3 md:p-4">
+            <div class="grid grid-cols-5 md:grid-cols-5 gap-1 md:gap-4">
+                <div class="bg-white border border-gray-200 rounded-lg p-2 md:p-4">
                     <div class="text-center">
-                        <i class="bx bx-book text-blue-600 text-2xl md:text-3xl mb-1 md:mb-2"></i>
-                        <p class="text-xs md:text-sm text-gray-500">Total Materias</p>
-                        <p class="text-xl md:text-2xl font-bold text-gray-900">{{ estadisticas.total_materias }}</p>
+                        <i class="bx bx-book text-blue-600 text-xl md:text-3xl"></i>
+                        <p class="text-[9px] md:text-sm text-gray-500 mt-0.5 md:mt-2 truncate">Total</p>
+                        <p class="text-sm md:text-2xl font-bold text-gray-900">{{ estadisticas.total_materias }}</p>
                     </div>
                 </div>
 
-                <div class="bg-white border border-gray-200 rounded-lg p-3 md:p-4">
+                <div class="bg-white border border-gray-200 rounded-lg p-2 md:p-4">
                     <div class="text-center">
-                        <i class="bx bx-check-circle text-green-600 text-2xl md:text-3xl mb-1 md:mb-2"></i>
-                        <p class="text-xs md:text-sm text-gray-500">Aprobadas</p>
-                        <p class="text-xl md:text-2xl font-bold text-green-600">{{ estadisticas.aprobadas }}</p>
+                        <i class="bx bx-check-circle text-green-600 text-xl md:text-3xl"></i>
+                        <p class="text-[9px] md:text-sm text-gray-500 mt-0.5 md:mt-2 truncate">Aprob.</p>
+                        <p class="text-sm md:text-2xl font-bold text-green-600">{{ estadisticas.aprobadas }}</p>
                     </div>
                 </div>
 
-                <div class="bg-white border border-gray-200 rounded-lg p-3 md:p-4">
+                <div class="bg-white border border-gray-200 rounded-lg p-2 md:p-4">
                     <div class="text-center">
-                        <i class="bx bx-time-five text-blue-600 text-2xl md:text-3xl mb-1 md:mb-2"></i>
-                        <p class="text-xs md:text-sm text-gray-500">Regulares</p>
-                        <p class="text-xl md:text-2xl font-bold text-blue-600">{{ estadisticas.regulares }}</p>
+                        <i class="bx bx-time-five text-blue-600 text-xl md:text-3xl"></i>
+                        <p class="text-[9px] md:text-sm text-gray-500 mt-0.5 md:mt-2 truncate">Regul.</p>
+                        <p class="text-sm md:text-2xl font-bold text-blue-600">{{ estadisticas.regulares }}</p>
                     </div>
                 </div>
 
-                <div class="bg-white border border-gray-200 rounded-lg p-3 md:p-4">
+                <div class="bg-white border border-gray-200 rounded-lg p-2 md:p-4">
                     <div class="text-center">
-                        <i class="bx bx-trending-up text-purple-600 text-2xl md:text-3xl mb-1 md:mb-2"></i>
-                        <p class="text-xs md:text-sm text-gray-500">Promedio</p>
-                        <p class="text-xl md:text-2xl font-bold text-purple-600">{{ estadisticas.promedio }}</p>
+                        <i class="bx bx-trending-up text-purple-600 text-xl md:text-3xl"></i>
+                        <p class="text-[9px] md:text-sm text-gray-500 mt-0.5 md:mt-2 truncate">Prom.</p>
+                        <p class="text-sm md:text-2xl font-bold text-purple-600">{{ estadisticas.promedio }}</p>
                     </div>
                 </div>
 
-                <div class="bg-white border border-gray-200 rounded-lg p-3 md:p-4">
+                <div class="bg-white border border-gray-200 rounded-lg p-2 md:p-4">
                     <div class="text-center">
-                        <i class="bx bx-bar-chart-alt-2 text-orange-600 text-2xl md:text-3xl mb-1 md:mb-2"></i>
-                        <p class="text-xs md:text-sm text-gray-500">Avance</p>
-                        <p class="text-xl md:text-2xl font-bold text-orange-600">{{ estadisticas.porcentaje_avance }}%</p>
+                        <i class="bx bx-bar-chart-alt-2 text-orange-600 text-xl md:text-3xl"></i>
+                        <p class="text-[9px] md:text-sm text-gray-500 mt-0.5 md:mt-2 truncate">Avance</p>
+                        <p class="text-sm md:text-2xl font-bold text-orange-600">{{ estadisticas.porcentaje_avance }}%</p>
                     </div>
                 </div>
             </div>

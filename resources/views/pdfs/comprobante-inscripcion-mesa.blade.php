@@ -206,12 +206,16 @@
             margin-bottom: 3px;
         }
 
-        /* Footer */
+        /* Footer - Fijo abajo */
         .footer {
-            margin-top: 20px;
-            padding-top: 10px;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 10px 12mm;
             border-top: 1px solid #e2e8f0;
             text-align: center;
+            background: white;
         }
         .footer-row {
             display: flex;
@@ -300,7 +304,7 @@
             </tr>
             <tr>
                 <td class="label">Carrera:</td>
-                <td class="value">{{ $mesa->materia->carrera->nombre }}</td>
+                <td class="value">{{ $mesa->materia->getRelation('carrera')->nombre ?? 'Sin especificar' }}</td>
             </tr>
         </table>
 
@@ -312,11 +316,11 @@
             <div class="mesa-info">
                 <div class="mesa-info-item">
                     <div class="mesa-info-label">📅 Fecha</div>
-                    <div class="mesa-info-value">{{ \Carbon\Carbon::parse($mesa->fecha)->format('d/m/Y') }}</div>
+                    <div class="mesa-info-value">{{ $mesa->fecha_examen ? $mesa->fecha_examen->format('d/m/Y') : 'A confirmar' }}</div>
                 </div>
                 <div class="mesa-info-item">
                     <div class="mesa-info-label">🕐 Hora</div>
-                    <div class="mesa-info-value">{{ $mesa->hora }}hs</div>
+                    <div class="mesa-info-value">{{ $mesa->hora_examen ?? 'A confirmar' }}</div>
                 </div>
                 <div class="mesa-info-item">
                     <div class="mesa-info-label">🏫 Aula</div>
@@ -324,10 +328,20 @@
                 </div>
             </div>
 
-            @if($mesa->tribunal)
+            @if($mesa->presidente || $mesa->vocal1 || $mesa->vocal2)
             <div class="tribunal-box">
                 <strong>👥 Tribunal Evaluador</strong>
-                <p>{{ $mesa->tribunal }}</p>
+                <p>
+                    @if($mesa->presidente)
+                        Presidente: {{ $mesa->presidente->nombre_completo }}<br>
+                    @endif
+                    @if($mesa->vocal1)
+                        Vocal 1: {{ $mesa->vocal1->nombre_completo }}<br>
+                    @endif
+                    @if($mesa->vocal2)
+                        Vocal 2: {{ $mesa->vocal2->nombre_completo }}
+                    @endif
+                </p>
             </div>
             @endif
 
@@ -336,18 +350,6 @@
                 <strong>Observaciones:</strong> {{ $mesa->observaciones }}
             </div>
             @endif
-        </div>
-
-        <!-- Información importante -->
-        <div class="important-box">
-            <strong>⚠️ IMPORTANTE - REQUISITOS PARA RENDIR</strong>
-            <p>
-                • Debe presentarse 15 minutos antes del horario indicado.<br>
-                • Es obligatorio presentar DNI y este comprobante de inscripción.<br>
-                • La ausencia injustificada implica la pérdida del turno de examen.<br>
-                • Debe tener aprobadas todas las correlativas requeridas para la materia.<br>
-                • No se permitirá el ingreso sin la documentación requerida.
-            </p>
         </div>
 
         <!-- Próximos pasos -->

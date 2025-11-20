@@ -406,75 +406,91 @@ class UsuariosController extends Controller
      */
     public function generarUsuariosAutomaticos(Request $request)
     {
+        // Aumentar tiempo de ejecución para operaciones masivas
+        set_time_limit(300);
+
         \Log::info('Iniciando generación automática de usuarios');
 
         $usuariosCreados = 0;
         $errores = [];
 
         try {
-            \DB::beginTransaction();
+            // Obtener DNIs existentes para evitar consultas repetidas
+            $dnisExistentes = User::pluck('dni')->flip()->toArray();
 
             // 1. Buscar alumnos sin usuario asignado
             $alumnosSinUsuario = Alumno::whereDoesntHave('user')->get();
 
-            foreach ($alumnosSinUsuario as $alumno) {
-                try {
-                    // Verificar si ya existe un usuario con ese DNI
-                    if (User::where('dni', $alumno->dni)->exists()) {
-                        $errores[] = "Alumno {$alumno->nombre} {$alumno->apellido} - DNI {$alumno->dni} ya tiene usuario";
-                        continue;
-                    }
-
-                    User::create([
-                        'name' => trim($alumno->nombre . ' ' . $alumno->apellido),
-                        'email' => $alumno->email ?: $alumno->dni . '@alumno.ies.edu.ar',
-                        'dni' => $alumno->dni,
-                        'clave' => Hash::make($alumno->dni), // Contraseña = DNI
-                        'tipo' => 4, // Alumno
-                        'activo' => true,
-                        'alumno_id' => $alumno->id,
-                    ]);
-
-                    $usuariosCreados++;
-                    \Log::info("Usuario creado para alumno: {$alumno->nombre} {$alumno->apellido}");
-
-                } catch (\Exception $e) {
-                    $errores[] = "Error al crear usuario para alumno {$alumno->nombre}: " . $e->getMessage();
-                    \Log::error("Error al crear usuario para alumno {$alumno->id}: " . $e->getMessage());
-                }
-            }
-
             // 2. Buscar profesores sin usuario asignado
             $profesoresSinUsuario = Profesor::whereDoesntHave('user')->get();
 
-            foreach ($profesoresSinUsuario as $profesor) {
-                try {
-                    // Verificar si ya existe un usuario con ese DNI
-                    if (User::where('dni', $profesor->dni)->exists()) {
-                        $errores[] = "Profesor {$profesor->nombre} {$profesor->apellido} - DNI {$profesor->dni} ya tiene usuario";
-                        continue;
-                    }
+            // Preparar datos para inserción masiva
+            $usuariosParaCrear = [];
+            $now = now();
 
-                    User::create([
-                        'name' => trim($profesor->nombre . ' ' . $profesor->apellido),
-                        'email' => $profesor->email ?: $profesor->dni . '@profesor.ies.edu.ar',
-                        'dni' => $profesor->dni,
-                        'clave' => Hash::make($profesor->dni), // Contraseña = DNI
-                        'tipo' => 3, // Profesor
-                        'activo' => true,
-                        'profesor_id' => $profesor->id,
-                    ]);
-
-                    $usuariosCreados++;
-                    \Log::info("Usuario creado para profesor: {$profesor->nombre} {$profesor->apellido}");
-
-                } catch (\Exception $e) {
-                    $errores[] = "Error al crear usuario para profesor {$profesor->nombre}: " . $e->getMessage();
-                    \Log::error("Error al crear usuario para profesor {$profesor->id}: " . $e->getMessage());
+            // Procesar alumnos
+            foreach ($alumnosSinUsuario as $alumno) {
+                if (isset($dnisExistentes[$alumno->dni])) {
+                    $errores[] = "Alumno {$alumno->nombre} {$alumno->apellido} - DNI {$alumno->dni} ya tiene usuario";
+                    continue;
                 }
+
+                $usuariosParaCrear[] = [
+                    'nombre' => trim($alumno->nombre . ' ' . $alumno->apellido),
+                    'usuario' => $alumno->dni,
+                    'email' => $alumno->email ?: $alumno->dni . '@alumno.ies.edu.ar',
+                    'dni' => $alumno->dni,
+                    'clave' => Hash::make($alumno->dni),
+                    'tipo' => 4,
+                    'activo' => 1,
+                    'alumno_id' => $alumno->id,
+                    'profesor_id' => null,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+
+                // Marcar DNI como usado para evitar duplicados en la misma operación
+                $dnisExistentes[$alumno->dni] = true;
             }
 
-            \DB::commit();
+            // Procesar profesores
+            foreach ($profesoresSinUsuario as $profesor) {
+                if (isset($dnisExistentes[$profesor->dni])) {
+                    $errores[] = "Profesor {$profesor->nombre} {$profesor->apellido} - DNI {$profesor->dni} ya tiene usuario";
+                    continue;
+                }
+
+                $usuariosParaCrear[] = [
+                    'nombre' => trim($profesor->nombre . ' ' . $profesor->apellido),
+                    'usuario' => $profesor->dni,
+                    'email' => $profesor->email ?: $profesor->dni . '@profesor.ies.edu.ar',
+                    'dni' => $profesor->dni,
+                    'clave' => Hash::make($profesor->dni),
+                    'tipo' => 3,
+                    'activo' => 1,
+                    'alumno_id' => null,
+                    'profesor_id' => $profesor->id,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+
+                $dnisExistentes[$profesor->dni] = true;
+            }
+
+            // Insertar en lotes de 50 para evitar problemas de memoria
+            if (count($usuariosParaCrear) > 0) {
+                \DB::beginTransaction();
+
+                $chunks = array_chunk($usuariosParaCrear, 50);
+                foreach ($chunks as $chunk) {
+                    User::insert($chunk);
+                    $usuariosCreados += count($chunk);
+                }
+
+                \DB::commit();
+
+                \Log::info("Usuarios creados masivamente: {$usuariosCreados}");
+            }
 
             $mensaje = "Se crearon {$usuariosCreados} usuario(s) automáticamente.";
             if (count($errores) > 0) {

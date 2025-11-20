@@ -68,6 +68,56 @@ const getLlamadoTexto = (llamado) => {
     };
     return textos[llamado] || `${llamado}° Llamado`;
 };
+
+// Modal de asignación masiva de fechas
+const modalFechas = ref({
+    visible: false,
+    fecha_inicio: '',
+    fecha_fin: '',
+    procesando: false,
+});
+
+const abrirModalFechas = () => {
+    modalFechas.value = {
+        visible: true,
+        fecha_inicio: '',
+        fecha_fin: '',
+        procesando: false,
+    };
+};
+
+const cerrarModalFechas = () => {
+    modalFechas.value.visible = false;
+};
+
+const asignarFechasMasivo = async () => {
+    if (!modalFechas.value.fecha_inicio || !modalFechas.value.fecha_fin) {
+        return;
+    }
+
+    const confirmed = await showConfirm(
+        `¿Está seguro de asignar estas fechas de inscripción a todas las mesas filtradas?`,
+        'Confirmar asignación masiva'
+    );
+
+    if (!confirmed) return;
+
+    modalFechas.value.procesando = true;
+
+    router.post(route('admin.mesas.asignar-fechas-masivo'), {
+        fecha_inicio_inscripcion: modalFechas.value.fecha_inicio,
+        fecha_fin_inscripcion: modalFechas.value.fecha_fin,
+        ...filtrosForm.value,
+    }, {
+        preserveScroll: true,
+        onSuccess: () => {
+            cerrarModalFechas();
+        },
+        onFinish: () => {
+            modalFechas.value.procesando = false;
+        },
+    });
+};
 </script>
 
 <template>
@@ -82,8 +132,15 @@ const getLlamadoTexto = (llamado) => {
         </template>
 
         <div class="p-8 max-w-7xl mx-auto">
-            <!-- Botón Nueva Mesa -->
-            <div class="flex justify-end mb-6">
+            <!-- Botones de acción -->
+            <div class="flex justify-end gap-3 mb-6">
+                <button
+                    @click="abrirModalFechas"
+                    class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors duration-200"
+                >
+                    <i class="bx bx-calendar-check text-xl mr-2"></i>
+                    Asignar Fechas de Inscripción
+                </button>
                 <Link
                     :href="route('admin.mesas.create')"
                     class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200"
@@ -317,6 +374,65 @@ const getLlamadoTexto = (llamado) => {
                             </template>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Asignar Fechas de Inscripción -->
+        <div v-if="modalFechas.visible" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+            <div class="relative mx-auto p-8 border w-full max-w-md shadow-lg rounded-lg bg-white">
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900">Asignar Fechas de Inscripción</h3>
+                    <p class="text-sm text-gray-600 mt-1">Las fechas se aplicarán a todas las mesas según los filtros activos</p>
+                </div>
+
+                <div class="space-y-4">
+                    <!-- Fecha de Inicio -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Fecha de Inicio de Inscripción
+                        </label>
+                        <input
+                            v-model="modalFechas.fecha_inicio"
+                            type="date"
+                            class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
+                            :disabled="modalFechas.procesando"
+                        />
+                    </div>
+
+                    <!-- Fecha de Fin -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Fecha de Fin de Inscripción
+                        </label>
+                        <input
+                            v-model="modalFechas.fecha_fin"
+                            type="date"
+                            class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
+                            :disabled="modalFechas.procesando"
+                        />
+                    </div>
+                </div>
+
+                <!-- Botones -->
+                <div class="flex gap-3 mt-6">
+                    <button
+                        @click="cerrarModalFechas"
+                        type="button"
+                        class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                        :disabled="modalFechas.procesando"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        @click="asignarFechasMasivo"
+                        type="button"
+                        class="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400"
+                        :disabled="!modalFechas.fecha_inicio || !modalFechas.fecha_fin || modalFechas.procesando"
+                    >
+                        <span v-if="modalFechas.procesando">Asignando...</span>
+                        <span v-else>Asignar</span>
+                    </button>
                 </div>
             </div>
         </div>

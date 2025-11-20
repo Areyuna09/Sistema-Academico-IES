@@ -44,7 +44,7 @@ const obtenerColorAsistencia = (porcentaje) => {
 <template>
     <Head title="Mi Expediente" />
 
-    <SidebarLayout>
+    <SidebarLayout :user="$page.props.auth.user">
         <template #header>
             <div>
                 <h1 class="text-xl font-semibold text-white">Mi Expediente Académico</h1>
@@ -52,7 +52,7 @@ const obtenerColorAsistencia = (porcentaje) => {
             </div>
         </template>
 
-        <div class="p-8 max-w-7xl mx-auto">
+        <div class="p-4 md:p-8 max-w-7xl mx-auto overflow-hidden">
 
             <!-- Información del Alumno -->
             <div class="bg-white rounded-lg p-6 mb-6 border border-gray-200">
@@ -77,48 +77,44 @@ const obtenerColorAsistencia = (porcentaje) => {
                 </div>
             </div>
 
-            <!-- Métricas -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <!-- Métricas - Compacto en móvil -->
+            <div class="grid grid-cols-4 md:grid-cols-4 gap-2 md:gap-4 mb-6">
                 <!-- Total Materias -->
-                <div class="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg p-5 text-white">
-                    <div class="flex items-center justify-between mb-2">
-                        <i class="bx bx-book-open text-3xl opacity-80"></i>
-                        <span class="text-xs bg-white/20 px-2 py-1 rounded-full">Total</span>
+                <div class="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg p-2 md:p-5 text-white">
+                    <div class="text-center md:text-left">
+                        <i class="bx bx-book-open text-xl md:text-3xl opacity-80"></i>
+                        <p class="text-lg md:text-3xl font-bold mt-1">{{ estadisticas.total_materias }}</p>
+                        <p class="text-[8px] md:text-xs opacity-90 truncate">Total</p>
                     </div>
-                    <p class="text-3xl font-bold mb-1">{{ estadisticas.total_materias }}</p>
-                    <p class="text-xs opacity-90">Materias en historial</p>
                 </div>
 
                 <!-- Aprobadas -->
-                <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-5 text-white">
-                    <div class="flex items-center justify-between mb-2">
-                        <i class="bx bx-check-circle text-3xl opacity-80"></i>
-                        <span class="text-xs bg-white/20 px-2 py-1 rounded-full">Aprobadas</span>
+                <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-2 md:p-5 text-white">
+                    <div class="text-center md:text-left">
+                        <i class="bx bx-check-circle text-xl md:text-3xl opacity-80"></i>
+                        <p class="text-lg md:text-3xl font-bold mt-1">{{ estadisticas.aprobadas }}</p>
+                        <p class="text-[8px] md:text-xs opacity-90 truncate">Aprob.</p>
                     </div>
-                    <p class="text-3xl font-bold mb-1">{{ estadisticas.aprobadas }}</p>
-                    <p class="text-xs opacity-90">{{ estadisticas.porcentaje_progreso }}% completado</p>
                 </div>
 
                 <!-- Regulares -->
-                <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-5 text-white">
-                    <div class="flex items-center justify-between mb-2">
-                        <i class="bx bx-time-five text-3xl opacity-80"></i>
-                        <span class="text-xs bg-white/20 px-2 py-1 rounded-full">Regulares</span>
+                <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-2 md:p-5 text-white">
+                    <div class="text-center md:text-left">
+                        <i class="bx bx-time-five text-xl md:text-3xl opacity-80"></i>
+                        <p class="text-lg md:text-3xl font-bold mt-1">{{ estadisticas.regulares }}</p>
+                        <p class="text-[8px] md:text-xs opacity-90 truncate">Regul.</p>
                     </div>
-                    <p class="text-3xl font-bold mb-1">{{ estadisticas.regulares }}</p>
-                    <p class="text-xs opacity-90">Pendientes de rendir</p>
                 </div>
 
                 <!-- Promedio -->
-                <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-5 text-white">
-                    <div class="flex items-center justify-between mb-2">
-                        <i class="bx bx-trophy text-3xl opacity-80"></i>
-                        <span class="text-xs bg-white/20 px-2 py-1 rounded-full">Promedio</span>
+                <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-2 md:p-5 text-white">
+                    <div class="text-center md:text-left">
+                        <i class="bx bx-trophy text-xl md:text-3xl opacity-80"></i>
+                        <p class="text-lg md:text-3xl font-bold mt-1">
+                            {{ estadisticas.promedio ? estadisticas.promedio.toFixed(2) : 'N/A' }}
+                        </p>
+                        <p class="text-[8px] md:text-xs opacity-90 truncate">Prom.</p>
                     </div>
-                    <p class="text-3xl font-bold mb-1">
-                        {{ estadisticas.promedio ? estadisticas.promedio.toFixed(2) : 'N/A' }}
-                    </p>
-                    <p class="text-xs opacity-90">Promedio general</p>
                 </div>
             </div>
 
@@ -292,41 +288,41 @@ const obtenerColorAsistencia = (porcentaje) => {
                             <p>No tienes materias inscritas en el cuatrimestre actual</p>
                         </div>
 
-                        <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                             <div
                                 v-for="item in materias_actuales"
                                 :key="item.materia.id"
-                                class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition"
+                                class="border border-gray-200 rounded-lg p-3 md:p-4 hover:bg-gray-50 transition overflow-hidden"
                             >
-                                <div class="flex items-start justify-between mb-3">
-                                    <div>
-                                        <h4 class="font-semibold text-gray-800">{{ item.materia.nombre }}</h4>
-                                        <p class="text-sm text-gray-500 mt-1">
-                                            {{ item.materia.anno }}° Año - {{ item.materia.semestre === 1 ? '1er' : '2do' }} Cuatrimestre
+                                <div class="flex items-start justify-between mb-2 md:mb-3 gap-2">
+                                    <div class="min-w-0 flex-1">
+                                        <h4 class="font-semibold text-gray-800 text-sm md:text-base truncate">{{ item.materia.nombre }}</h4>
+                                        <p class="text-xs md:text-sm text-gray-500 mt-1">
+                                            {{ item.materia.anno }}° Año - {{ item.materia.semestre === 1 ? '1er' : '2do' }} Cuatr.
                                         </p>
                                     </div>
-                                    <i class='bx bx-book-open text-2xl text-blue-600'></i>
+                                    <i class='bx bx-book-open text-xl md:text-2xl text-blue-600 flex-shrink-0'></i>
                                 </div>
 
                                 <!-- Asistencias -->
-                                <div v-if="item.asistencia.total_clases > 0" class="bg-gray-50 rounded-lg p-3">
-                                    <div class="flex items-center justify-between mb-2">
-                                        <span class="text-sm font-medium text-gray-600">Asistencias</span>
-                                        <span class="text-lg font-bold" :class="item.asistencia.porcentaje >= 80 ? 'text-green-600' : item.asistencia.porcentaje >= 60 ? 'text-yellow-600' : 'text-red-600'">
+                                <div v-if="item.asistencia.total_clases > 0" class="bg-gray-50 rounded-lg p-2 md:p-3">
+                                    <div class="flex items-center justify-between mb-1 md:mb-2">
+                                        <span class="text-xs md:text-sm font-medium text-gray-600">Asistencias</span>
+                                        <span class="text-sm md:text-lg font-bold" :class="item.asistencia.porcentaje >= 80 ? 'text-green-600' : item.asistencia.porcentaje >= 60 ? 'text-yellow-600' : 'text-red-600'">
                                             {{ item.asistencia.porcentaje }}%
                                         </span>
                                     </div>
-                                    <div class="w-full bg-gray-200 rounded-full h-2 mb-2">
+                                    <div class="w-full bg-gray-200 rounded-full h-1.5 md:h-2 mb-1 md:mb-2">
                                         <div
-                                            :class="['h-2 rounded-full', obtenerColorAsistencia(item.asistencia.porcentaje)]"
+                                            :class="['h-1.5 md:h-2 rounded-full', obtenerColorAsistencia(item.asistencia.porcentaje)]"
                                             :style="`width: ${item.asistencia.porcentaje}%`"
                                         ></div>
                                     </div>
-                                    <p class="text-xs text-gray-600">
+                                    <p class="text-[10px] md:text-xs text-gray-600">
                                         {{ item.asistencia.presentes }} de {{ item.asistencia.total_clases }} clases
                                     </p>
                                 </div>
-                                <div v-else class="bg-gray-50 rounded-lg p-3 text-center text-sm text-gray-500">
+                                <div v-else class="bg-gray-50 rounded-lg p-2 md:p-3 text-center text-xs md:text-sm text-gray-500">
                                     Sin registros de asistencia
                                 </div>
                             </div>

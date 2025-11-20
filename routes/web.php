@@ -185,6 +185,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/mesas', [MesasExamenController::class, 'index'])->name('mesas.index');
     Route::get('/mesas/crear', [MesasExamenController::class, 'create'])->name('mesas.create');
     Route::post('/mesas', [MesasExamenController::class, 'store'])->name('mesas.store');
+    Route::post('/mesas/asignar-fechas-masivo', [MesasExamenController::class, 'asignarFechasMasivo'])->name('mesas.asignar-fechas-masivo');
     Route::get('/mesas/{mesa}', [MesasExamenController::class, 'show'])->name('mesas.show');
     Route::get('/mesas/{mesa}/editar', [MesasExamenController::class, 'edit'])->name('mesas.edit');
     Route::put('/mesas/{mesa}', [MesasExamenController::class, 'update'])->name('mesas.update');

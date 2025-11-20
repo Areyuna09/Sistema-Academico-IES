@@ -1,5 +1,5 @@
 <script setup>
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
 import { computed, ref, onMounted } from 'vue';
 import axios from 'axios';
@@ -18,6 +18,15 @@ const props = defineProps({
         default: null
     }
 });
+
+// Obtener configuración de módulos
+const page = usePage();
+const modulosConfig = computed(() => page.props.modulosConfig || {});
+
+// Helper para verificar si un módulo está activo
+const moduloActivo = (clave) => {
+    return modulosConfig.value[clave] !== false;
+};
 
 // Estado del modal de materias
 const modalMateriasAbierto = ref(false);
@@ -134,8 +143,10 @@ const configMetricas = computed(() => {
 
 // Accesos rápidos según tipo de usuario
 const accesosRapidos = computed(() => {
+    let accesos = [];
+
     if (props.tipoUsuario === 'profesor') {
-        return [
+        accesos = [
             {
                 titulo: 'Expediente',
                 descripcion: 'Gestionar alumnos y legajos',
@@ -144,7 +155,8 @@ const accesosRapidos = computed(() => {
                 bgColor: 'bg-blue-100',
                 textColor: 'text-blue-600',
                 hoverBorder: 'hover:border-blue-400',
-                route: 'expediente.index'
+                route: 'expediente.index',
+                modulo: 'expediente'
             },
             {
                 titulo: 'Mis Materias',
@@ -154,7 +166,8 @@ const accesosRapidos = computed(() => {
                 bgColor: 'bg-orange-100',
                 textColor: 'text-orange-600',
                 hoverBorder: 'hover:border-orange-400',
-                onClick: abrirModalMaterias
+                onClick: abrirModalMaterias,
+                modulo: null // Siempre visible
             },
             {
                 titulo: 'Mi Perfil',
@@ -164,11 +177,12 @@ const accesosRapidos = computed(() => {
                 bgColor: 'bg-green-100',
                 textColor: 'text-green-600',
                 hoverBorder: 'hover:border-green-400',
-                route: 'profile.edit'
+                route: 'profile.edit',
+                modulo: null // Siempre visible
             }
         ];
     } else if (props.tipoUsuario === 'alumno') {
-        return [
+        accesos = [
             {
                 titulo: 'Inscripciones',
                 descripcion: 'Materias del cuatrimestre',
@@ -177,7 +191,8 @@ const accesosRapidos = computed(() => {
                 bgColor: 'bg-blue-100',
                 textColor: 'text-blue-600',
                 hoverBorder: 'hover:border-blue-400',
-                route: 'inscripciones.index'
+                route: 'inscripciones.index',
+                modulo: 'inscripciones'
             },
             {
                 titulo: 'Mi Expediente',
@@ -187,7 +202,8 @@ const accesosRapidos = computed(() => {
                 bgColor: 'bg-green-100',
                 textColor: 'text-green-600',
                 hoverBorder: 'hover:border-green-400',
-                href: '/expediente'
+                href: '/expediente',
+                modulo: 'expediente'
             },
             {
                 titulo: 'Mesas de Examen',
@@ -197,11 +213,12 @@ const accesosRapidos = computed(() => {
                 bgColor: 'bg-purple-100',
                 textColor: 'text-purple-600',
                 hoverBorder: 'hover:border-purple-400',
-                href: '/mesas'
+                href: '/mesas',
+                modulo: 'mesas_examen'
             }
         ];
     } else if (props.tipoUsuario === 'admin') {
-        return [
+        accesos = [
             {
                 titulo: 'Expediente',
                 descripcion: 'Gestión académica completa',
@@ -210,7 +227,8 @@ const accesosRapidos = computed(() => {
                 bgColor: 'bg-blue-100',
                 textColor: 'text-blue-600',
                 hoverBorder: 'hover:border-blue-400',
-                route: 'expediente.index'
+                route: 'expediente.index',
+                modulo: 'expediente'
             },
             {
                 titulo: 'Usuarios',
@@ -220,7 +238,8 @@ const accesosRapidos = computed(() => {
                 bgColor: 'bg-green-100',
                 textColor: 'text-green-600',
                 hoverBorder: 'hover:border-green-400',
-                route: 'admin.usuarios.index'
+                route: 'admin.usuarios.index',
+                modulo: 'gestion_usuarios'
             },
             {
                 titulo: 'Configuración',
@@ -230,11 +249,17 @@ const accesosRapidos = computed(() => {
                 bgColor: 'bg-purple-100',
                 textColor: 'text-purple-600',
                 hoverBorder: 'hover:border-purple-400',
-                route: 'profile.edit'
+                route: 'profile.edit',
+                modulo: null // Siempre visible
             }
         ];
     }
-    return [];
+
+    // Filtrar accesos según módulos activos
+    return accesos.filter(acceso => {
+        if (!acceso.modulo) return true; // Sin módulo asociado, siempre visible
+        return moduloActivo(acceso.modulo);
+    });
 });
 
 // Funciones para el modal de materias
@@ -324,19 +349,19 @@ const irAMateria = (materiaId) => {
                 </div>
             </div>
 
-            <!-- Métricas -->
-            <div v-if="metricas && configMetricas.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <!-- Métricas - Compacto en móvil -->
+            <div v-if="metricas && configMetricas.length > 0" class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4 mb-6 md:mb-8">
                 <div
                     v-for="(metrica, index) in configMetricas"
                     :key="index"
-                    :class="['bg-gradient-to-br rounded-xl p-6 text-white transform transition-all duration-200 hover:scale-105 hover:shadow-lg', metrica.gradient]"
+                    :class="['bg-gradient-to-br rounded-lg md:rounded-xl p-3 md:p-6 text-white transform transition-all duration-200 hover:scale-105 hover:shadow-lg', metrica.gradient]"
                 >
-                    <div class="flex items-center justify-between mb-3">
-                        <i :class="['bx text-4xl opacity-80', metrica.icono]"></i>
-                        <span class="text-xs bg-white/20 px-3 py-1 rounded-full font-medium">{{ metrica.titulo }}</span>
+                    <div class="flex items-center justify-between mb-1 md:mb-3">
+                        <i :class="['bx text-2xl md:text-4xl opacity-80', metrica.icono]"></i>
+                        <span class="text-[8px] md:text-xs bg-white/20 px-1.5 md:px-3 py-0.5 md:py-1 rounded-full font-medium truncate max-w-[60px] md:max-w-none">{{ metrica.titulo }}</span>
                     </div>
-                    <p class="text-4xl font-bold mb-1">{{ metrica.valor }}</p>
-                    <p class="text-sm opacity-90">{{ metrica.subtitulo }}</p>
+                    <p class="text-xl md:text-4xl font-bold mb-0.5 md:mb-1">{{ metrica.valor }}</p>
+                    <p class="text-[10px] md:text-sm opacity-90 truncate">{{ metrica.subtitulo }}</p>
                 </div>
             </div>
 

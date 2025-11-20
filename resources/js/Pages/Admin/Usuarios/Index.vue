@@ -1,6 +1,6 @@
 <script setup>
-import { ref, computed } from 'vue';
-import { Link, router, useForm } from '@inertiajs/vue3';
+import { ref, computed, onMounted, watch } from 'vue';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
 import Dialog from '@/Components/Dialog.vue';
 import Modal from '@/Components/Modal.vue';
@@ -11,6 +11,41 @@ const props = defineProps({
     usuarios: Object,
     filtros: Object,
 });
+
+// Manejo de mensajes flash
+const page = usePage();
+const flashMessage = ref('');
+const flashType = ref('');
+const showFlash = ref(false);
+
+// Mostrar mensaje flash si existe
+const checkFlashMessages = () => {
+    const flash = page.props.flash;
+    if (flash?.success) {
+        flashMessage.value = flash.success;
+        flashType.value = 'success';
+        showFlash.value = true;
+        setTimeout(() => showFlash.value = false, 5000);
+    } else if (flash?.error) {
+        flashMessage.value = flash.error;
+        flashType.value = 'error';
+        showFlash.value = true;
+        setTimeout(() => showFlash.value = false, 8000);
+    }
+};
+
+onMounted(() => {
+    checkFlashMessages();
+});
+
+// Observar cambios en flash props
+watch(
+    () => page.props.flash,
+    () => {
+        checkFlashMessages();
+    },
+    { deep: true }
+);
 
 const form = useForm({
     tipo: props.filtros?.tipo || '',
@@ -107,23 +142,16 @@ const generarUsuariosAutomaticos = async () => {
     }
 };
 
-const confirmarCreacion = async () => {
-    const confirmed = await showConfirm(
-        `¿Confirma la creación de ${previewData.value.total} usuario(s)?\n\nEsta acción no se puede deshacer.`,
-        'Confirmar creación'
-    );
-
-    if (confirmed) {
-        showPreviewModal.value = false;
-        generandoUsuarios.value = true;
-        router.post(route('admin.usuarios.generar-automaticos'), {}, {
-            preserveScroll: true,
-            onFinish: () => {
-                generandoUsuarios.value = false;
-                previewData.value = null;
-            }
-        });
-    }
+const confirmarCreacion = () => {
+    showPreviewModal.value = false;
+    generandoUsuarios.value = true;
+    router.post(route('admin.usuarios.generar-automaticos'), {}, {
+        preserveScroll: true,
+        onFinish: () => {
+            generandoUsuarios.value = false;
+            previewData.value = null;
+        }
+    });
 };
 
 const cerrarPreview = () => {
@@ -144,6 +172,42 @@ const cerrarPreview = () => {
         </template>
 
         <div class="p-8 max-w-7xl mx-auto">
+            <!-- Mensaje Flash -->
+            <transition
+                enter-active-class="transition ease-out duration-300"
+                enter-from-class="transform opacity-0 -translate-y-2"
+                enter-to-class="transform opacity-100 translate-y-0"
+                leave-active-class="transition ease-in duration-200"
+                leave-from-class="transform opacity-100 translate-y-0"
+                leave-to-class="transform opacity-0 -translate-y-2"
+            >
+                <div
+                    v-if="showFlash"
+                    :class="[
+                        'mb-6 p-4 rounded-lg shadow-md flex items-center justify-between',
+                        flashType === 'success' ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
+                    ]"
+                >
+                    <div class="flex items-center">
+                        <i
+                            :class="[
+                                'bx text-2xl mr-3',
+                                flashType === 'success' ? 'bx-check-circle text-green-600' : 'bx-error-circle text-red-600'
+                            ]"
+                        ></i>
+                        <span :class="flashType === 'success' ? 'text-green-800' : 'text-red-800'">
+                            {{ flashMessage }}
+                        </span>
+                    </div>
+                    <button
+                        @click="showFlash = false"
+                        :class="flashType === 'success' ? 'text-green-600 hover:text-green-800' : 'text-red-600 hover:text-red-800'"
+                    >
+                        <i class="bx bx-x text-xl"></i>
+                    </button>
+                </div>
+            </transition>
+
             <!-- Acciones y Filtros -->
             <div class="bg-white rounded-lg shadow-md p-6 mb-6">
                 <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">

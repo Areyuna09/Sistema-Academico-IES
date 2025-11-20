@@ -46,6 +46,10 @@ class InscripcionesMesaController extends Controller
             ])
             ->where('estado', 'activa')
             ->whereDate('fecha_examen', '>=', now())
+            // Filtrar solo mesas de materias de la carrera del alumno
+            ->whereHas('materia', function($q) use ($alumno) {
+                $q->where('carrera', $alumno->carrera);
+            })
             ->where(function($q) {
                 $q->whereNull('fecha_inicio_inscripcion')
                   ->orWhere(function($q2) {
@@ -400,7 +404,7 @@ class InscripcionesMesaController extends Controller
         // Configurar orientación y tamaño
         $pdf->setPaper('A4', 'portrait');
 
-        return $pdf->download('comprobante-mesa-examen-' . $alumno->dni . '.pdf');
+        return $pdf->stream('comprobante-mesa-examen-' . $alumno->dni . '.pdf');
     }
 
     /**

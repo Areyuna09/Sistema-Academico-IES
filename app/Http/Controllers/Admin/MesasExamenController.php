@@ -223,4 +223,63 @@ class MesasExamenController extends Controller
             'mesa' => $mesa,
         ]);
     }
+
+    /**
+     * Asignar fechas de inscripción a múltiples mesas
+     */
+    public function asignarFechasMasivo(Request $request)
+    {
+        $validated = $request->validate([
+            'fecha_inicio_inscripcion' => 'required|date',
+            'fecha_fin_inscripcion' => 'required|date|after_or_equal:fecha_inicio_inscripcion',
+        ], [
+            'fecha_inicio_inscripcion.required' => 'La fecha de inicio es obligatoria.',
+            'fecha_fin_inscripcion.required' => 'La fecha de fin es obligatoria.',
+            'fecha_fin_inscripcion.after_or_equal' => 'La fecha de fin debe ser igual o posterior a la fecha de inicio.',
+        ]);
+
+        // Construir query con los mismos filtros que el listado
+        $query = MesaExamen::query();
+
+        if ($request->filled('carrera_id')) {
+            $query->whereHas('materia', function ($q) use ($request) {
+                $q->where('carrera', $request->carrera_id);
+            });
+        }
+
+        if ($request->filled('materia_id')) {
+            $query->where('materia_id', $request->materia_id);
+        }
+
+        if ($request->filled('periodo_id')) {
+            $query->where('periodo_id', $request->periodo_id);
+        }
+
+        if ($request->filled('estado')) {
+            $query->where('estado', $request->estado);
+        }
+
+        if ($request->filled('buscar')) {
+            $buscar = $request->buscar;
+            $query->whereHas('materia', function ($q) use ($buscar) {
+                $q->where('nombre', 'like', "%{$buscar}%");
+            });
+        }
+
+        // Actualizar todas las mesas que coinciden con los filtros
+        $mesasActualizadas = $query->update([
+            'fecha_inicio_inscripcion' => $validated['fecha_inicio_inscripcion'],
+            'fecha_fin_inscripcion' => $validated['fecha_fin_inscripcion'],
+        ]);
+
+        \Log::info('Fechas de inscripción asignadas masivamente', [
+            'mesas_actualizadas' => $mesasActualizadas,
+            'fecha_inicio' => $validated['fecha_inicio_inscripcion'],
+            'fecha_fin' => $validated['fecha_fin_inscripcion'],
+            'filtros' => $request->only(['carrera_id', 'materia_id', 'periodo_id', 'estado', 'buscar']),
+            'actualizado_por' => auth()->id(),
+        ]);
+
+        return back()->with('success', "Fechas de inscripción asignadas a {$mesasActualizadas} mesa(s) exitosamente.");
+    }
 }

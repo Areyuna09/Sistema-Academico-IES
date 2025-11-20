@@ -138,17 +138,32 @@
             color: #64748b;
         }
 
-        /* Footer */
+        /* Footer - Fijo abajo */
         .footer {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
-            text-align: center;
-            font-size: 8px;
-            color: #94a3b8;
-            padding: 10px 0;
+            padding: 10px 15mm;
             border-top: 1px solid #e2e8f0;
+            text-align: center;
+            background: white;
+        }
+        .footer-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 7px;
+            color: #64748b;
+        }
+        .footer-col {
+            flex: 1;
+        }
+        .footer-note {
+            margin-top: 6px;
+            font-size: 6px;
+            color: #94a3b8;
+            font-style: italic;
         }
     </style>
 </head>
@@ -187,11 +202,12 @@
                 <tr>
                     <th style="width: 4%">N°</th>
                     <th style="width: 10%">DNI</th>
-                    <th style="width: 22%">Alumno</th>
-                    <th style="width: 22%">Materia</th>
-                    <th style="width: 18%">Carrera</th>
-                    <th style="width: 12%">Período</th>
-                    <th style="width: 12%">Estado</th>
+                    <th style="width: 20%">Alumno</th>
+                    <th style="width: 20%">Materia</th>
+                    <th style="width: 16%">Carrera</th>
+                    <th style="width: 8%">Año</th>
+                    <th style="width: 10%">División</th>
+                    <th style="width: 12%">Turno</th>
                 </tr>
             </thead>
             <tbody>
@@ -201,13 +217,10 @@
                         <td>{{ $inscripcion->alumno->dni }}</td>
                         <td>{{ $inscripcion->alumno->apellido }}, {{ $inscripcion->alumno->nombre }}</td>
                         <td>{{ $inscripcion->materia->nombre }}</td>
-                        <td>{{ $inscripcion->materia->carrera->nombre }}</td>
-                        <td>{{ $inscripcion->periodo->nombre }}</td>
-                        <td class="text-center">
-                            <span class="estado estado-{{ $inscripcion->estado }}">
-                                {{ ucfirst($inscripcion->estado) }}
-                            </span>
-                        </td>
+                        <td>{{ $inscripcion->materia->carrera->nombre ?? '-' }}</td>
+                        <td class="text-center">{{ $inscripcion->alumno->curso ?? '-' }}°</td>
+                        <td class="text-center">{{ $inscripcion->division ?? '-' }}</td>
+                        <td class="text-center">{{ $inscripcion->cursado ? ucfirst($inscripcion->cursado) : '-' }}</td>
                     </tr>
                 @endforeach
             </tbody>
@@ -222,16 +235,12 @@
                     <div class="resumen-label">Total Inscriptos</div>
                 </div>
                 <div class="resumen-item">
-                    <div class="resumen-numero">{{ $inscripciones->where('estado', 'confirmada')->count() }}</div>
-                    <div class="resumen-label">Confirmadas</div>
+                    <div class="resumen-numero">{{ $inscripciones->unique('alumno_id')->count() }}</div>
+                    <div class="resumen-label">Alumnos</div>
                 </div>
                 <div class="resumen-item">
-                    <div class="resumen-numero">{{ $inscripciones->where('estado', 'pendiente')->count() }}</div>
-                    <div class="resumen-label">Pendientes</div>
-                </div>
-                <div class="resumen-item">
-                    <div class="resumen-numero">{{ $inscripciones->where('estado', 'cancelada')->count() }}</div>
-                    <div class="resumen-label">Canceladas</div>
+                    <div class="resumen-numero">{{ $inscripciones->unique('materia_id')->count() }}</div>
+                    <div class="resumen-label">Materias</div>
                 </div>
             </div>
         </div>
@@ -243,7 +252,32 @@
 
     <!-- Footer -->
     <div class="footer">
-        {{ $configuracion->nombre_institucion ?? 'IES Gral. Manuel Belgrano' }} - Sistema Académico
+        <div class="footer-row">
+            <div class="footer-col">
+                <strong>Secretaría Académica</strong><br>
+                {{ $configuracion->nombre_institucion ?? 'IES Gral. Manuel Belgrano' }}<br>
+                @if($configuracion && $configuracion->direccion)
+                    {{ $configuracion->direccion }}
+                @endif
+            </div>
+            <div class="footer-col">
+                <strong>Contacto</strong><br>
+                @if($configuracion && $configuracion->email)
+                    {{ $configuracion->email }}<br>
+                @endif
+                @if($configuracion && $configuracion->telefono)
+                    Tel: {{ $configuracion->telefono }}
+                @endif
+            </div>
+        </div>
+
+        <div class="footer-note">
+            @if($configuracion && $configuracion->footer_documentos)
+                {!! nl2br(e($configuracion->footer_documentos)) !!}<br>
+            @endif
+            Documento generado automáticamente el {{ now()->format('d/m/Y') }} a las {{ now()->format('H:i') }}hs.<br>
+            © {{ date('Y') }} {{ $configuracion->nombre_institucion ?? 'IES Gral. Manuel Belgrano' }} - Todos los derechos reservados
+        </div>
     </div>
 </body>
 </html>
