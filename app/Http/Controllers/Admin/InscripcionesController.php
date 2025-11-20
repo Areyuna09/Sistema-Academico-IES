@@ -11,9 +11,12 @@ use App\Models\MesaExamen;
 use App\Models\PeriodoInscripcion;
 use App\Models\Carrera;
 use App\Models\Notificacion;
+use App\Models\Configuracion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class InscripcionesController extends Controller
 {
@@ -46,9 +49,16 @@ class InscripcionesController extends Controller
             });
         }
 
-        // Filtrar por estado
-        if ($request->filled('estado')) {
-            $query->where('estado', $request->estado);
+        // Filtrar por materia
+        if ($request->filled('materia_id')) {
+            $query->where('materia_id', $request->materia_id);
+        }
+
+        // Filtrar por año de cursado
+        if ($request->filled('anio_cursado')) {
+            $query->whereHas('materia', function($q) use ($request) {
+                $q->where('anno', $request->anio_cursado);
+            });
         }
 
         // Buscar por DNI o nombre de alumno
@@ -75,12 +85,26 @@ class InscripcionesController extends Controller
         $carreras = Carrera::orderBy('nombre')
             ->get(['Id', 'nombre']);
 
+        // Obtener materias para el filtro
+        $materias = Materia::orderBy('nombre')
+            ->get()
+            ->map(function ($materia) {
+                $carreraObj = Carrera::find($materia->carrera);
+                return [
+                    'id' => $materia->id,
+                    'nombre' => $materia->nombre,
+                    'carrera_id' => $materia->carrera,
+                    'carrera_nombre' => $carreraObj->nombre ?? '',
+                ];
+            });
+
         return Inertia::render('Admin/Inscripciones/Index', [
             'tipo' => 'cursado',
             'inscripciones' => $inscripciones,
             'periodos' => $periodos,
             'carreras' => $carreras,
-            'filtros' => $request->only(['periodo_id', 'carrera_id', 'estado', 'buscar', 'tipo']),
+            'materias' => $materias,
+            'filtros' => $request->only(['periodo_id', 'carrera_id', 'materia_id', 'anio_cursado', 'buscar', 'tipo']),
         ]);
     }
 
@@ -91,6 +115,11 @@ class InscripcionesController extends Controller
     {
         $query = InscripcionMesa::query()
             ->with(['alumno', 'mesa.materia.carrera', 'mesa.periodo']);
+
+        // Filtrar por mesa específica
+        if ($request->filled('mesa_id')) {
+            $query->where('mesa_id', $request->mesa_id);
+        }
 
         // Filtrar por estado
         if ($request->filled('estado')) {
@@ -123,11 +152,36 @@ class InscripcionesController extends Controller
         $carreras = Carrera::orderBy('nombre')
             ->get(['Id', 'nombre']);
 
+        // Obtener mesas disponibles para el filtro (últimos 6 meses)
+        $mesas = MesaExamen::with(['materia'])
+            ->where('fecha_examen', '>=', now()->subMonths(6))
+            ->orderBy('fecha_examen', 'desc')
+            ->get()
+            ->map(function ($mesa) {
+                $carreraId = $mesa->materia->carrera;
+                $carreraObj = Carrera::find($carreraId);
+                return [
+                    'id' => $mesa->id,
+                    'nombre' => $mesa->materia->nombre . ' - ' . \Carbon\Carbon::parse($mesa->fecha_examen)->format('d/m/Y'),
+                    'carrera_id' => $carreraId,
+                    'carrera_nombre' => $carreraObj->nombre ?? 'Sin carrera',
+                    'materia_anio' => $mesa->materia->anno ?? null,
+                    'inscriptos_count' => $mesa->inscripciones()->count(),
+                ];
+            });
+
+        // Obtener períodos para el filtro
+        $periodos = PeriodoInscripcion::orderBy('anio', 'desc')
+            ->orderBy('cuatrimestre', 'desc')
+            ->get(['id', 'nombre', 'anio', 'cuatrimestre', 'activo']);
+
         return Inertia::render('Admin/Inscripciones/Index', [
             'tipo' => 'mesas',
             'inscripciones' => $inscripciones,
             'carreras' => $carreras,
-            'filtros' => $request->only(['carrera_id', 'estado', 'buscar', 'tipo']),
+            'mesas' => $mesas,
+            'periodos' => $periodos,
+            'filtros' => $request->only(['carrera_id', 'buscar', 'tipo', 'mesa_id']),
         ]);
     }
 
@@ -390,5 +444,234 @@ class InscripcionesController extends Controller
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Error al crear la inscripción: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Exportar listado de inscriptos a mesa en PDF
+     */
+    public function exportarMesaPdf(Request $request, $mesaId)
+    {
+        $mesa = MesaExamen::with(['materia', 'periodo', 'presidente', 'vocal1', 'vocal2'])
+            ->findOrFail($mesaId);
+
+        // Obtener la carrera de la materia
+        $carrera = Carrera::find($mesa->materia->carrera);
+
+        $inscripciones = InscripcionMesa::with('alumno')
+            ->where('mesa_id', $mesaId)
+            ->orderBy('fecha_inscripcion')
+            ->get();
+
+        // Obtener configuración institucional
+        $configuracion = Configuracion::first();
+
+        // Verificar si el módulo de aula está activo
+        $mostrarAula = \App\Models\ConfiguracionModulo::estaActivo('mesas_aula');
+
+        $pdf = PDF::loadView('pdfs.listado-inscriptos-mesa', [
+            'mesa' => $mesa,
+            'carrera' => $carrera,
+            'inscripciones' => $inscripciones,
+            'configuracion' => $configuracion,
+            'mostrarAula' => $mostrarAula,
+        ]);
+
+        $pdf->setPaper('A4', 'portrait');
+
+        $filename = 'listado_inscriptos_' . str_replace(' ', '_', $mesa->materia->nombre) . '_' . $mesa->fecha_examen . '.pdf';
+
+        // stream() abre en navegador para previsualizar
+        return $pdf->stream($filename);
+    }
+
+    /**
+     * Exportar listado de inscriptos a mesa en CSV
+     */
+    public function exportarMesaCsv(Request $request, $mesaId)
+    {
+        $mesa = MesaExamen::with('materia.carrera')
+            ->findOrFail($mesaId);
+
+        $inscripciones = InscripcionMesa::with('alumno')
+            ->where('mesa_id', $mesaId)
+            ->orderBy('fecha_inscripcion')
+            ->get();
+
+        $filename = 'listado_inscriptos_' . str_replace(' ', '_', $mesa->materia->nombre) . '_' . $mesa->fecha_examen . '.csv';
+
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"$filename\"",
+        ];
+
+        $callback = function () use ($mesa, $inscripciones) {
+            $file = fopen('php://output', 'w');
+
+            // BOM para Excel
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+
+            // Encabezado con información de la mesa
+            fputcsv($file, ['LISTADO DE INSCRIPTOS A MESA DE EXAMEN'], ';');
+            fputcsv($file, ['Materia:', $mesa->materia->nombre], ';');
+            fputcsv($file, ['Carrera:', $mesa->materia->carrera->nombre], ';');
+            fputcsv($file, ['Fecha:', \Carbon\Carbon::parse($mesa->fecha_examen)->format('d/m/Y')], ';');
+            fputcsv($file, ['Hora:', $mesa->hora_examen], ';');
+            fputcsv($file, [''], ';');
+
+            // Encabezados de columnas
+            fputcsv($file, ['N°', 'DNI', 'Apellido', 'Nombre', 'Estado', 'Nota', 'Fecha Inscripción'], ';');
+
+            // Datos
+            $numero = 1;
+            foreach ($inscripciones as $inscripcion) {
+                fputcsv($file, [
+                    $numero++,
+                    $inscripcion->alumno->dni,
+                    $inscripcion->alumno->apellido,
+                    $inscripcion->alumno->nombre,
+                    ucfirst($inscripcion->estado),
+                    $inscripcion->nota ?? '-',
+                    \Carbon\Carbon::parse($inscripcion->fecha_inscripcion)->format('d/m/Y H:i'),
+                ], ';');
+            }
+
+            fputcsv($file, [''], ';');
+            fputcsv($file, ['Total inscriptos:', count($inscripciones)], ';');
+
+            fclose($file);
+        };
+
+        return new StreamedResponse($callback, 200, $headers);
+    }
+
+    /**
+     * Exportar listado de inscriptos a cursado en PDF
+     */
+    public function exportarCursadoPdf(Request $request)
+    {
+        $query = Inscripcion::query()
+            ->with(['alumno', 'materia.carrera', 'periodo']);
+
+        // Aplicar filtros
+        if ($request->filled('periodo_id')) {
+            $query->where('periodo_id', $request->periodo_id);
+        }
+        if ($request->filled('carrera_id')) {
+            $query->whereHas('materia', function($q) use ($request) {
+                $q->where('carrera', $request->carrera_id);
+            });
+        }
+        if ($request->filled('materia_id')) {
+            $query->where('materia_id', $request->materia_id);
+        }
+        if ($request->filled('anio_cursado')) {
+            $query->whereHas('materia', function($q) use ($request) {
+                $q->where('anno', $request->anio_cursado);
+            });
+        }
+        if ($request->filled('estado')) {
+            $query->where('estado', $request->estado);
+        }
+
+        $inscripciones = $query->orderBy('fecha_inscripcion', 'desc')->get();
+
+        // Obtener información del período si está filtrado
+        $periodo = null;
+        if ($request->filled('periodo_id')) {
+            $periodo = PeriodoInscripcion::find($request->periodo_id);
+        }
+
+        // Obtener configuración institucional
+        $configuracion = Configuracion::first();
+
+        $pdf = PDF::loadView('pdfs.listado-inscriptos-cursado', [
+            'inscripciones' => $inscripciones,
+            'periodo' => $periodo,
+            'configuracion' => $configuracion,
+            'filtros' => $request->only(['periodo_id', 'carrera_id', 'estado']),
+        ]);
+
+        $pdf->setPaper('A4', 'portrait');
+
+        $filename = 'listado_inscriptos_cursado_' . now()->format('Y-m-d') . '.pdf';
+
+        return $pdf->download($filename);
+    }
+
+    /**
+     * Exportar listado de inscriptos a cursado en CSV
+     */
+    public function exportarCursadoCsv(Request $request)
+    {
+        $query = Inscripcion::query()
+            ->with(['alumno', 'materia.carrera', 'periodo']);
+
+        // Aplicar filtros
+        if ($request->filled('periodo_id')) {
+            $query->where('periodo_id', $request->periodo_id);
+        }
+        if ($request->filled('carrera_id')) {
+            $query->whereHas('materia', function($q) use ($request) {
+                $q->where('carrera', $request->carrera_id);
+            });
+        }
+        if ($request->filled('materia_id')) {
+            $query->where('materia_id', $request->materia_id);
+        }
+        if ($request->filled('anio_cursado')) {
+            $query->whereHas('materia', function($q) use ($request) {
+                $q->where('anno', $request->anio_cursado);
+            });
+        }
+        if ($request->filled('estado')) {
+            $query->where('estado', $request->estado);
+        }
+
+        $inscripciones = $query->orderBy('fecha_inscripcion', 'desc')->get();
+
+        $filename = 'listado_inscriptos_cursado_' . now()->format('Y-m-d') . '.csv';
+
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"$filename\"",
+        ];
+
+        $callback = function () use ($inscripciones) {
+            $file = fopen('php://output', 'w');
+
+            // BOM para Excel
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+
+            // Encabezado
+            fputcsv($file, ['LISTADO DE INSCRIPTOS A CURSADO'], ';');
+            fputcsv($file, ['Fecha de exportación:', now()->format('d/m/Y H:i')], ';');
+            fputcsv($file, [''], ';');
+
+            // Encabezados de columnas
+            fputcsv($file, ['N°', 'DNI', 'Apellido', 'Nombre', 'Materia', 'Carrera', 'Período', 'Estado', 'Fecha Inscripción'], ';');
+
+            // Datos
+            $numero = 1;
+            foreach ($inscripciones as $inscripcion) {
+                fputcsv($file, [
+                    $numero++,
+                    $inscripcion->alumno->dni,
+                    $inscripcion->alumno->apellido,
+                    $inscripcion->alumno->nombre,
+                    $inscripcion->materia->nombre,
+                    $inscripcion->materia->carrera->nombre,
+                    $inscripcion->periodo->nombre,
+                    ucfirst($inscripcion->estado),
+                    \Carbon\Carbon::parse($inscripcion->fecha_inscripcion)->format('d/m/Y H:i'),
+                ], ';');
+            }
+
+            fputcsv($file, [''], ';');
+            fputcsv($file, ['Total inscriptos:', count($inscripciones)], ';');
+
+            fclose($file);
+        };
+
+        return new StreamedResponse($callback, 200, $headers);
     }
 }

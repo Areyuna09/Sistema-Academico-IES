@@ -71,7 +71,7 @@ class InscripcionesMesaController extends Controller
                 'llamado' => $periodosInscripcion->llamado,
                 'fecha_inicio' => $periodosInscripcion->fecha_inicio_inscripcion->format('d/m/Y'),
                 'fecha_fin' => $periodosInscripcion->fecha_fin_inscripcion->format('d/m/Y'),
-                'dias_restantes' => now()->diffInDays($periodosInscripcion->fecha_fin_inscripcion, false),
+                'dias_restantes' => (int) \Carbon\Carbon::today()->diffInDays($periodosInscripcion->fecha_fin_inscripcion, false),
             ];
         }
 
@@ -102,13 +102,12 @@ class InscripcionesMesaController extends Controller
                 // Determinar el motivo de bloqueo
                 $motivoBloqueo = null;
                 $yaAprobada = false;
+                $rindeLibre = $validacion['rinde_libre'] ?? false;
 
                 if (!$validacion['puede_rendir']) {
                     if (str_contains($validacion['mensaje'], 'Ya tiene esta materia aprobada')) {
                         $motivoBloqueo = 'Ya aprobaste esta materia';
                         $yaAprobada = true;
-                    } elseif (str_contains($validacion['mensaje'], 'Debe tener la materia regularizada')) {
-                        $motivoBloqueo = 'Debes regularizar la materia primero';
                     } elseif (!empty($validacion['correlativas_faltantes'])) {
                         $count = count($validacion['correlativas_faltantes']);
                         $motivoBloqueo = "Te " . ($count === 1 ? 'falta' : 'faltan') . " {$count} correlativa" . ($count === 1 ? '' : 's');
@@ -143,6 +142,7 @@ class InscripcionesMesaController extends Controller
                     'correlativas_faltantes' => $validacion['correlativas_faltantes'] ?? [],
                     'motivo_bloqueo' => $motivoBloqueo,
                     'ya_aprobada' => $yaAprobada,
+                    'rinde_libre' => $rindeLibre,
                     'observaciones' => $mesa->observaciones,
                 ];
             });
@@ -213,12 +213,16 @@ class InscripcionesMesaController extends Controller
             ]);
         }
 
+        // Determinar si rinde como libre
+        $rindeLibre = $validacion['rinde_libre'] ?? false;
+
         // Crear inscripción
         $inscripcion = InscripcionMesa::create([
             'mesa_id' => $mesa->id,
             'alumno_id' => $alumno->id,
             'estado' => 'inscripto',
             'fecha_inscripcion' => now(),
+            'observaciones' => $rindeLibre ? 'Rinde como LIBRE' : null,
         ]);
 
         // Enviar email con comprobante inmediatamente

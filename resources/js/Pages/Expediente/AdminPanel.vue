@@ -445,24 +445,89 @@ const profesorGuardado = () => {
     });
 };
 
+const limpiarMateriasProfesor = async (profesor) => {
+    try {
+        // Hacer petición para limpiar las materias del profesor
+        router.post(route('profesores.limpiar-materias', profesor.id), {}, {
+            preserveScroll: true,
+            onSuccess: () => {
+                dialogAlert(
+                    'Las asignaciones de materias han sido eliminadas. Ahora puedes eliminar al profesor.',
+                    'Materias limpiadas'
+                ).then(() => {
+                    // Recargar para actualizar la lista
+                    router.reload({
+                        only: ['profesores'],
+                        preserveScroll: true,
+                        preserveState: true,
+                    });
+                });
+            },
+            onError: (errors) => {
+                dialogAlert(
+                    'Error al limpiar las materias: ' + (errors.error || 'Error desconocido'),
+                    'Error'
+                );
+            }
+        });
+    } catch (error) {
+        await dialogAlert(
+            'Error al limpiar las materias',
+            'Error'
+        );
+    }
+};
+
 const eliminarProfesor = async (profesor) => {
+    // Verificar primero si tiene materias asignadas (viene en los datos del profesor)
+    if (profesor.materias && profesor.materias.length > 0) {
+        // Construir mensaje con lista de materias
+        let mensaje = `⚠️ El profesor ${profesor.apellido}, ${profesor.nombre} tiene ${profesor.materias.length} materia(s) asignada(s):\n\n`;
+
+        // Las materias ya vienen cargadas en el objeto profesor
+        profesor.materias.forEach(materia => {
+            mensaje += `  • ${materia.nombre || 'Materia'}\n`;
+        });
+
+        mensaje += `\nDebes limpiar las asignaciones antes de eliminar al profesor.\n\n¿Deseas limpiar las materias asignadas ahora?`;
+
+        // Mostrar modal preguntando si quiere limpiar
+        const limpiar = await dialogConfirm(mensaje, '⚠️ Profesor con materias asignadas');
+
+        if (limpiar) {
+            limpiarMateriasProfesor(profesor);
+        }
+        return;
+    }
+
+    // Si no tiene materias, pedir confirmación de eliminación
     const confirmacion = await dialogConfirm(
         `¿Estás seguro de que deseas eliminar al profesor ${profesor.apellido}, ${profesor.nombre}?`,
         'Confirmar eliminación'
     );
 
-    if (confirmacion) {
-        router.delete(route('profesores.destroy', profesor.id), {
-            preserveScroll: true,
-            onSuccess: () => {
-                router.reload({
-                    only: ['profesores'],
-                    preserveScroll: true,
-                    preserveState: true,
-                });
-            }
-        });
-    }
+    if (!confirmacion) return;
+
+    // Intentar eliminar usando router de Inertia
+    router.delete(route('profesores.destroy', profesor.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            router.reload({
+                only: ['profesores'],
+                preserveScroll: true,
+                preserveState: true,
+            });
+        },
+        onError: (errors) => {
+            console.log('Error al eliminar:', errors);
+
+            // Otro tipo de error
+            dialogAlert(
+                errors.error || errors.message || 'Error al eliminar el profesor',
+                'Error'
+            );
+        }
+    });
 };
 
 const eliminarAlumno = async (alumno) => {

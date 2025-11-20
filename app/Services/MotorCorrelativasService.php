@@ -314,15 +314,22 @@ class MotorCorrelativasService
                 'puede_rendir' => false,
                 'mensaje' => "Ya tiene esta materia aprobada",
                 'correlativas_faltantes' => [],
+                'rinde_libre' => false,
             ];
         }
 
+        // Determinar si rinde como libre o regular
+        $rindeLibre = false;
         if (!$historial || !$historial->estaRegular()) {
-            return [
-                'puede_rendir' => false,
-                'mensaje' => "Debe tener la materia regularizada para poder rendir el examen final",
-                'correlativas_faltantes' => [],
-            ];
+            // Si no está regularizada, puede rendir como libre
+            // Verificamos si el alumno está marcado como libre en la materia
+            $esLibre = $historial && ($historial->libre == 1 || $historial->libre === '1');
+
+            // Permitir inscripción como libre si:
+            // 1. No tiene historial (nunca cursó) - puede rendir libre
+            // 2. Está marcado como libre
+            // 3. Cursó pero no regularizó (cursada = 0 o null)
+            $rindeLibre = true;
         }
 
         // Obtener correlativas para rendir
@@ -382,12 +389,15 @@ class MotorCorrelativasService
 
         $puedeRendir = count($correlativasFaltantes) === 0;
 
+        $mensaje = $puedeRendir
+            ? ($rindeLibre ? "Puede rendir como LIBRE" : "Cumple con todas las correlativas para rendir")
+            : "No cumple con las correlativas requeridas";
+
         return [
             'puede_rendir' => $puedeRendir,
-            'mensaje' => $puedeRendir
-                ? "Cumple con todas las correlativas para rendir"
-                : "No cumple con las correlativas requeridas",
+            'mensaje' => $mensaje,
             'correlativas_faltantes' => $correlativasFaltantes,
+            'rinde_libre' => $rindeLibre,
         ];
     }
 

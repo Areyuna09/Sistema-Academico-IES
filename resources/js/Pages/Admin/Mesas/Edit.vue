@@ -1,6 +1,6 @@
 <script setup>
 import { Head, useForm } from '@inertiajs/vue3';
-import { computed, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
 import { Link } from '@inertiajs/vue3';
 
@@ -51,24 +51,21 @@ const aniosDisponibles = computed(() => {
     return anios.sort((a, b) => a - b);
 });
 
-// Validar que no sea fin de semana
-const validarNoFinDeSemana = (fecha) => {
-    if (!fecha) return;
-
+// Verificar si una fecha es fin de semana
+const esFinDeSemana = (fecha) => {
+    if (!fecha) return false;
     const date = new Date(fecha + 'T00:00:00');
     const dayOfWeek = date.getDay();
-
-    // 0 = Domingo, 6 = Sábado
-    if (dayOfWeek === 0 || dayOfWeek === 6) {
-        alert('No se pueden seleccionar sábados ni domingos para exámenes');
-        form.fecha_examen = '';
-    }
+    return dayOfWeek === 0 || dayOfWeek === 6; // 0 = Domingo, 6 = Sábado
 };
 
-// Watcher para validar fecha de examen
-watch(() => form.fecha_examen, (valor) => validarNoFinDeSemana(valor));
-
 const submit = () => {
+    // Validar fin de semana antes de enviar
+    if (esFinDeSemana(form.fecha_examen)) {
+        alert('No se pueden seleccionar sábados ni domingos para la fecha de examen');
+        return;
+    }
+
     form.put(route('admin.mesas.update', props.mesa.id));
 };
 </script>

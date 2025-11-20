@@ -6,6 +6,7 @@ use App\Models\InscripcionMesa;
 use App\Models\MesaExamen;
 use App\Models\Alumno;
 use App\Models\Configuracion;
+use App\Models\Carrera;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -26,10 +27,15 @@ class ComprobanteMesaExamen extends Mailable
     public function __construct(Alumno $alumno, MesaExamen $mesa, InscripcionMesa $inscripcion)
     {
         // Cargar relaciones explícitamente
-        $mesa->load(['materia.carrera', 'presidente', 'vocal1', 'vocal2']);
+        $mesa->load(['materia', 'presidente', 'vocal1', 'vocal2']);
 
         $materiaData = $mesa->getRelation('materia');
-        $carreraData = $materiaData->getRelation('carrera');
+
+        // Obtener carrera directamente desde el ID
+        $carreraData = null;
+        if ($materiaData && $materiaData->carrera) {
+            $carreraData = Carrera::find($materiaData->carrera);
+        }
 
         // Preparar datos en el mismo formato que el PDF
         $this->datos = [
@@ -47,7 +53,7 @@ class ComprobanteMesaExamen extends Mailable
                 'nombre' => $materiaData->nombre,
             ],
             'carrera' => [
-                'nombre' => $carreraData->nombre,
+                'nombre' => $carreraData?->nombre ?? 'Sin carrera',
             ],
             'alumno' => [
                 'nombre_completo' => $alumno->nombre_completo,

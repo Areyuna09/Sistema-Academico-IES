@@ -19,8 +19,6 @@ const props = defineProps({
 const form = useForm({
     name: props.profesor.nombre_completo,
     email: props.profesor.email || '',
-    telefono: props.profesor.telefono || '',
-    celular: props.profesor.celular || '',
 });
 
 const submit = () => {
@@ -30,8 +28,6 @@ const submit = () => {
             form.reset();
             form.name = props.profesor.nombre_completo;
             form.email = props.profesor.email || '';
-            form.telefono = props.profesor.telefono || '';
-            form.celular = props.profesor.celular || '';
         },
     });
 };
@@ -79,42 +75,6 @@ const submit = () => {
                     autocomplete="email"
                 />
                 <InputError class="mt-2" :message="form.errors.email" />
-            </div>
-
-            <!-- Teléfono -->
-            <div>
-                <InputLabel for="telefono" value="Teléfono" />
-                <TextInput
-                    id="telefono"
-                    type="text"
-                    class="mt-1 block w-full text-sm md:text-base"
-                    v-model="form.telefono"
-                    placeholder="Ej: 2644123456"
-                    autocomplete="tel"
-                    pattern="[0-9]*"
-                    inputmode="numeric"
-                    maxlength="20"
-                    title="Solo se permiten números"
-                />
-                <InputError class="mt-2" :message="form.errors.telefono" />
-            </div>
-
-            <!-- Celular -->
-            <div>
-                <InputLabel for="celular" value="Celular" />
-                <TextInput
-                    id="celular"
-                    type="text"
-                    class="mt-1 block w-full text-sm md:text-base"
-                    v-model="form.celular"
-                    placeholder="Ej: 2644567890"
-                    autocomplete="tel"
-                    pattern="[0-9]*"
-                    inputmode="numeric"
-                    maxlength="20"
-                    title="Solo se permiten números"
-                />
-                <InputError class="mt-2" :message="form.errors.celular" />
             </div>
 
             <!-- Información adicional (solo lectura) -->

@@ -1,6 +1,6 @@
 <script setup>
 import { Head, useForm } from '@inertiajs/vue3';
-import { computed, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
 import Dialog from '@/Components/Dialog.vue';
 import { Link } from '@inertiajs/vue3';
@@ -54,54 +54,31 @@ const aniosDisponibles = computed(() => {
 
 const { alert: showAlert } = useDialog();
 
-// Validar que no sea fin de semana para fecha de examen
-const validarNoFinDeSemanaExamen = async (fecha) => {
-    if (!fecha) return;
-
+// Verificar si una fecha es fin de semana
+const esFinDeSemana = (fecha) => {
+    if (!fecha) return false;
     const date = new Date(fecha + 'T00:00:00');
     const dayOfWeek = date.getDay();
-
-    // 0 = Domingo, 6 = Sábado
-    if (dayOfWeek === 0 || dayOfWeek === 6) {
-        await showAlert('No se pueden seleccionar sábados ni domingos para exámenes', 'Fecha no válida');
-        form.fecha_examen = '';
-    }
+    return dayOfWeek === 0 || dayOfWeek === 6; // 0 = Domingo, 6 = Sábado
 };
 
-// Validar que no sea fin de semana para fecha inicio inscripción
-const validarNoFinDeSemanaInscripcionInicio = async (fecha) => {
-    if (!fecha) return;
-
-    const date = new Date(fecha + 'T00:00:00');
-    const dayOfWeek = date.getDay();
-
-    // 0 = Domingo, 6 = Sábado
-    if (dayOfWeek === 0 || dayOfWeek === 6) {
-        await showAlert('No se pueden seleccionar sábados ni domingos para inscripciones', 'Fecha no válida');
-        form.fecha_inicio_inscripcion = '';
+const submit = async () => {
+    // Validar fines de semana antes de enviar
+    if (esFinDeSemana(form.fecha_examen)) {
+        await showAlert('No se pueden seleccionar sábados ni domingos para la fecha de examen', 'Fecha no válida');
+        return;
     }
-};
 
-// Validar que no sea fin de semana para fecha fin inscripción
-const validarNoFinDeSemanaInscripcionFin = async (fecha) => {
-    if (!fecha) return;
-
-    const date = new Date(fecha + 'T00:00:00');
-    const dayOfWeek = date.getDay();
-
-    // 0 = Domingo, 6 = Sábado
-    if (dayOfWeek === 0 || dayOfWeek === 6) {
-        await showAlert('No se pueden seleccionar sábados ni domingos para inscripciones', 'Fecha no válida');
-        form.fecha_fin_inscripcion = '';
+    if (esFinDeSemana(form.fecha_inicio_inscripcion)) {
+        await showAlert('No se pueden seleccionar sábados ni domingos para la fecha de inicio de inscripción', 'Fecha no válida');
+        return;
     }
-};
 
-// Watchers para validar fechas
-watch(() => form.fecha_examen, (valor) => validarNoFinDeSemanaExamen(valor));
-watch(() => form.fecha_inicio_inscripcion, (valor) => validarNoFinDeSemanaInscripcionInicio(valor));
-watch(() => form.fecha_fin_inscripcion, (valor) => validarNoFinDeSemanaInscripcionFin(valor));
+    if (esFinDeSemana(form.fecha_fin_inscripcion)) {
+        await showAlert('No se pueden seleccionar sábados ni domingos para la fecha de fin de inscripción', 'Fecha no válida');
+        return;
+    }
 
-const submit = () => {
     form.post(route('admin.mesas.store'));
 };
 </script>

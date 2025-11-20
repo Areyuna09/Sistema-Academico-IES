@@ -260,9 +260,43 @@ class ProfesorController extends Controller
     }
 
     /**
+     * Limpiar las materias asignadas a un profesor
+     */
+    public function limpiarMaterias(Profesor $profesor)
+    {
+        try {
+            $materiasCount = $profesor->materias()->count();
+
+            if ($materiasCount > 0) {
+                $profesor->materias()->delete();
+
+                \Log::info('Materias de profesor limpiadas', [
+                    'profesor_id' => $profesor->id,
+                    'dni' => $profesor->dni,
+                    'materias_eliminadas' => $materiasCount,
+                    'limpiado_por' => auth()->id(),
+                ]);
+
+                return back()->with('success', 'Se eliminaron ' . $materiasCount . ' asignación(es) de materias. Ahora puedes eliminar al profesor.');
+            }
+
+            return back()->with('info', 'El profesor no tiene materias asignadas.');
+
+        } catch (\Exception $e) {
+            $this->handleError($e, 'limpiar materias del profesor', [
+                'profesor_id' => $profesor->id
+            ]);
+
+            return back()->withErrors([
+                'error' => $this->getFriendlyErrorMessage($e, 'Error al limpiar las materias')
+            ]);
+        }
+    }
+
+    /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Profesor $profesor)
+    public function destroy(Request $request, Profesor $profesor)
     {
         try {
             // Verificar si tiene usuario asociado
@@ -273,10 +307,31 @@ class ProfesorController extends Controller
             }
 
             // Verificar si tiene materias asignadas
-            if ($profesor->materias()->count() > 0) {
-                return back()->withErrors([
-                    'error' => 'No se puede eliminar el profesor porque tiene materias asignadas.'
-                ]);
+            $materiasCount = $profesor->materias()->count();
+            $forceDelete = $request->boolean('force');
+
+            if ($materiasCount > 0) {
+                // Obtener lista de materias para mostrar al usuario
+                $materias = $profesor->materias()
+                    ->with('materiaRelacion')
+                    ->get()
+                    ->map(fn($pm) => $pm->materiaRelacion?->nombre ?? 'Materia desconocida')
+                    ->unique()
+                    ->values()
+                    ->toArray();
+
+                // Lanzar ValidationException para que Inertia lo capture en onError
+                $validator = \Validator::make([], []);
+                $validator->errors()->add('requires_force', 'true');
+                $validator->errors()->add('materias_count', $materiasCount);
+                $validator->errors()->add('error', 'Este profesor tiene ' . $materiasCount . ' materia(s) asignada(s). Debes limpiar las asignaciones antes de eliminarlo.');
+
+                // Agregar las materias como un JSON string ya que ValidationException no soporta arrays directamente
+                foreach ($materias as $index => $materia) {
+                    $validator->errors()->add('materias.' . $index, $materia);
+                }
+
+                throw new \Illuminate\Validation\ValidationException($validator);
             }
 
             $dni = $profesor->dni;
@@ -285,6 +340,7 @@ class ProfesorController extends Controller
             \Log::info('Profesor eliminado', [
                 'dni' => $dni,
                 'eliminado_por' => auth()->id(),
+                'forzado' => $forceDelete,
             ]);
 
             return redirect()

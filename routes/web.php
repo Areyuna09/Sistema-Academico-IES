@@ -75,6 +75,7 @@ Route::middleware('auth')->group(function () {
     ]);
 
     // Rutas de gestión de profesores
+    Route::post('profesores/{profesor}/limpiar-materias', [ProfesorController::class, 'limpiarMaterias'])->name('profesores.limpiar-materias');
     Route::resource('profesores', ProfesorController::class)->parameters([
         'profesores' => 'profesor'
     ]);
@@ -215,6 +216,12 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/inscripciones', [AdminInscripcionesController::class, 'store'])->name('inscripciones.store');
     Route::put('/inscripciones/{inscripcion}', [AdminInscripcionesController::class, 'update'])->name('inscripciones.update');
     Route::delete('/inscripciones/{inscripcion}', [AdminInscripcionesController::class, 'destroy'])->name('inscripciones.destroy');
+
+    // Exportaciones de inscripciones
+    Route::get('/inscripciones/mesa/{mesa}/pdf', [AdminInscripcionesController::class, 'exportarMesaPdf'])->name('inscripciones.mesa.pdf');
+    Route::get('/inscripciones/mesa/{mesa}/csv', [AdminInscripcionesController::class, 'exportarMesaCsv'])->name('inscripciones.mesa.csv');
+    Route::get('/inscripciones/cursado/pdf', [AdminInscripcionesController::class, 'exportarCursadoPdf'])->name('inscripciones.cursado.pdf');
+    Route::get('/inscripciones/cursado/csv', [AdminInscripcionesController::class, 'exportarCursadoCsv'])->name('inscripciones.cursado.csv');
 
     // Configuración de Módulos del Sistema
     Route::get('/configuracion-modulos', [\App\Http\Controllers\Admin\ConfiguracionModulosController::class, 'index'])->name('configuracion-modulos.index');

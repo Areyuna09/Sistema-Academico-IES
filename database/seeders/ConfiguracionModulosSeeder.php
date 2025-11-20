@@ -228,6 +228,15 @@ class ConfiguracionModulosSeeder extends Seeder
                 'orden' => 63,
                 'icono' => 'bx-user-circle',
             ],
+            [
+                'clave' => 'mesas_aula',
+                'nombre' => 'Aula en Mesas de Examen',
+                'descripcion' => 'Muestra y permite configurar el campo de aula en las mesas de examen',
+                'categoria' => 'avanzado',
+                'activo' => true,
+                'orden' => 64,
+                'icono' => 'bx-buildings',
+            ],
 
             // ===== FIRMAS DIGITALES =====
             [

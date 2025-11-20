@@ -73,8 +73,6 @@ class ProfileController extends Controller
                     'apellido' => $profesor->apellido,
                     'nombre_completo' => $profesor->apellido . ', ' . $profesor->nombre,
                     'email' => $profesor->email,
-                    'telefono' => $profesor->telefono ?? null,
-                    'celular' => $profesor->celular ?? null,
                     'carrera' => $carreraData,
                 ] : null,
             ]);
@@ -127,13 +125,7 @@ class ProfileController extends Controller
         if ($user->profesor_id && $user->profesor) {
             $profesor = $user->profesor;
 
-            // Actualizar campos del profesor
-            if ($request->has('telefono')) {
-                $profesor->telefono = $request->telefono;
-            }
-            if ($request->has('celular')) {
-                $profesor->celular = $request->celular;
-            }
+            // Actualizar email del profesor
             if ($request->has('email')) {
                 $profesor->email = $request->email;
             }

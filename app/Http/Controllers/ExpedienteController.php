@@ -98,11 +98,19 @@ class ExpedienteController extends Controller
                                      ->paginate(15)
                                      ->withQueryString();
 
-        // Cargar las materias asignadas a cada profesor
+        // Cargar las materias asignadas a cada profesor con sus nombres
         $profesores->getCollection()->transform(function($profesor) {
             $materias = \DB::table('tbl_profesor_tiene_materias')
-                ->where('profesor', $profesor->id)
-                ->pluck('materia')
+                ->join('tbl_materias', 'tbl_profesor_tiene_materias.materia', '=', 'tbl_materias.id')
+                ->where('tbl_profesor_tiene_materias.profesor', $profesor->id)
+                ->select('tbl_materias.id', 'tbl_materias.nombre')
+                ->get()
+                ->map(function($materia) {
+                    return [
+                        'id' => $materia->id,
+                        'nombre' => $materia->nombre
+                    ];
+                })
                 ->toArray();
 
             $profesor->materias = $materias;
@@ -774,23 +782,28 @@ class ExpedienteController extends Controller
             // Determinar si es nota de cursada o final
             $esFinal = strtolower($nota->tipo_evaluacion) === 'final';
 
+            // Obtener notas mínimas configuradas
+            $notaMinimaPromocion = $profesorMateria->nota_minima_promocion ?? 4.00;
+            $notaMinimaRegularidad = $profesorMateria->nota_minima_regularidad ?? 4.00;
+
             if ($alumnoMateria) {
                 // Actualizar registro existente
                 if ($esFinal) {
-                    // Nota final: marcar rendida pero mantener estado previo de cursada/libre
-                    // Solo actualizar nota y fecha, no cambiar cursada ni libre
+                    // Nota final: verificar si aprueba antes de marcar rendida
+                    $aprobado = $nota->nota >= $notaMinimaPromocion;
                     $alumnoMateria->update([
                         'nota' => $nota->nota,
                         'calificacion_rendida' => $nota->nota,
-                        'rendida' => '1',
+                        'rendida' => $aprobado ? '1' : '0',
                         'fecha' => $nota->fecha,
                         // NO tocar cursada ni libre - se mantiene el estado anterior
                     ]);
                 } else {
-                    // Nota de cursada: marcar como regular
+                    // Nota de cursada: verificar si regulariza antes de marcar cursada
+                    $regularizado = $nota->nota >= $notaMinimaRegularidad;
                     $alumnoMateria->update([
                         'calificacion-cursada' => $nota->nota,
-                        'cursada' => '1',
+                        'cursada' => $regularizado ? '1' : '0',
                         // NO marcar rendida - solo es regular
                     ]);
                 }
@@ -798,13 +811,14 @@ class ExpedienteController extends Controller
                 // Crear nuevo registro en el legajo
                 if ($esFinal) {
                     // Si es final y no existe registro previo, asumimos que rindió LIBRE
+                    $aprobado = $nota->nota >= $notaMinimaPromocion;
                     AlumnoMateria::create([
                         'alumno' => $nota->alumno_id,
                         'carrera' => $profesorMateria->carrera,
                         'materia' => $profesorMateria->materia,
                         'nota' => $nota->nota,
                         'cursada' => null, // No cursó
-                        'rendida' => '1',  // Rindió y aprobó
+                        'rendida' => $aprobado ? '1' : '0',  // Solo aprobado si cumple mínimo
                         'calificacion-cursada' => null,
                         'calificacion_rendida' => $nota->nota,
                         'fecha' => $nota->fecha,
@@ -812,19 +826,20 @@ class ExpedienteController extends Controller
                         'libre' => 1, // Por defecto LIBRE si no cursó antes
                     ]);
                 } else {
-                    // Nota de cursada: crear como regular
+                    // Nota de cursada: crear como regular si cumple mínimo
+                    $regularizado = $nota->nota >= $notaMinimaRegularidad;
                     AlumnoMateria::create([
                         'alumno' => $nota->alumno_id,
                         'carrera' => $profesorMateria->carrera,
                         'materia' => $profesorMateria->materia,
                         'nota' => null, // No rindió final aún
-                        'cursada' => '1', // Cursada aprobada
+                        'cursada' => $regularizado ? '1' : '0', // Solo si cumple mínimo
                         'rendida' => null,
                         'calificacion-cursada' => $nota->nota,
                         'calificacion_rendida' => null,
                         'fecha' => $nota->fecha,
                         'equivalencia' => 0,
-                        'libre' => 0,
+                        'libre' => $regularizado ? 0 : 1, // Libre si no cumple mínimo
                     ]);
                 }
             }
