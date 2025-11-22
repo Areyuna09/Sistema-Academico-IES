@@ -32,7 +32,10 @@ php artisan key:generate
 # 6. Ejecutar migraciones
 php artisan migrate
 
-# 7. Iniciar servidores
+# 7. Crear enlace simbólico para almacenamiento (IMPORTANTE)
+php artisan storage:link
+
+# 8. Iniciar servidores
 php artisan serve          # Terminal 1
 npm run dev               # Terminal 2
 ```
