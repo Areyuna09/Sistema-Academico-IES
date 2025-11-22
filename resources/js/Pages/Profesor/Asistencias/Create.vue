@@ -50,6 +50,7 @@ const submit = () => {
 </script>
 
 <template>
+    <Head title="Registrar Asistencia" />
   <SidebarLayout :user="$page.props.auth.user">
     <template #header>
       <div>

@@ -1,5 +1,5 @@
 <script setup>
-import { Link } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
 
 defineProps({
@@ -15,6 +15,7 @@ defineProps({
 </script>
 
 <template>
+    <Head title="Mis Materias" />
     <SidebarLayout :user="$page.props.auth.user">
         <template #header>
             <div class="flex items-center justify-between">

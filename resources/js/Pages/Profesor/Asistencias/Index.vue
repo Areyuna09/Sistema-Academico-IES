@@ -49,6 +49,7 @@ const getEstadoTexto = (estado) => {
 </script>
 
 <template>
+    <Head title="Asistencias" />
   <SidebarLayout :user="$page.props.auth.user">
     <template #header>
       <div>
