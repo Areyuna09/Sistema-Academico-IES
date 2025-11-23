@@ -1,6 +1,6 @@
 <script setup>
 import { Head, useForm, usePage } from "@inertiajs/vue3";
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 const props = defineProps({
     email: {
@@ -19,6 +19,9 @@ const form = useForm({
     password: "",
     password_confirmation: "",
 });
+
+const showPassword = ref(false);
+const showPasswordConfirmation = ref(false);
 
 const submit = () => {
     form.post(route("password.store"), {
@@ -130,13 +133,21 @@ const logoUrl = computed(() => {
                                 </div>
                                 <input
                                     id="password"
-                                    type="password"
+                                    :type="showPassword ? 'text' : 'password'"
                                     v-model="form.password"
                                     required
                                     autocomplete="new-password"
                                     placeholder="Ingresa tu nueva contraseña"
-                                    class="w-full pl-11 pr-4 py-2.5 text-sm bg-gray-700/50 border border-gray-600 text-white placeholder-gray-500 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-gray-700 transition-all duration-200"
+                                    class="w-full pl-11 pr-11 py-2.5 text-sm bg-gray-700/50 border border-gray-600 text-white placeholder-gray-500 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-gray-700 transition-all duration-200"
                                 />
+                                <button
+                                    type="button"
+                                    @click="showPassword = !showPassword"
+                                    class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-300 focus:outline-none transition-colors"
+                                    tabindex="-1"
+                                >
+                                    <i :class="showPassword ? 'bx bx-hide' : 'bx bx-show'" class="text-lg"></i>
+                                </button>
                             </div>
                             <p v-if="form.errors.password" class="mt-1.5 text-xs text-red-400 flex items-center">
                                 <i class="bx bx-error-circle mr-1"></i>
@@ -155,13 +166,21 @@ const logoUrl = computed(() => {
                                 </div>
                                 <input
                                     id="password_confirmation"
-                                    type="password"
+                                    :type="showPasswordConfirmation ? 'text' : 'password'"
                                     v-model="form.password_confirmation"
                                     required
                                     autocomplete="new-password"
                                     placeholder="Confirma tu nueva contraseña"
-                                    class="w-full pl-11 pr-4 py-2.5 text-sm bg-gray-700/50 border border-gray-600 text-white placeholder-gray-500 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-gray-700 transition-all duration-200"
+                                    class="w-full pl-11 pr-11 py-2.5 text-sm bg-gray-700/50 border border-gray-600 text-white placeholder-gray-500 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-gray-700 transition-all duration-200"
                                 />
+                                <button
+                                    type="button"
+                                    @click="showPasswordConfirmation = !showPasswordConfirmation"
+                                    class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-300 focus:outline-none transition-colors"
+                                    tabindex="-1"
+                                >
+                                    <i :class="showPasswordConfirmation ? 'bx bx-hide' : 'bx bx-show'" class="text-lg"></i>
+                                </button>
                             </div>
                             <p v-if="form.errors.password_confirmation" class="mt-1.5 text-xs text-red-400 flex items-center">
                                 <i class="bx bx-error-circle mr-1"></i>

@@ -9,6 +9,10 @@ import { ref } from "vue";
 const passwordInput = ref(null);
 const currentPasswordInput = ref(null);
 
+const showCurrentPassword = ref(false);
+const showPassword = ref(false);
+const showPasswordConfirmation = ref(false);
+
 const form = useForm({
     current_password: "",
     password: "",
@@ -59,10 +63,18 @@ const updatePassword = () => {
                         id="current_password"
                         ref="currentPasswordInput"
                         v-model="form.current_password"
-                        type="password"
+                        :type="showCurrentPassword ? 'text' : 'password'"
                         autocomplete="current-password"
-                        class="pl-10 block w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        class="pl-10 pr-10 block w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                     />
+                    <button
+                        type="button"
+                        @click="showCurrentPassword = !showCurrentPassword"
+                        class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none transition-colors"
+                        tabindex="-1"
+                    >
+                        <i :class="showCurrentPassword ? 'bx bx-hide' : 'bx bx-show'" class="text-lg"></i>
+                    </button>
                 </div>
                 <InputError :message="form.errors.current_password" class="mt-1 text-xs" />
             </div>
@@ -81,10 +93,18 @@ const updatePassword = () => {
                             id="password"
                             ref="passwordInput"
                             v-model="form.password"
-                            type="password"
+                            :type="showPassword ? 'text' : 'password'"
                             autocomplete="new-password"
-                            class="pl-10 block w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                            class="pl-10 pr-10 block w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                         />
+                        <button
+                            type="button"
+                            @click="showPassword = !showPassword"
+                            class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none transition-colors"
+                            tabindex="-1"
+                        >
+                            <i :class="showPassword ? 'bx bx-hide' : 'bx bx-show'" class="text-lg"></i>
+                        </button>
                     </div>
                     <InputError :message="form.errors.password" class="mt-1 text-xs" />
                 </div>
@@ -100,10 +120,18 @@ const updatePassword = () => {
                         <input
                             id="password_confirmation"
                             v-model="form.password_confirmation"
-                            type="password"
+                            :type="showPasswordConfirmation ? 'text' : 'password'"
                             autocomplete="new-password"
-                            class="pl-10 block w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                            class="pl-10 pr-10 block w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                         />
+                        <button
+                            type="button"
+                            @click="showPasswordConfirmation = !showPasswordConfirmation"
+                            class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none transition-colors"
+                            tabindex="-1"
+                        >
+                            <i :class="showPasswordConfirmation ? 'bx bx-hide' : 'bx bx-show'" class="text-lg"></i>
+                        </button>
                     </div>
                     <InputError :message="form.errors.password_confirmation" class="mt-1 text-xs" />
                 </div>

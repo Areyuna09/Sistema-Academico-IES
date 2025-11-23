@@ -81,7 +81,11 @@ export function useProfileSaver() {
                     lastLogin: new Date().toISOString(),
                 };
 
+                console.log('========== GUARDANDO PERFIL ==========');
                 console.log('Datos del perfil a guardar:', profileData);
+                console.log('Avatar del usuario:', user.avatar);
+                console.log('¿Tiene avatar?:', !!user.avatar);
+                console.log('======================================');
 
                 if (existingIndex >= 0) {
                     // Actualizar perfil existente
