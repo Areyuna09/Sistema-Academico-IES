@@ -301,16 +301,18 @@ const getBadgeText = (mesa) => {
                 >
                     <!-- Header compacto -->
                     <div class="p-3 md:p-4 border-b">
-                        <div class="flex justify-between items-start gap-2">
-                            <h3 class="font-semibold text-gray-900 text-xs md:text-sm leading-tight flex-1">
-                                {{ mesa.materia.nombre }}
-                            </h3>
-                            <span class="px-1.5 md:px-2 py-0.5 text-[10px] md:text-xs font-semibold rounded-full whitespace-nowrap" :class="getBadgeClasses(mesa)">
-                                {{ getBadgeText(mesa) }}
-                            </span>
-                        </div>
-                        <p class="text-[10px] md:text-xs text-gray-500 mt-0.5 md:mt-1">{{ mesa.materia.carrera }} - {{ mesa.materia.anno }}° Año</p>
-                    </div>
+    <div class="flex justify-between items-start gap-2">
+        <h3 class="font-semibold text-gray-900 text-xs md:text-sm leading-tight flex-1 break-words overflow-hidden">
+            {{ mesa.materia.nombre }}
+        </h3>
+        <span class="px-1.5 md:px-2 py-0.5 text-[10px] md:text-xs font-semibold rounded-full whitespace-nowrap flex-shrink-0" :class="getBadgeClasses(mesa)">
+            {{ getBadgeText(mesa) }}
+        </span>
+    </div>
+    <p class="text-[10px] md:text-xs text-gray-500 mt-0.5 md:mt-1 truncate">
+        {{ mesa.materia.carrera }} - {{ mesa.materia.anno }}° Año
+    </p>
+</div>
 
                     <!-- Body compacto -->
                     <div class="p-3 md:p-4 space-y-1.5 md:space-y-2">
