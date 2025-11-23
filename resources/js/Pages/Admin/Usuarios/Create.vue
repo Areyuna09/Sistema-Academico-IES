@@ -27,6 +27,9 @@ const form = useForm({
     activo: true,
 });
 
+const showPassword = ref(false);
+const showPasswordConfirmation = ref(false);
+
 // Provincias filtradas por país seleccionado
 const provinciasFiltradas = computed(() => {
     if (!form.pais) return props.provincias;
@@ -243,13 +246,23 @@ const mostrarVinculacionProfesor = computed(() => form.tipo == 3);
                                 <label class="block text-sm font-medium text-gray-700 mb-1">
                                     Contraseña <span class="text-red-500">*</span>
                                 </label>
-                                <input
-                                    v-model="form.password"
-                                    type="password"
-                                    required
-                                    class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
-                                    placeholder="Mínimo 6 caracteres"
-                                />
+                                <div class="relative">
+                                    <input
+                                        v-model="form.password"
+                                        :type="showPassword ? 'text' : 'password'"
+                                        required
+                                        class="w-full pr-10 rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
+                                        placeholder="Mínimo 6 caracteres"
+                                    />
+                                    <button
+                                        type="button"
+                                        @click="showPassword = !showPassword"
+                                        class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none transition-colors"
+                                        tabindex="-1"
+                                    >
+                                        <i :class="showPassword ? 'bx bx-hide' : 'bx bx-show'" class="text-lg"></i>
+                                    </button>
+                                </div>
                                 <p v-if="form.errors.password" class="text-red-600 text-sm mt-1">{{ form.errors.password }}</p>
                             </div>
 
@@ -257,13 +270,23 @@ const mostrarVinculacionProfesor = computed(() => form.tipo == 3);
                                 <label class="block text-sm font-medium text-gray-700 mb-1">
                                     Confirmar Contraseña <span class="text-red-500">*</span>
                                 </label>
-                                <input
-                                    v-model="form.password_confirmation"
-                                    type="password"
-                                    required
-                                    class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
-                                    placeholder="Repetir contraseña"
-                                />
+                                <div class="relative">
+                                    <input
+                                        v-model="form.password_confirmation"
+                                        :type="showPasswordConfirmation ? 'text' : 'password'"
+                                        required
+                                        class="w-full pr-10 rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
+                                        placeholder="Repetir contraseña"
+                                    />
+                                    <button
+                                        type="button"
+                                        @click="showPasswordConfirmation = !showPasswordConfirmation"
+                                        class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none transition-colors"
+                                        tabindex="-1"
+                                    >
+                                        <i :class="showPasswordConfirmation ? 'bx bx-hide' : 'bx bx-show'" class="text-lg"></i>
+                                    </button>
+                                </div>
                             </div>
 
                             <div>

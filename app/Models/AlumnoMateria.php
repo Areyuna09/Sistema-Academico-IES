@@ -94,34 +94,42 @@ class AlumnoMateria extends Model
 
     /**
      * Verificar si la materia está regularizada (cursada)
+     * NOTA: Con datos legacy, la fuente de verdad es la NOTA, no los flags
      */
     public function estaRegular()
     {
-        return $this->cursada === '1';
+        // Una materia está regular si tiene nota >= 4 (aprobó cursada/final)
+        // Los flags cursada/rendida no son confiables en datos migrados
+        return $this->nota !== null && is_numeric($this->nota) && (float) $this->nota >= 4;
     }
 
     /**
      * Verificar si la materia está aprobada (rendida)
+     * NOTA: Con datos legacy, la fuente de verdad es la NOTA, no los flags
      */
     public function estaAprobada()
     {
-        return $this->rendida === '1';
+        // Una materia está aprobada si tiene nota >= 4 en el legajo
+        // Los flags cursada/rendida no son confiables en datos migrados
+        return $this->nota !== null && is_numeric($this->nota) && (float) $this->nota >= 4;
     }
 
     /**
      * Scope: Materias cursadas (regulares)
+     * NOTA: Con datos legacy, la fuente de verdad es la NOTA, no los flags
      */
     public function scopeRegulares($query)
     {
-        return $query->where('cursada', '1');
+        return $query->whereNotNull('nota')->where('nota', '>=', 4);
     }
 
     /**
      * Scope: Materias aprobadas (rendidas)
+     * NOTA: Con datos legacy, la fuente de verdad es la NOTA, no los flags
      */
     public function scopeAprobadas($query)
     {
-        return $query->where('rendida', '1');
+        return $query->whereNotNull('nota')->where('nota', '>=', 4);
     }
 
     /**

@@ -34,6 +34,17 @@ onMounted(() => {
     if (stored) {
         try {
             savedProfiles.value = JSON.parse(stored);
+            console.log('========== PERFILES CARGADOS ==========');
+            console.log('Perfiles:', savedProfiles.value);
+            savedProfiles.value.forEach((profile, index) => {
+                console.log(`Perfil ${index + 1}:`, {
+                    nombre: profile.name,
+                    dni: profile.dni,
+                    avatar: profile.avatar,
+                    tieneAvatar: !!profile.avatar
+                });
+            });
+            console.log('=======================================');
             // Si no hay perfiles guardados, redirigir al login
             if (savedProfiles.value.length === 0) {
                 sessionStorage.setItem('from_profile_select', 'true');

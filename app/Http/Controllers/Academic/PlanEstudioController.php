@@ -68,12 +68,11 @@ class PlanEstudioController extends Controller
 
         // Mapear estado por materia desde columnas legacy
         $lista = $materias->map(function ($m) {
+            // La fuente de verdad es la NOTA en el legajo (no los flags cursada/rendida)
+            // Datos legacy pueden tener flags inconsistentes
             $estado = 'pendiente';
-            if ($m->rendida === '1') {
+            if ($m->nota !== null && is_numeric($m->nota) && (float) $m->nota >= 4) {
                 $estado = 'aprobada';
-            } elseif ($m->cursada === '1') {
-                // Si hubiera lógica de promoción explícita, podría diferenciarse aquí
-                $estado = 'regularizada';
             }
 
             return [

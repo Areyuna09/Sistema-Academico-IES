@@ -64,9 +64,11 @@ class InscripcionesController extends Controller
         }
 
         // Obtener historial académico del alumno
+        // La fuente de verdad es la NOTA en el legajo (no el flag rendida)
         $historialAlumno = \App\Models\AlumnoMateria::where('alumno', $alumno->id)
             ->where('carrera', $carreraId)
-            ->where('rendida', '1') // Solo materias aprobadas
+            ->whereNotNull('nota') // Tiene nota registrada
+            ->where('nota', '>=', 4) // Nota aprobada (>= 4)
             ->pluck('materia')
             ->toArray();
 
