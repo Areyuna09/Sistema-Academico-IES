@@ -65,9 +65,14 @@ const eliminarRegla = async (reglaId) => {
     );
 
     if (confirmed) {
-        router.delete(`/admin/correlativas/${reglaId}`, {
-            preserveState: true,
+        router.delete(route('admin.correlativas.destroy', reglaId), {
             preserveScroll: true,
+            onSuccess: () => {
+                // La página se recargará automáticamente con los datos actualizados
+            },
+            onError: (errors) => {
+                console.error('Error al eliminar correlativa:', errors);
+            }
         });
     }
 };
@@ -209,12 +214,14 @@ const getEstadoBadgeClass = (estado) => {
                             <tbody class="bg-white divide-y divide-gray-200">
                                 <tr v-for="regla in reglas.data" :key="regla.id" class="hover:bg-gray-50">
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm font-medium text-gray-900">{{ regla.materia.nombre }}</div>
-                                        <div class="text-xs text-gray-500">{{ regla.materia.anno }}° año - {{ regla.materia.semestre === 1 ? '1er' : '2do' }} Cuatr.</div>
+                                        <div class="text-sm font-medium text-gray-900">{{ regla.materia?.nombre || 'Materia eliminada' }}</div>
+                                        <div v-if="regla.materia" class="text-xs text-gray-500">{{ regla.materia.anno }}° año - {{ regla.materia.semestre === 1 ? '1er' : '2do' }} Cuatr.</div>
+                                        <div v-else class="text-xs text-red-500">ID: {{ regla.materia_id }}</div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm text-gray-900">{{ regla.correlativa.nombre }}</div>
-                                        <div class="text-xs text-gray-500">{{ regla.correlativa.anno }}° año</div>
+                                        <div class="text-sm text-gray-900">{{ regla.correlativa?.nombre || 'Materia eliminada' }}</div>
+                                        <div v-if="regla.correlativa" class="text-xs text-gray-500">{{ regla.correlativa.anno }}° año</div>
+                                        <div v-else class="text-xs text-red-500">ID: {{ regla.correlativa_id }}</div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <span :class="['px-2 py-1 text-xs font-semibold rounded-full', getTipoBadgeClass(regla.tipo)]">

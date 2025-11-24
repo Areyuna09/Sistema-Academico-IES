@@ -17,10 +17,16 @@ const form = useForm({
     observaciones: '',
 });
 
+// Materias filtradas por carrera
+const materiasPorCarrera = computed(() => {
+    if (!form.carrera_id) return [];
+    return props.materias.filter(m => m.carrera === parseInt(form.carrera_id));
+});
+
 // Materias filtradas para correlativa (excluir la materia seleccionada)
 const materiasDisponibles = computed(() => {
-    if (!form.materia_id) return props.materias;
-    return props.materias.filter(m => m.id !== parseInt(form.materia_id));
+    if (!form.materia_id) return materiasPorCarrera.value;
+    return materiasPorCarrera.value.filter(m => m.id !== parseInt(form.materia_id));
 });
 
 const submit = () => {
@@ -114,10 +120,11 @@ const submit = () => {
                                 Materia <span class="text-red-500">*</span>
                             </label>
                             <select id="materia_id" v-model="form.materia_id"
-                                class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                                :disabled="!form.carrera_id"
+                                class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                                 :class="{ 'border-red-500': form.errors.materia_id }">
-                                <option value="">Seleccione la materia</option>
-                                <option v-for="materia in materias" :key="materia.id" :value="materia.id">
+                                <option value="">{{ form.carrera_id ? 'Seleccione la materia' : 'Primero seleccione una carrera' }}</option>
+                                <option v-for="materia in materiasPorCarrera" :key="materia.id" :value="materia.id">
                                     {{ materia.nombre }} ({{ materia.anno }}° año - {{ materia.semestre === 1 ? '1er' : '2do' }} Cuatr.)
                                 </option>
                             </select>
@@ -133,9 +140,10 @@ const submit = () => {
                                 Materia Correlativa <span class="text-red-500">*</span>
                             </label>
                             <select id="correlativa_id" v-model="form.correlativa_id"
-                                class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                                :disabled="!form.materia_id"
+                                class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                                 :class="{ 'border-red-500': form.errors.correlativa_id }">
-                                <option value="">Seleccione la correlativa</option>
+                                <option value="">{{ form.materia_id ? 'Seleccione la correlativa' : 'Primero seleccione una materia' }}</option>
                                 <option v-for="materia in materiasDisponibles" :key="materia.id" :value="materia.id">
                                     {{ materia.nombre }} ({{ materia.anno }}° año - {{ materia.semestre === 1 ? '1er' : '2do' }} Cuatr.)
                                 </option>
