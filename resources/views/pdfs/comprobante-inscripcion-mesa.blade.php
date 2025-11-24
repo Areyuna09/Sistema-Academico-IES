@@ -322,10 +322,6 @@
                     <div class="mesa-info-label">🕐 Hora</div>
                     <div class="mesa-info-value">{{ $mesa->hora_examen ?? 'A confirmar' }}</div>
                 </div>
-                <div class="mesa-info-item">
-                    <div class="mesa-info-label">🏫 Aula</div>
-                    <div class="mesa-info-value">{{ $mesa->aula ?? 'A confirmar' }}</div>
-                </div>
             </div>
 
             @if($mesa->presidente || $mesa->vocal1 || $mesa->vocal2)
@@ -356,7 +352,7 @@
         <div class="steps-box">
             <h3>📋 Antes del Examen</h3>
             <ul>
-                <li>Verificar horarios y aula en el Sistema de Gestión Académica</li>
+                <li>Verificar horarios en el Sistema de Gestión Académica</li>
                 <li>Revisar el material de estudio y programa de la materia</li>
                 <li>Confirmar que tiene aprobadas todas las correlativas</li>
                 <li>Presentarse con 15 minutos de anticipación</li>

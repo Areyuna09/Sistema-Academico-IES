@@ -477,8 +477,10 @@ watch(() => filtrosLocales.value.carrera_id, () => {
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DNI</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alumno</th>
                                 <th v-if="tipo === 'cursado'" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Materia</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                                <th v-if="tipo === 'mesas'" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nota</th>
+                                <th v-if="tipo === 'mesas'" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Año</th>
+                                <th v-if="tipo === 'mesas'" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                                <th v-if="tipo === 'cursado'" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha Inscripción</th>
                                 <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                             </tr>
                         </thead>
@@ -503,17 +505,23 @@ watch(() => filtrosLocales.value.carrera_id, () => {
                                     <div class="text-sm text-gray-900">{{ inscripcion.materia.nombre }}</div>
                                     <div class="text-xs text-gray-500">{{ inscripcion.materia.carrera?.nombre }}</div>
                                 </td>
-                                <!-- Estado -->
-                                <td class="px-6 py-4 whitespace-nowrap">
+                                <!-- Año (solo mesas) -->
+                                <td v-if="tipo === 'mesas'" class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {{ inscripcion.alumno.curso || '-' }}°
+                                </td>
+                                <!-- Email (solo mesas) -->
+                                <td v-if="tipo === 'mesas'" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {{ inscripcion.alumno.email || '-' }}
+                                </td>
+                                <!-- Estado (solo cursado) -->
+                                <td v-if="tipo === 'cursado'" class="px-6 py-4 whitespace-nowrap">
                                     <span :class="['px-2 py-1 text-xs font-semibold rounded-full', getEstadoColor(inscripcion.estado)]">
                                         {{ inscripcion.estado.charAt(0).toUpperCase() + inscripcion.estado.slice(1) }}
                                     </span>
                                 </td>
-                                <!-- Nota (solo mesas) -->
-                                <td v-if="tipo === 'mesas'" class="px-6 py-4 whitespace-nowrap">
-                                    <span class="text-sm font-medium" :class="inscripcion.nota >= 6 ? 'text-green-600' : 'text-gray-500'">
-                                        {{ inscripcion.nota || '-' }}
-                                    </span>
+                                <!-- Fecha Inscripción -->
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {{ inscripcion.fecha_inscripcion || inscripcion.created_at }}
                                 </td>
                                 <!-- Acciones -->
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

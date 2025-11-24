@@ -91,12 +91,6 @@
                                                     <div style="font-size: 12px; color: #6b21a8; font-weight: 600;">Hora:</div>
                                                     <div style="font-size: 16px; color: #4c1d95; font-weight: 700;">{{ $datos['mesa']['hora_examen'] }} hs</div>
                                                 </td>
-                                                @if($datos['mesa']['aula'])
-                                                <td align="right" style="padding: 8px 0;">
-                                                    <div style="font-size: 12px; color: #6b21a8; font-weight: 600;">Aula:</div>
-                                                    <div style="font-size: 16px; color: #4c1d95; font-weight: 700;">{{ $datos['mesa']['aula'] }}</div>
-                                                </td>
-                                                @endif
                                             </tr>
                                         </table>
                                     </td>

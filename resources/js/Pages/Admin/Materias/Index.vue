@@ -62,9 +62,18 @@ const limpiarFiltros = () => {
     form.get(route("admin.materias.index"));
 };
 
-const { confirm: showConfirm } = useDialog();
+const { confirm: showConfirm, alert: showAlert } = useDialog();
 
 const eliminarMateria = async (materia) => {
+    // Verificar si tiene alumnos antes de mostrar confirmación
+    if (materia.alumnos_count > 0) {
+        await showAlert(
+            `No se puede eliminar la materia "${materia.nombre}" porque tiene ${materia.alumnos_count} alumno(s) con registros en el legajo.`,
+            "No se puede eliminar"
+        );
+        return;
+    }
+
     const confirmed = await showConfirm(
         `¿Está seguro de eliminar la materia "${materia.nombre}"? Esta acción no se puede deshacer y puede afectar a mesas de examen, inscripciones y correlatividades asociadas.`,
         "Confirmar eliminación"
@@ -79,6 +88,10 @@ const eliminarMateria = async (materia) => {
                     preserveScroll: true,
                     preserveState: true,
                 });
+            },
+            onError: (errors) => {
+                const mensaje = errors.eliminar || errors.error || 'No se pudo eliminar la materia';
+                showAlert(mensaje, 'No se puede eliminar');
             }
         });
     }

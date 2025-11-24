@@ -19,7 +19,8 @@ class MateriasController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Materia::with('carrera');
+        $query = Materia::with('carrera')
+            ->withCount('alumnosMaterias as alumnos_count');
 
         // Filtrar por carrera
         if ($request->filled('carrera')) {
@@ -301,9 +302,20 @@ class MateriasController extends Controller
             return back()->withErrors(['error' => 'No se puede eliminar una materia con reglas de correlativas configuradas.']);
         }
 
-        // Verificar que no tenga alumnos que la hayan cursado
-        if ($materia->alumnosMaterias()->count() > 0) {
-            return back()->withErrors(['error' => 'No se puede eliminar una materia con alumnos que la hayan cursado.']);
+        // Verificar que no tenga alumnos con notas registradas
+        $alumnosConNotas = $materia->alumnosMaterias()->whereNotNull('nota')->count();
+        if ($alumnosConNotas > 0) {
+            return back()->withErrors([
+                'eliminar' => "No se puede eliminar esta materia porque hay {$alumnosConNotas} alumno(s) con notas registradas en el legajo."
+            ]);
+        }
+
+        // Verificar que no tenga alumnos en el legajo (aunque sin nota)
+        $alumnosEnLegajo = $materia->alumnosMaterias()->count();
+        if ($alumnosEnLegajo > 0) {
+            return back()->withErrors([
+                'eliminar' => "No se puede eliminar esta materia porque hay {$alumnosEnLegajo} alumno(s) con registros en el legajo."
+            ]);
         }
 
         try {
