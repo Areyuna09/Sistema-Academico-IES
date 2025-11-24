@@ -6,6 +6,7 @@ import Dialog from '@/Components/Dialog.vue';
 import AlumnoModal from '@/Components/AlumnoModal.vue';
 import ProfesorModal from '@/Components/ProfesorModal.vue';
 import MateriaModal from '@/Components/MateriaModal.vue';
+import ExpedienteAlumnoModal from '@/Components/ExpedienteAlumnoModal.vue';
 import { useDialog } from '@/Composables/useDialog';
 import axios from 'axios';
 
@@ -74,6 +75,17 @@ const mostrarModalAlumno = ref(false);
 const mostrarModalProfesor = ref(false);
 const alumnoEditando = ref(null);
 const profesorEditando = ref(null);
+
+// Variables para modal de expediente
+const mostrarModalExpediente = ref(false);
+const expedienteData = ref({
+    alumno: null,
+    carrera: null,
+    estadisticas: {},
+    historial: [],
+    materias_actuales: []
+});
+const cargandoExpediente = ref(false);
 
 // Computed para saber si hay cambios pendientes
 const hayCambiosPendientes = computed(() => {
@@ -443,6 +455,35 @@ const profesorGuardado = () => {
             tabActivo.value = 'profesores';
         }
     });
+};
+
+// Funciones para modal de expediente
+const verExpediente = async (alumno) => {
+    cargandoExpediente.value = true;
+    mostrarModalExpediente.value = true;
+
+    try {
+        // Cargar datos del expediente desde el backend
+        const response = await axios.get(`/api/expediente/alumno/${alumno.id}`);
+        expedienteData.value = response.data;
+    } catch (error) {
+        console.error('Error al cargar expediente:', error);
+        await dialogAlert('Error al cargar el expediente del alumno', 'Error');
+        mostrarModalExpediente.value = false;
+    } finally {
+        cargandoExpediente.value = false;
+    }
+};
+
+const cerrarModalExpediente = () => {
+    mostrarModalExpediente.value = false;
+    expedienteData.value = {
+        alumno: null,
+        carrera: null,
+        estadisticas: {},
+        historial: [],
+        materias_actuales: []
+    };
 };
 
 const limpiarMateriasProfesor = async (profesor) => {
@@ -1377,13 +1418,13 @@ const getEstadoBadge = (estado) => {
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div class="flex items-center justify-end gap-2">
-                                            <Link
-                                                :href="route('expediente.show', alumno.id)"
+                                            <button
+                                                @click="verExpediente(alumno)"
                                                 class="text-orange-600 hover:text-orange-900"
                                                 title="Ver expediente"
                                             >
                                                 <i class="bx bx-folder-open text-lg"></i>
-                                            </Link>
+                                            </button>
                                             <button
                                                 @click="abrirModalEditarAlumno(alumno)"
                                                 class="text-blue-600 hover:text-blue-900"
@@ -1916,6 +1957,16 @@ const getEstadoBadge = (estado) => {
             :duracionCarreras="duracionCarreras"
             @close="cerrarModalMateria"
             @saved="materiaGuardada"
+        />
+
+        <ExpedienteAlumnoModal
+            :show="mostrarModalExpediente"
+            :alumno="expedienteData.alumno"
+            :carrera="expedienteData.carrera"
+            :estadisticas="expedienteData.estadisticas"
+            :historial="expedienteData.historial"
+            :materias_actuales="expedienteData.materias_actuales"
+            @close="cerrarModalExpediente"
         />
     </SidebarLayout>
 </template>

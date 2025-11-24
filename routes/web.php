@@ -65,6 +65,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/expediente/aprobar-nota/{id}', [ExpedienteController::class, 'aprobarNota'])->name('expediente.aprobar-nota');
         Route::post('/expediente/rechazar-nota/{id}', [ExpedienteController::class, 'rechazarNota'])->name('expediente.rechazar-nota');
         Route::post('/expediente/configurar-parametros/{profesorMateriaId}', [ExpedienteController::class, 'configurarParametrosAcademicos'])->name('expediente.configurar-parametros');
+        // API para modal de expediente
+        Route::get('/api/expediente/alumno/{alumnoId}', [ExpedienteController::class, 'obtenerExpedienteAlumno'])->name('api.expediente.alumno');
         // Ruta genérica al final
         Route::get('/expediente/{id}', [ExpedienteController::class, 'show'])->name('expediente.show');
     });

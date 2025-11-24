@@ -1536,4 +1536,134 @@ class ExpedienteController extends Controller
         }
         return 'cursando';
     }
+
+    /**
+     * API: Obtener datos del expediente de un alumno para el modal
+     */
+    public function obtenerExpedienteAlumno($alumnoId)
+    {
+        try {
+            $alumno = Alumno::findOrFail($alumnoId);
+
+            // Obtener carrera del alumno
+            $carrera = Carrera::find($alumno->carrera);
+
+            // Obtener todas las materias del historial académico
+            $materias = AlumnoMateria::with(['materiaRelacion', 'carrera'])
+                ->where('alumno', $alumno->id)
+                ->orderBy('fecha', 'desc')
+                ->get()
+                ->filter(function($am) {
+                    return $am->materiaRelacion !== null;
+                })
+                ->map(function($am) {
+                    return [
+                        'id' => $am->Id,
+                        'materia' => [
+                            'id' => $am->materiaRelacion->id,
+                            'nombre' => $am->materiaRelacion->nombre,
+                            'codigo' => $am->materiaRelacion->codigo ?? null,
+                            'anno' => $am->materiaRelacion->anno,
+                            'semestre' => $am->materiaRelacion->semestre,
+                        ],
+                        'nota_final' => $am->nota,
+                        'calificacion_cursada' => $am->{'calificacion-cursada'} ?? null,
+                        'calificacion_rendida' => $am->calificacion_rendida ?? null,
+                        'estado' => $this->obtenerEstadoMateria($am),
+                        'cursada' => $am->cursada === '1',
+                        'rendida' => $am->rendida === '1',
+                        'fecha' => $am->fecha ? $am->fecha->format('d/m/Y') : null,
+                        'libro' => $am->libro ?? null,
+                        'folio' => $am->folio ?? null,
+                    ];
+                })
+                ->values();
+
+            // Calcular estadísticas
+            $materiasAprobadas = $materias->where('rendida', true)->count();
+            $materiasRegulares = $materias->where('cursada', true)->where('rendida', false)->count();
+            $totalMaterias = $materias->count();
+
+            // Calcular promedio (solo materias aprobadas con nota)
+            $materiasConNota = $materias->where('rendida', true)->filter(function($m) {
+                return !empty($m['nota_final']) && is_numeric($m['nota_final']);
+            });
+
+            $promedio = $materiasConNota->count() > 0
+                ? round($materiasConNota->avg('nota_final'), 2)
+                : null;
+
+            // Obtener inscripciones actuales
+            $inscripcionesActuales = Inscripcion::with(['materia'])
+                ->where('alumno_id', $alumno->id)
+                ->where('estado', 'confirmada')
+                ->get()
+                ->map(function($inscripcion) use ($alumno) {
+                    $profesorMateriaIds = \DB::table('tbl_profesor_tiene_materias')
+                        ->where('materia', $inscripcion->materia_id)
+                        ->pluck('id');
+
+                    $asistencias = Asistencia::where('alumno_id', $alumno->id)
+                        ->whereIn('profesor_materia_id', $profesorMateriaIds)
+                        ->where('tipo_carga', 'diaria')
+                        ->get();
+
+                    $totalClases = $asistencias->count();
+                    $asistenciasPresentes = $asistencias->where('estado', 'presente')->count();
+                    $porcentajeAsistencia = $totalClases > 0
+                        ? round(($asistenciasPresentes / $totalClases) * 100, 1)
+                        : null;
+
+                    return [
+                        'materia' => [
+                            'id' => $inscripcion->materia->id,
+                            'nombre' => $inscripcion->materia->nombre,
+                            'anno' => $inscripcion->materia->anno,
+                            'semestre' => $inscripcion->materia->semestre,
+                        ],
+                        'asistencia' => [
+                            'total_clases' => $totalClases,
+                            'presentes' => $asistenciasPresentes,
+                            'porcentaje' => $porcentajeAsistencia,
+                        ],
+                    ];
+                });
+
+            return response()->json([
+                'alumno' => [
+                    'id' => $alumno->id,
+                    'dni' => $alumno->dni,
+                    'nombre_completo' => trim($alumno->apellido . ', ' . $alumno->nombre),
+                    'legajo' => $alumno->legajo,
+                    'email' => $alumno->email,
+                    'telefono' => $alumno->telefono,
+                    'celular' => $alumno->celular,
+                    'curso' => $alumno->curso,
+                    'division' => $alumno->division,
+                ],
+                'carrera' => $carrera ? [
+                    'id' => $carrera->Id,
+                    'nombre' => $carrera->nombre,
+                    'duracion' => $carrera->duracion,
+                ] : null,
+                'estadisticas' => [
+                    'total_materias' => $totalMaterias,
+                    'aprobadas' => $materiasAprobadas,
+                    'regulares' => $materiasRegulares,
+                    'promedio' => $promedio,
+                    'porcentaje_progreso' => $totalMaterias > 0
+                        ? round(($materiasAprobadas / $totalMaterias) * 100, 1)
+                        : 0,
+                ],
+                'historial' => $materias,
+                'materias_actuales' => $inscripcionesActuales,
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error al obtener expediente de alumno: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Error al obtener el expediente del alumno'
+            ], 500);
+        }
+    }
 }

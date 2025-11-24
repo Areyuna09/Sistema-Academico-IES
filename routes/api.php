@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\CorrelativasController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Academic\PlanEstudioController;
+use App\Http\Controllers\ExpedienteController;
 
 // Rutas de Autenticación con Sanctum
 Route::post('/login', [AuthController::class, 'login']);
