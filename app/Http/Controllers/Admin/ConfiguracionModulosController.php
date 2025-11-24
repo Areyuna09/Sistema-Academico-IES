@@ -23,6 +23,7 @@ class ConfiguracionModulosController extends Controller
         $categorias = [
             'modulos' => 'Módulos Principales',
             'comunicacion' => 'Notificaciones',
+            'permisos' => 'Permisos y Accesos',
             'avanzado' => 'Funcionalidades Avanzadas',
         ];
 

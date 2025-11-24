@@ -36,6 +36,14 @@ const estaModuloActivo = (clave) => {
     return modulosConfig.value[clave] !== false;
 };
 
+// Verificar si el alumno puede editar su perfil
+const puedeEditarPerfil = computed(() => {
+    // Si no es alumno, puede editar
+    if (user.tipo !== 4) return true;
+    // Si es alumno, verificar el módulo
+    return estaModuloActivo('alumno_editar_perfil');
+});
+
 const form = useForm({
     name: user.name,
     email: user.email,
@@ -301,10 +309,14 @@ const additionalInfo = computed(() => {
                         id="email"
                         type="email"
                         v-model="form.email"
+                        :disabled="!puedeEditarPerfil"
                         required
                         maxlength="100"
                         autocomplete="username"
-                        class="pl-10 block w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        :class="[
+                            'pl-10 block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all',
+                            !puedeEditarPerfil ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'
+                        ]"
                     />
                 </div>
                 <InputError class="mt-1 text-xs" :message="form.errors.email" />
@@ -323,12 +335,16 @@ const additionalInfo = computed(() => {
                         id="telefono"
                         type="text"
                         v-model="form.telefono"
+                        :disabled="!puedeEditarPerfil"
                         placeholder="Ej: 2644123456"
                         autocomplete="tel"
                         pattern="[0-9]*"
                         inputmode="numeric"
                         maxlength="20"
-                        class="pl-10 block w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        :class="[
+                            'pl-10 block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all',
+                            !puedeEditarPerfil ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'
+                        ]"
                     />
                 </div>
                 <InputError class="mt-1 text-xs" :message="form.errors.telefono" />
@@ -347,12 +363,16 @@ const additionalInfo = computed(() => {
                         id="celular"
                         type="text"
                         v-model="form.celular"
+                        :disabled="!puedeEditarPerfil"
                         placeholder="Ej: 2644567890"
                         autocomplete="tel"
                         pattern="[0-9]*"
                         inputmode="numeric"
                         maxlength="20"
-                        class="pl-10 block w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        :class="[
+                            'pl-10 block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all',
+                            !puedeEditarPerfil ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'
+                        ]"
                     />
                 </div>
                 <InputError class="mt-1 text-xs" :message="form.errors.celular" />
@@ -366,7 +386,11 @@ const additionalInfo = computed(() => {
                 <textarea
                     id="descripcion_personalizada"
                     v-model="form.descripcion_personalizada"
-                    class="block w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    :disabled="!puedeEditarPerfil"
+                    :class="[
+                        'block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all',
+                        !puedeEditarPerfil ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'
+                    ]"
                     rows="3"
                     maxlength="500"
                     placeholder="Escribe una breve descripción personal (opcional)"
@@ -410,6 +434,16 @@ const additionalInfo = computed(() => {
                 </Transition>
             </div>
 
+            <!-- Mensaje informativo cuando no puede editar -->
+            <div v-if="!puedeEditarPerfil" class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div class="flex items-center gap-2">
+                    <i class="bx bx-info-circle text-yellow-600 text-xl"></i>
+                    <p class="text-sm text-gray-800">
+                        La edición del perfil está deshabilitada. Puedes cambiar tu contraseña en la sección de seguridad.
+                    </p>
+                </div>
+            </div>
+
             <!-- Submit Button -->
             <div class="flex items-center justify-between pt-4 border-t border-gray-100">
                 <Transition
@@ -428,6 +462,7 @@ const additionalInfo = computed(() => {
                 </Transition>
 
                 <button
+                    v-if="puedeEditarPerfil"
                     type="submit"
                     :disabled="form.processing"
                     class="ml-auto px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold rounded-lg transition-colors shadow-sm hover:shadow-md"

@@ -59,6 +59,17 @@ class ConfiguracionModulosSeeder extends Seeder
                 'icono' => 'bx-bell',
             ],
 
+            // ===== PERMISOS ALUMNOS =====
+            [
+                'clave' => 'alumno_editar_perfil',
+                'nombre' => 'Alumnos Pueden Editar Perfil',
+                'descripcion' => 'Permite a los ALUMNOS editar información de su perfil (teléfono, celular, etc.). Siempre pueden cambiar contraseña.',
+                'categoria' => 'permisos',
+                'activo' => true,
+                'orden' => 15,
+                'icono' => 'bx-user-circle',
+            ],
+
             // ===== FUNCIONALIDADES AVANZADAS =====
             [
                 'clave' => 'historico_alumnos',
