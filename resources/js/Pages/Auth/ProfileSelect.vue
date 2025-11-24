@@ -8,6 +8,12 @@ const configuracion = computed(() => page.props.configuracion || {});
 const nombreInstitucion = computed(() => configuracion.value.nombre_institucion || 'IES Gral. Manuel Belgrano');
 const modulosConfig = computed(() => page.props.modulosConfig || {});
 const estaModuloActivo = (clave) => {
+    // Admins (tipo 1, 2) y profesores (tipo 3) siempre tienen acceso
+    const tipoUsuario = page.props.auth.user?.tipo;
+    if ([1, 2, 3].includes(tipoUsuario)) {
+        return true;
+    }
+    // Para alumnos (tipo 4), verificar si el módulo está activo
     return modulosConfig.value[clave] !== false;
 };
 

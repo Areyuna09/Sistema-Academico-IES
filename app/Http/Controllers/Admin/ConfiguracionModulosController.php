@@ -22,12 +22,8 @@ class ConfiguracionModulosController extends Controller
         // Nombres legibles para las categorías
         $categorias = [
             'modulos' => 'Módulos Principales',
-            'administracion' => 'Gestión Administrativa',
-            'comunicacion' => 'Notificaciones y Comunicación',
-            'validaciones' => 'Validaciones y Reglas',
-            'permisos' => 'Permisos y Accesos',
+            'comunicacion' => 'Notificaciones',
             'avanzado' => 'Funcionalidades Avanzadas',
-            'firmas_digitales' => 'Firmas Digitales',
         ];
 
         return Inertia::render('Admin/ConfiguracionModulos/Index', [

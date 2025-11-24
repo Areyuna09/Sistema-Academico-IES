@@ -16,12 +16,14 @@ class VerificarModuloActivo
      */
     public function handle(Request $request, Closure $next, string $modulo): Response
     {
-        // Los admins siempre tienen acceso
-        if (in_array($request->user()?->tipo, [1, 2])) {
+        // Los admins y profesores siempre tienen acceso
+        // Tipos: 1=Admin, 2=Puesto, 3=Profesor, 4=Alumno
+        $tipoUsuario = $request->user()?->tipo;
+        if (in_array($tipoUsuario, [1, 2, 3])) {
             return $next($request);
         }
 
-        // Verificar si el módulo está activo
+        // Para alumnos (tipo 4), verificar si el módulo está activo
         if (!ConfiguracionModulo::estaActivo($modulo)) {
             abort(403, 'Este módulo está actualmente desactivado.');
         }
