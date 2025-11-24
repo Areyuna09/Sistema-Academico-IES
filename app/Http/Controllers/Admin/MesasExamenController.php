@@ -51,11 +51,13 @@ class MesasExamenController extends Controller
                       ->paginate(15)
                       ->withQueryString();
 
-        // Cargar cantidad de inscriptos para cada mesa
+        // Cargar cantidad de inscriptos y formatear datos para cada mesa
         $mesas->getCollection()->transform(function ($mesa) {
             $mesa->cantidad_inscriptos = $mesa->inscripciones()
                 ->whereIn('estado', ['inscripto', 'presente', 'aprobado', 'desaprobado'])
                 ->count();
+            $mesa->fecha_examen_formatted = $mesa->fecha_examen->format('d/m/Y');
+            $mesa->hora_examen_formatted = substr($mesa->hora_examen, 0, 5);
             return $mesa;
         });
 
@@ -94,9 +96,8 @@ class MesasExamenController extends Controller
             'materia_id' => 'required|exists:tbl_materias,id',
             'fecha_examen' => 'required|date|after_or_equal:today',
             'hora_examen' => ['required', 'regex:/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/'],
-            'llamado' => 'required|integer|min:1|max:3',
+            'llamado' => 'required|integer|min:1|max:2',
             'periodo_id' => 'nullable|exists:tbl_periodos_inscripcion,id',
-            'aula' => 'nullable|string|max:100',
             'presidente_id' => 'nullable|exists:tbl_profesores,id',
             'vocal1_id' => 'nullable|exists:tbl_profesores,id',
             'vocal2_id' => 'nullable|exists:tbl_profesores,id',
@@ -156,13 +157,14 @@ class MesasExamenController extends Controller
             'materia_id' => 'required|exists:tbl_materias,id',
             'fecha_examen' => 'required|date',
             'hora_examen' => ['required', 'regex:/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/'],
-            'llamado' => 'required|integer|min:1|max:3',
+            'llamado' => 'required|integer|min:1|max:2',
             'periodo_id' => 'nullable|exists:tbl_periodos_inscripcion,id',
-            'aula' => 'nullable|string|max:100',
             'presidente_id' => 'nullable|exists:tbl_profesores,id',
             'vocal1_id' => 'nullable|exists:tbl_profesores,id',
             'vocal2_id' => 'nullable|exists:tbl_profesores,id',
             'estado' => 'required|in:activa,cerrada,suspendida',
+            'fecha_inicio_inscripcion' => 'nullable|date',
+            'fecha_fin_inscripcion' => 'nullable|date|after_or_equal:fecha_inicio_inscripcion',
             'observaciones' => 'nullable|string',
         ], [
             'hora_examen.regex' => 'El formato de la hora no es válido. Use formato 24 horas (ej: 17:30).',
@@ -219,8 +221,45 @@ class MesasExamenController extends Controller
             'inscripciones.alumno'
         ]);
 
+        // Formatear datos para la vista
+        $mesaData = [
+            'id' => $mesa->id,
+            'materia' => [
+                'nombre' => $mesa->materia->nombre,
+                'carrera' => [
+                    'nombre' => $mesa->materia->carrera->nombre ?? 'Sin carrera',
+                ],
+            ],
+            'fecha_examen' => $mesa->fecha_examen->format('d/m/Y'),
+            'hora_examen' => substr($mesa->hora_examen, 0, 5),
+            'llamado' => $mesa->llamado,
+            'estado' => $mesa->estado,
+            'observaciones' => $mesa->observaciones,
+            'presidente' => $mesa->presidente ? [
+                'nombre_completo' => $mesa->presidente->apellido . ', ' . $mesa->presidente->nombre,
+            ] : null,
+            'vocal1' => $mesa->vocal1 ? [
+                'nombre_completo' => $mesa->vocal1->apellido . ', ' . $mesa->vocal1->nombre,
+            ] : null,
+            'vocal2' => $mesa->vocal2 ? [
+                'nombre_completo' => $mesa->vocal2->apellido . ', ' . $mesa->vocal2->nombre,
+            ] : null,
+            'inscripciones' => $mesa->inscripciones->map(function ($inscripcion) {
+                return [
+                    'id' => $inscripcion->id,
+                    'fecha_inscripcion' => $inscripcion->fecha_inscripcion ? $inscripcion->fecha_inscripcion->format('d/m/Y H:i') : '-',
+                    'alumno' => [
+                        'dni' => $inscripcion->alumno->dni,
+                        'nombre_completo' => $inscripcion->alumno->apellido . ', ' . $inscripcion->alumno->nombre,
+                        'curso' => $inscripcion->alumno->curso,
+                        'email' => $inscripcion->alumno->email,
+                    ],
+                ];
+            }),
+        ];
+
         return Inertia::render('Admin/Mesas/Show', [
-            'mesa' => $mesa,
+            'mesa' => $mesaData,
         ]);
     }
 

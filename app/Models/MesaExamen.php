@@ -16,7 +16,6 @@ class MesaExamen extends Model
         'hora_examen',
         'llamado',
         'periodo_id',
-        'aula',
         'presidente_id',
         'vocal1_id',
         'vocal2_id',

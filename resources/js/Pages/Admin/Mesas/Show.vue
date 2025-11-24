@@ -80,8 +80,6 @@ const getEstadoBadgeClass = (estado) => {
                                 <p class="text-sm font-medium">{{ getLlamadoTexto(mesa.llamado) }}</p>
                             </div>
                             <div>
-                                <span class="text-sm text-gray-600">Aula:</span>
-                                <p class="text-sm font-medium">{{ mesa.aula || '-' }}</p>
                             </div>
                             <div>
                                 <span class="text-sm text-gray-600">Estado:</span>
@@ -147,22 +145,19 @@ const getEstadoBadgeClass = (estado) => {
                                     #
                                 </th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Alumno
-                                </th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     DNI
                                 </th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Alumno
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Año
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Email
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Fecha Inscripción
-                                </th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Estado
-                                </th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Nota
-                                </th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Acciones
                                 </th>
                             </tr>
                         </thead>
@@ -177,51 +172,24 @@ const getEstadoBadgeClass = (estado) => {
                                 <td class="px-6 py-4 text-sm text-gray-900">
                                     {{ index + 1 }}
                                 </td>
+                                <td class="px-6 py-4 text-sm text-gray-900">
+                                    {{ inscripcion.alumno.dni }}
+                                </td>
                                 <td class="px-6 py-4">
                                     <div class="text-sm font-medium text-gray-900">{{ inscripcion.alumno.nombre_completo }}</div>
                                 </td>
                                 <td class="px-6 py-4 text-sm text-gray-900">
-                                    {{ inscripcion.alumno.dni }}
+                                    {{ inscripcion.alumno.curso || '-' }}°
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-500">
+                                    {{ inscripcion.alumno.email || '-' }}
                                 </td>
                                 <td class="px-6 py-4 text-sm text-gray-500">
                                     {{ inscripcion.fecha_inscripcion }}
                                 </td>
-                                <td class="px-6 py-4">
-                                    <span :class="getEstadoBadgeClass(inscripcion.estado)" class="px-2 py-1 text-xs font-semibold rounded-full">
-                                        {{ inscripcion.estado.charAt(0).toUpperCase() + inscripcion.estado.slice(1) }}
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4">
-                                    <span v-if="inscripcion.nota" class="text-sm font-medium text-gray-900">
-                                        {{ inscripcion.nota }}
-                                    </span>
-                                    <span v-else class="text-sm text-gray-400">-</span>
-                                </td>
-                                <td class="px-6 py-4 text-right text-sm">
-                                    <button
-                                        class="text-blue-600 hover:text-blue-900"
-                                        title="Cargar nota"
-                                    >
-                                        <i class="bx bx-edit text-lg"></i>
-                                    </button>
-                                </td>
                             </tr>
                         </tbody>
                     </table>
-                </div>
-            </div>
-
-            <!-- Nota informativa -->
-            <div class="mt-6 bg-blue-50 border-l-4 border-blue-400 p-4">
-                <div class="flex">
-                    <div class="flex-shrink-0">
-                        <i class="bx bx-info-circle text-blue-400 text-xl"></i>
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm text-blue-700">
-                            La funcionalidad de carga de notas y asistencia se implementará próximamente.
-                        </p>
-                    </div>
                 </div>
             </div>
         </div>

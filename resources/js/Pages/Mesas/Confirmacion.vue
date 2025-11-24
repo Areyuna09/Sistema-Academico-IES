@@ -90,11 +90,6 @@ const getLlamadoTexto = (llamado) => {
                                 </div>
                             </div>
 
-                            <div v-if="inscripcion.mesa.aula" class="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                                <p class="text-xs text-gray-500 mb-1">Aula</p>
-                                <p class="font-semibold text-gray-900">{{ inscripcion.mesa.aula }}</p>
-                            </div>
-
                             <!-- Tribunal -->
                             <div v-if="inscripcion.mesa.tribunal.presidente || inscripcion.mesa.tribunal.vocal1 || inscripcion.mesa.tribunal.vocal2"
                                  class="p-3 bg-blue-50 rounded-lg border border-blue-200">
