@@ -130,42 +130,42 @@ const notificacionesRecientes = computed(() => {
 
 <template>
     <header class="bg-gray-800 shadow-lg border-b border-gray-700">
-        <div class="flex items-center justify-between px-6 py-2">
+        <div class="flex items-center justify-between px-3 sm:px-6 py-2">
             <!-- Botón hamburguesa -->
             <button
                 @click="emit('toggleSidebar')"
-                class="p-2 text-gray-400 hover:bg-gray-700 hover:text-white rounded-lg transition-all duration-200 mr-3"
+                class="p-1.5 sm:p-2 text-gray-400 hover:bg-gray-700 hover:text-white rounded-lg transition-all duration-200 mr-2 sm:mr-3"
             >
-                <i class="bx bx-menu text-xl"></i>
+                <i class="bx bx-menu text-lg sm:text-xl"></i>
             </button>
 
-            <div class="flex-1">
+            <div class="flex-1 min-w-0">
                 <slot name="header" />
             </div>
 
             <!-- Actions -->
-            <div class="flex items-center space-x-2">
+            <div class="flex items-center space-x-1 sm:space-x-2">
                 <!-- Botón de ayuda/tutorial (solo visible si showHelpButton=true) -->
                 <button
                     v-if="showHelpButton"
                     @click="emit('showHelp')"
-                    class="onboarding-help-button p-2 text-gray-400 hover:bg-blue-600 hover:text-white rounded-lg transition-all duration-200"
+                    class="onboarding-help-button p-1.5 sm:p-2 text-gray-400 hover:bg-blue-600 hover:text-white rounded-lg transition-all duration-200"
                     title="Ver tutorial del sistema"
                 >
-                    <i class="bx bx-help-circle text-lg"></i>
+                    <i class="bx bx-help-circle text-base sm:text-lg"></i>
                 </button>
 
                 <!-- Notifications -->
                 <div class="relative notifications-dropdown">
                     <button
                         @click="toggleDropdown"
-                        class="relative p-2 text-gray-400 hover:bg-gray-700 hover:text-white rounded-lg transition-all duration-200"
+                        class="relative p-1.5 sm:p-2 text-gray-400 hover:bg-gray-700 hover:text-white rounded-lg transition-all duration-200"
                         title="Notificaciones"
                     >
-                        <i class="bx bx-bell text-lg"></i>
+                        <i class="bx bx-bell text-base sm:text-lg"></i>
                         <span
                             v-if="noLeidasCount > 0"
-                            class="absolute top-0.5 right-0.5 flex items-center justify-center w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full"
+                            class="absolute top-0 right-0 sm:top-0.5 sm:right-0.5 flex items-center justify-center w-4 h-4 sm:w-5 sm:h-5 bg-red-500 text-white text-[10px] sm:text-xs font-bold rounded-full"
                         >
                             {{ noLeidasCount > 9 ? '9+' : noLeidasCount }}
                         </span>
@@ -174,30 +174,30 @@ const notificacionesRecientes = computed(() => {
                     <!-- Dropdown de notificaciones -->
                     <div
                         v-if="dropdownOpen"
-                        class="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50"
+                        class="fixed sm:absolute inset-x-2 sm:inset-x-auto sm:right-0 top-14 sm:top-auto sm:mt-2 w-auto sm:w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50"
                     >
                         <!-- Header -->
-                        <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200">
-                            <h3 class="text-sm font-semibold text-gray-900">Notificaciones</h3>
+                        <div class="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 border-b border-gray-200">
+                            <h3 class="text-xs sm:text-sm font-semibold text-gray-900">Notificaciones</h3>
                             <button
                                 v-if="noLeidasCount > 0"
                                 @click="marcarTodasLeidas"
-                                class="text-xs text-blue-600 hover:text-blue-800"
+                                class="text-[10px] sm:text-xs text-blue-600 hover:text-blue-800 whitespace-nowrap"
                             >
-                                Marcar todas como leídas
+                                Marcar leídas
                             </button>
                         </div>
 
                         <!-- Lista de notificaciones -->
-                        <div class="max-h-96 overflow-y-auto">
-                            <div v-if="cargando" class="p-8 text-center text-gray-500">
-                                <i class="bx bx-loader-alt bx-spin text-2xl"></i>
-                                <p class="mt-2 text-sm">Cargando...</p>
+                        <div class="max-h-[60vh] sm:max-h-96 overflow-y-auto">
+                            <div v-if="cargando" class="p-6 sm:p-8 text-center text-gray-500">
+                                <i class="bx bx-loader-alt bx-spin text-xl sm:text-2xl"></i>
+                                <p class="mt-2 text-xs sm:text-sm">Cargando...</p>
                             </div>
 
-                            <div v-else-if="notificacionesRecientes.length === 0" class="p-8 text-center text-gray-500">
-                                <i class="bx bx-bell-off text-4xl mb-2"></i>
-                                <p class="text-sm">No tienes notificaciones</p>
+                            <div v-else-if="notificacionesRecientes.length === 0" class="p-6 sm:p-8 text-center text-gray-500">
+                                <i class="bx bx-bell-off text-3xl sm:text-4xl mb-2"></i>
+                                <p class="text-xs sm:text-sm">No tienes notificaciones</p>
                             </div>
 
                             <div v-else>
@@ -206,27 +206,27 @@ const notificacionesRecientes = computed(() => {
                                     :key="notificacion.id"
                                     @click="marcarLeida(notificacion)"
                                     :class="[
-                                        'px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer',
+                                        'px-3 sm:px-4 py-2 sm:py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer',
                                         !notificacion.leida && 'bg-blue-50'
                                     ]"
                                 >
-                                    <div class="flex items-start">
-                                        <div :class="['mr-3 mt-0.5', getColor(notificacion)]">
-                                            <i :class="['bx text-xl', getIcono(notificacion)]"></i>
+                                    <div class="flex items-start gap-2 sm:gap-0">
+                                        <div :class="['mr-0 sm:mr-3 mt-0.5 flex-shrink-0', getColor(notificacion)]">
+                                            <i :class="['bx text-base sm:text-xl', getIcono(notificacion)]"></i>
                                         </div>
                                         <div class="flex-1 min-w-0">
-                                            <p class="text-sm font-medium text-gray-900 truncate">
+                                            <p class="text-xs sm:text-sm font-medium text-gray-900 line-clamp-1 sm:truncate">
                                                 {{ notificacion.titulo }}
                                             </p>
-                                            <p class="text-xs text-gray-600 mt-1 line-clamp-2">
+                                            <p class="text-[10px] sm:text-xs text-gray-600 mt-0.5 sm:mt-1 line-clamp-2">
                                                 {{ notificacion.mensaje }}
                                             </p>
-                                            <p class="text-xs text-gray-400 mt-1">
+                                            <p class="text-[10px] sm:text-xs text-gray-400 mt-0.5 sm:mt-1">
                                                 Hace {{ notificacion.tiempo_transcurrido }}
                                             </p>
                                         </div>
-                                        <div v-if="!notificacion.leida" class="ml-2">
-                                            <span class="w-2 h-2 bg-blue-600 rounded-full block"></span>
+                                        <div v-if="!notificacion.leida" class="ml-1 sm:ml-2 flex-shrink-0">
+                                            <span class="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-blue-600 rounded-full block"></span>
                                         </div>
                                     </div>
                                 </div>
@@ -234,10 +234,10 @@ const notificacionesRecientes = computed(() => {
                         </div>
 
                         <!-- Footer - Ver todas -->
-                        <div v-if="notificaciones.length > 5" class="px-4 py-3 bg-gray-50 border-t border-gray-200 rounded-b-lg">
+                        <div v-if="notificaciones.length > 5" class="px-3 sm:px-4 py-2 sm:py-3 bg-gray-50 border-t border-gray-200 rounded-b-lg">
                             <button
                                 @click="dropdownOpen = false"
-                                class="w-full text-sm text-blue-600 hover:text-blue-800 font-medium"
+                                class="w-full text-xs sm:text-sm text-blue-600 hover:text-blue-800 font-medium"
                             >
                                 Ver todas las notificaciones
                             </button>

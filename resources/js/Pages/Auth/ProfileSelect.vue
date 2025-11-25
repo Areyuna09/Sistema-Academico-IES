@@ -149,12 +149,12 @@ const getInitials = (name) => {
 <template>
     <Head title="Seleccionar Perfil" />
 
-    <div class="min-h-screen flex items-center justify-center relative overflow-hidden px-4 sm:px-6 py-8 sm:py-12 bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
+    <div class="min-h-screen flex items-center justify-center relative overflow-hidden px-3 sm:px-6 py-6 sm:py-12 bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
         <!-- Fondo con círculos decorativos animados -->
         <div class="absolute inset-0 overflow-hidden pointer-events-none">
-            <div class="absolute -top-40 -right-40 w-96 h-96 bg-blue-500/30 rounded-full blur-3xl animate-float-slow"></div>
-            <div class="absolute -bottom-40 -left-40 w-96 h-96 bg-indigo-500/30 rounded-full blur-3xl animate-float-slow-delayed"></div>
-            <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-600/20 rounded-full blur-3xl animate-pulse-very-slow"></div>
+            <div class="absolute -top-32 -right-32 w-64 h-64 sm:w-96 sm:h-96 bg-blue-500/30 rounded-full blur-3xl animate-float-slow"></div>
+            <div class="absolute -bottom-32 -left-32 w-64 h-64 sm:w-96 sm:h-96 bg-indigo-500/30 rounded-full blur-3xl animate-float-slow-delayed"></div>
+            <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] sm:w-[600px] sm:h-[600px] bg-blue-600/20 rounded-full blur-3xl animate-pulse-very-slow"></div>
         </div>
 
         <div class="w-full max-w-md relative z-10">
@@ -180,12 +180,12 @@ const getInitials = (name) => {
             </Transition>
 
             <!-- Profile Selection Card -->
-            <div class="bg-gray-800/95 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-700/50 animate-slide-up overflow-hidden">
+            <div class="bg-gray-800/95 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-2xl border border-gray-700/50 animate-slide-up overflow-hidden">
                 <!-- Header con gradiente -->
-                <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 sm:px-8 pt-6 sm:pt-8 pb-5 sm:pb-6">
+                <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-5 sm:px-8 pt-5 sm:pt-8 pb-4 sm:pb-6">
                     <!-- Logo Institucional -->
-                    <div class="flex justify-center mb-3 sm:mb-4">
-                        <div class="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center">
+                    <div class="flex justify-center mb-2 sm:mb-4">
+                        <div class="w-14 h-14 sm:w-20 sm:h-20 flex items-center justify-center">
                             <img
                                 :src="logoUrl"
                                 :alt="nombreInstitucion"
@@ -196,13 +196,13 @@ const getInitials = (name) => {
 
                     <!-- Título -->
                     <div class="text-center">
-                        <h1 class="text-xl sm:text-2xl font-bold text-white mb-1.5">Seleccionar Perfil</h1>
+                        <h1 class="text-lg sm:text-2xl font-bold text-white mb-1">Seleccionar Perfil</h1>
                         <p class="text-xs sm:text-sm text-blue-100/90">{{ nombreInstitucion }}</p>
                     </div>
                 </div>
 
                 <!-- Lista de perfiles -->
-                <div class="px-6 sm:px-8 py-5 sm:py-6">
+                <div class="px-4 sm:px-8 py-4 sm:py-6">
                     <!-- Loading overlay -->
                     <div v-if="loggingIn" class="absolute inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center z-50 rounded-2xl">
                         <div class="text-center">
@@ -214,18 +214,18 @@ const getInitials = (name) => {
                         </div>
                     </div>
 
-                    <div v-if="savedProfiles.length > 0" class="space-y-3">
+                    <div v-if="savedProfiles.length > 0" class="space-y-2 sm:space-y-3">
                         <!-- Perfil guardado -->
                         <div
                             v-for="(profile, index) in savedProfiles"
                             :key="index"
                             @click="selectProfile(profile)"
-                            class="group relative flex items-center gap-4 p-4 bg-gray-700/50 hover:bg-gray-700 border border-gray-600/50 hover:border-blue-500/50 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-lg"
+                            class="group relative flex items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-gray-700/50 hover:bg-gray-700 border border-gray-600/50 hover:border-blue-500/50 rounded-lg sm:rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-lg"
                         >
                             <!-- Avatar -->
                             <div class="relative flex-shrink-0">
                                 <div
-                                    class="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center overflow-hidden ring-2 ring-gray-600 group-hover:ring-blue-500 transition-all"
+                                    class="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center overflow-hidden ring-2 ring-gray-600 group-hover:ring-blue-500 transition-all"
                                 >
                                     <img
                                         v-if="profile.avatar && estaModuloActivo('avatares')"
@@ -235,7 +235,7 @@ const getInitials = (name) => {
                                     />
                                     <span
                                         v-else
-                                        class="text-white font-bold text-lg"
+                                        class="text-white font-bold text-base sm:text-lg"
                                     >
                                         {{ getInitials(profile.name) }}
                                     </span>
@@ -244,10 +244,10 @@ const getInitials = (name) => {
 
                             <!-- Información del perfil -->
                             <div class="flex-1 min-w-0">
-                                <h3 class="text-white font-semibold text-base truncate group-hover:text-blue-300 transition-colors">
+                                <h3 class="text-white font-semibold text-sm sm:text-base truncate group-hover:text-blue-300 transition-colors">
                                     {{ profile.name }}
                                 </h3>
-                                <p class="text-gray-400 text-sm truncate">
+                                <p class="text-gray-400 text-xs sm:text-sm truncate">
                                     DNI: {{ profile.dni }}
                                 </p>
                             </div>
@@ -255,34 +255,34 @@ const getInitials = (name) => {
                             <!-- Botón eliminar -->
                             <button
                                 @click="removeProfile(index, $event)"
-                                class="opacity-0 group-hover:opacity-100 p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
+                                class="opacity-0 group-hover:opacity-100 p-1.5 sm:p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
                                 title="Eliminar perfil"
                             >
-                                <i class="bx bx-x text-xl"></i>
+                                <i class="bx bx-x text-lg sm:text-xl"></i>
                             </button>
 
                             <!-- Icono flecha -->
                             <div class="text-gray-400 group-hover:text-blue-400 transition-colors">
-                                <i class="bx bx-chevron-right text-2xl"></i>
+                                <i class="bx bx-chevron-right text-xl sm:text-2xl"></i>
                             </div>
                         </div>
                     </div>
 
                     <!-- Mensaje si no hay perfiles -->
-                    <div v-else class="text-center py-8">
-                        <div class="w-20 h-20 mx-auto mb-4 bg-gray-700/50 rounded-full flex items-center justify-center">
-                            <i class="bx bx-user-circle text-4xl text-gray-500"></i>
+                    <div v-else class="text-center py-6 sm:py-8">
+                        <div class="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-3 sm:mb-4 bg-gray-700/50 rounded-full flex items-center justify-center">
+                            <i class="bx bx-user-circle text-3xl sm:text-4xl text-gray-500"></i>
                         </div>
-                        <p class="text-gray-400 text-sm mb-2">No hay perfiles guardados</p>
-                        <p class="text-gray-500 text-xs">Inicia sesión con "Recuérdame" para guardar tu perfil</p>
+                        <p class="text-gray-400 text-xs sm:text-sm mb-2">No hay perfiles guardados</p>
+                        <p class="text-gray-500 text-[10px] sm:text-xs">Inicia sesión con "Recuérdame" para guardar tu perfil</p>
                     </div>
 
                     <!-- Botón para agregar otra cuenta -->
                     <button
                         @click="goToLogin"
-                        class="mt-4 w-full py-3 px-4 bg-gray-700/50 hover:bg-gray-700 border border-gray-600 hover:border-blue-500/50 text-white font-semibold text-base rounded-lg transition-all duration-200 flex items-center justify-center gap-2 group"
+                        class="mt-3 sm:mt-4 w-full py-2.5 sm:py-3 px-4 bg-gray-700/50 hover:bg-gray-700 border border-gray-600 hover:border-blue-500/50 text-white font-semibold text-sm sm:text-base rounded-lg transition-all duration-200 flex items-center justify-center gap-2 group"
                     >
-                        <i class="bx bx-plus-circle text-xl group-hover:text-blue-400 transition-colors"></i>
+                        <i class="bx bx-plus-circle text-lg sm:text-xl group-hover:text-blue-400 transition-colors"></i>
                         <span>Usar otra cuenta</span>
                     </button>
                 </div>

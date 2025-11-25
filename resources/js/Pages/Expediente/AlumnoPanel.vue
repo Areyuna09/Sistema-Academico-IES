@@ -55,22 +55,22 @@ const obtenerColorAsistencia = (porcentaje) => {
         <div class="p-4 md:p-8 max-w-7xl mx-auto overflow-hidden">
 
             <!-- Información del Alumno -->
-            <div class="bg-white rounded-lg p-6 mb-6 border border-gray-200">
+            <div class="bg-white rounded-lg p-3 md:p-6 mb-4 md:mb-6 border border-gray-200">
                 <div class="flex items-center justify-between">
-                    <div>
-                        <h2 class="text-2xl font-bold text-gray-900">{{ alumno.nombre_completo }}</h2>
-                        <div class="mt-2 flex flex-wrap gap-4 text-sm text-gray-600">
+                    <div class="min-w-0 flex-1">
+                        <h2 class="text-lg md:text-2xl font-bold text-gray-900 truncate">{{ alumno.nombre_completo }}</h2>
+                        <div class="mt-1 md:mt-2 flex flex-wrap gap-2 md:gap-4 text-xs md:text-sm text-gray-600">
                             <div class="flex items-center gap-1">
-                                <i class='bx bx-id-card'></i>
+                                <i class='bx bx-id-card text-sm md:text-base'></i>
                                 <span>DNI: {{ alumno.dni }}</span>
                             </div>
                             <div v-if="alumno.legajo" class="flex items-center gap-1">
-                                <i class='bx bx-file'></i>
+                                <i class='bx bx-file text-sm md:text-base'></i>
                                 <span>Legajo: {{ alumno.legajo }}</span>
                             </div>
-                            <div v-if="carrera" class="flex items-center gap-1">
-                                <i class='bx bx-book'></i>
-                                <span>{{ carrera.nombre }}</span>
+                            <div v-if="carrera" class="flex items-center gap-1 w-full sm:w-auto">
+                                <i class='bx bx-book text-sm md:text-base'></i>
+                                <span class="truncate">{{ carrera.nombre }}</span>
                             </div>
                         </div>
                     </div>
@@ -119,20 +119,20 @@ const obtenerColorAsistencia = (porcentaje) => {
             </div>
 
             <!-- Pestañas -->
-            <div class="bg-white rounded-lg border border-gray-200 mb-6">
+            <div class="bg-white rounded-lg border border-gray-200 mb-4 md:mb-6">
                 <div class="border-b border-gray-200">
-                    <nav class="flex space-x-6 px-6" aria-label="Tabs">
+                    <nav class="flex space-x-2 md:space-x-6 px-2 md:px-6" aria-label="Tabs">
                         <button
                             @click="vistaActual = 'resumen'"
                             :class="[
                                 vistaActual === 'resumen'
                                     ? 'border-blue-500 text-blue-600'
                                     : 'border-transparent text-gray-500 hover:text-gray-700',
-                                'py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2'
+                                'py-3 md:py-4 px-1 md:px-2 border-b-2 font-medium text-xs md:text-sm flex items-center gap-1 md:gap-2'
                             ]"
                         >
-                            <i class='bx bx-chart'></i>
-                            Resumen
+                            <i class='bx bx-chart text-base md:text-lg'></i>
+                            <span class="hidden sm:inline">Resumen</span>
                         </button>
                         <button
                             @click="vistaActual = 'historial'"
@@ -140,11 +140,11 @@ const obtenerColorAsistencia = (porcentaje) => {
                                 vistaActual === 'historial'
                                     ? 'border-blue-500 text-blue-600'
                                     : 'border-transparent text-gray-500 hover:text-gray-700',
-                                'py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2'
+                                'py-3 md:py-4 px-1 md:px-2 border-b-2 font-medium text-xs md:text-sm flex items-center gap-1 md:gap-2'
                             ]"
                         >
-                            <i class='bx bx-history'></i>
-                            Historial Completo
+                            <i class='bx bx-history text-base md:text-lg'></i>
+                            <span class="hidden sm:inline">Historial</span>
                         </button>
                         <button
                             @click="vistaActual = 'actuales'"
@@ -152,12 +152,12 @@ const obtenerColorAsistencia = (porcentaje) => {
                                 vistaActual === 'actuales'
                                     ? 'border-blue-500 text-blue-600'
                                     : 'border-transparent text-gray-500 hover:text-gray-700',
-                                'py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2'
+                                'py-3 md:py-4 px-1 md:px-2 border-b-2 font-medium text-xs md:text-sm flex items-center gap-1 md:gap-2'
                             ]"
                         >
-                            <i class='bx bx-calendar'></i>
-                            Materias Actuales
-                            <span v-if="materias_actuales.length > 0" class="bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full text-xs font-bold">
+                            <i class='bx bx-calendar text-base md:text-lg'></i>
+                            <span class="hidden sm:inline">Actuales</span>
+                            <span v-if="materias_actuales.length > 0" class="bg-blue-100 text-blue-600 px-1.5 md:px-2 py-0.5 rounded-full text-[10px] md:text-xs font-bold">
                                 {{ materias_actuales.length }}
                             </span>
                         </button>
@@ -165,46 +165,46 @@ const obtenerColorAsistencia = (porcentaje) => {
                 </div>
 
                 <!-- Contenido de las Pestañas -->
-                <div class="p-6">
+                <div class="p-3 md:p-6">
                     <!-- Vista Resumen -->
                     <div v-if="vistaActual === 'resumen'">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                            <i class='bx bx-info-circle text-xl mr-2 text-blue-600'></i>
+                        <h3 class="text-base md:text-lg font-semibold text-gray-900 mb-3 md:mb-4 flex items-center">
+                            <i class='bx bx-info-circle text-lg md:text-xl mr-2 text-blue-600'></i>
                             Información General
                         </h3>
 
-                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                            <p class="text-sm text-blue-800">
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 md:p-4 mb-4 md:mb-6">
+                            <p class="text-xs md:text-sm text-blue-800">
                                 Has completado <strong>{{ estadisticas.aprobadas }}</strong> de <strong>{{ estadisticas.total_materias }}</strong> materias en tu historial académico.
                                 {{ estadisticas.promedio ? `Tu promedio actual es de ${estadisticas.promedio.toFixed(2)}.` : '' }}
                             </p>
-                            <p v-if="estadisticas.regulares > 0" class="text-sm text-blue-800 mt-2">
+                            <p v-if="estadisticas.regulares > 0" class="text-xs md:text-sm text-blue-800 mt-2">
                                 Tienes <strong>{{ estadisticas.regulares }}</strong> materia{{ estadisticas.regulares > 1 ? 's' : '' }}
                                 regularizada{{ estadisticas.regulares > 1 ? 's' : '' }} pendiente{{ estadisticas.regulares > 1 ? 's' : '' }} de rendir.
                             </p>
                         </div>
 
                         <!-- Últimas 5 materias -->
-                        <h4 class="font-semibold text-gray-800 mb-3">Últimas Materias</h4>
-                        <div class="space-y-3">
+                        <h4 class="text-sm md:text-base font-semibold text-gray-800 mb-2 md:mb-3">Últimas Materias</h4>
+                        <div class="space-y-2 md:space-y-3">
                             <div
                                 v-for="materia in historial.slice(0, 5)"
                                 :key="materia.id"
-                                class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition"
+                                class="border border-gray-200 rounded-lg p-3 md:p-4 hover:bg-gray-50 transition"
                             >
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <h5 class="font-semibold text-gray-800">{{ materia.materia.nombre }}</h5>
-                                        <p class="text-sm text-gray-500 mt-1">
+                                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
+                                    <div class="min-w-0 flex-1">
+                                        <h5 class="text-sm md:text-base font-semibold text-gray-800 truncate">{{ materia.materia.nombre }}</h5>
+                                        <p class="text-xs md:text-sm text-gray-500 mt-0.5 md:mt-1">
                                             {{ materia.materia.anno }}° Año - {{ materia.materia.semestre === 1 ? '1er' : '2do' }} Cuatr.
                                         </p>
                                     </div>
-                                    <div class="flex items-center gap-3">
+                                    <div class="flex items-center gap-2 md:gap-3 flex-shrink-0">
                                         <div v-if="materia.nota_final" class="text-center">
-                                            <p class="text-2xl font-bold text-blue-600">{{ materia.nota_final }}</p>
-                                            <p class="text-xs text-gray-500">Nota</p>
+                                            <p class="text-xl md:text-2xl font-bold text-blue-600">{{ materia.nota_final }}</p>
+                                            <p class="text-[10px] md:text-xs text-gray-500">Nota</p>
                                         </div>
-                                        <span :class="['px-3 py-1 rounded-full text-xs font-semibold', obtenerColorEstado(materia.estado)]">
+                                        <span :class="['px-2 md:px-3 py-1 rounded-full text-[10px] md:text-xs font-semibold whitespace-nowrap', obtenerColorEstado(materia.estado)]">
                                             {{ obtenerTextoEstado(materia.estado) }}
                                         </span>
                                     </div>
@@ -215,20 +215,62 @@ const obtenerColorAsistencia = (porcentaje) => {
 
                     <!-- Vista Historial Completo -->
                     <div v-if="vistaActual === 'historial'">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-lg font-semibold text-gray-900 flex items-center">
-                                <i class='bx bx-history text-xl mr-2 text-blue-600'></i>
+                        <div class="flex items-center justify-between mb-3 md:mb-4">
+                            <h3 class="text-base md:text-lg font-semibold text-gray-900 flex items-center">
+                                <i class='bx bx-history text-lg md:text-xl mr-2 text-blue-600'></i>
                                 Historial Completo
                             </h3>
-                            <span class="text-sm text-gray-500">{{ historial.length }} materias</span>
+                            <span class="text-xs md:text-sm text-gray-500">{{ historial.length }} materias</span>
                         </div>
 
                         <div v-if="historial.length === 0" class="text-center py-12 text-gray-500">
                             <i class='bx bx-book-open text-6xl mb-4'></i>
-                            <p>No tienes materias en tu historial académico</p>
+                            <p class="text-sm md:text-base">No tienes materias en tu historial académico</p>
                         </div>
 
-                        <div v-else class="overflow-x-auto">
+                        <!-- Vista móvil: Tarjetas -->
+                        <div v-if="historial.length > 0" class="md:hidden space-y-3">
+                            <div
+                                v-for="materia in historial"
+                                :key="materia.id"
+                                class="border border-gray-200 rounded-lg p-3 bg-white"
+                            >
+                                <div class="flex justify-between items-start mb-2">
+                                    <div class="flex-1 min-w-0 pr-2">
+                                        <h4 class="font-semibold text-gray-900 text-sm truncate">{{ materia.materia.nombre }}</h4>
+                                        <p class="text-xs text-gray-500 mt-0.5">
+                                            {{ materia.materia.anno }}° - {{ materia.materia.semestre === 1 ? '1er' : '2do' }} Cuatr.
+                                        </p>
+                                    </div>
+                                    <span :class="['px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap', obtenerColorEstado(materia.estado)]">
+                                        {{ obtenerTextoEstado(materia.estado) }}
+                                    </span>
+                                </div>
+                                <div class="grid grid-cols-3 gap-2 mt-2 pt-2 border-t border-gray-100">
+                                    <div class="text-center">
+                                        <p class="text-[10px] text-gray-500 mb-0.5">Cursada</p>
+                                        <p class="text-sm font-semibold text-blue-600">
+                                            {{ materia.calificacion_cursada || '-' }}
+                                        </p>
+                                    </div>
+                                    <div class="text-center">
+                                        <p class="text-[10px] text-gray-500 mb-0.5">Final</p>
+                                        <p class="text-sm font-bold text-green-600">
+                                            {{ materia.nota_final || '-' }}
+                                        </p>
+                                    </div>
+                                    <div class="text-center">
+                                        <p class="text-[10px] text-gray-500 mb-0.5">Fecha</p>
+                                        <p class="text-[10px] text-gray-600">
+                                            {{ materia.fecha || '-' }}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Vista desktop: Tabla -->
+                        <div v-if="historial.length > 0" class="hidden md:block overflow-x-auto">
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-50">
                                     <tr>
@@ -276,16 +318,17 @@ const obtenerColorAsistencia = (porcentaje) => {
 
                     <!-- Vista Materias Actuales -->
                     <div v-if="vistaActual === 'actuales'">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-lg font-semibold text-gray-900 flex items-center">
-                                <i class='bx bx-calendar text-xl mr-2 text-blue-600'></i>
-                                Materias del Cuatrimestre Actual
+                        <div class="flex items-center justify-between mb-3 md:mb-4">
+                            <h3 class="text-base md:text-lg font-semibold text-gray-900 flex items-center">
+                                <i class='bx bx-calendar text-lg md:text-xl mr-2 text-blue-600'></i>
+                                <span class="hidden sm:inline">Materias del Cuatrimestre Actual</span>
+                                <span class="sm:hidden">Actuales</span>
                             </h3>
                         </div>
 
                         <div v-if="materias_actuales.length === 0" class="text-center py-12 text-gray-500">
-                            <i class='bx bx-calendar-x text-6xl mb-4'></i>
-                            <p>No tienes materias inscritas en el cuatrimestre actual</p>
+                            <i class='bx bx-calendar-x text-5xl md:text-6xl mb-4'></i>
+                            <p class="text-sm md:text-base">No tienes materias inscritas en el cuatrimestre actual</p>
                         </div>
 
                         <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
