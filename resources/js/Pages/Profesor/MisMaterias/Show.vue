@@ -1,5 +1,5 @@
 <script setup>
-import { Link } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
 import axios from 'axios';
@@ -237,6 +237,7 @@ const guardarNotasFinalesMasivas = async () => {
 </script>
 
 <template>
+    <Head title="Materia" />
     <SidebarLayout :user="$page.props.auth.user">
         <template #header>
             <div>

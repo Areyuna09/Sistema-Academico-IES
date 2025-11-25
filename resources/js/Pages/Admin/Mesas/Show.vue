@@ -28,6 +28,7 @@ const getEstadoBadgeClass = (estado) => {
 </script>
 
 <template>
+    <Head title="Detalle de Mesa" />
     <SidebarLayout :user="$page.props.auth.user">
         <template #header>
             <div>

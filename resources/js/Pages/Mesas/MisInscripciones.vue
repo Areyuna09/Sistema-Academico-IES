@@ -1,5 +1,5 @@
 <script setup>
-import { Link } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
 
 const props = defineProps({
@@ -24,6 +24,7 @@ const getLlamadoTexto = (llamado) => {
 </script>
 
 <template>
+    <Head title="Mis Inscripciones a Mesas" />
     <SidebarLayout :user="$page.props.auth.user">
         <template #header>
             <div>
