@@ -49,7 +49,9 @@ watch(() => props.alumno, (nuevoAlumno) => {
             ? nuevoAlumno.carrera.Id
             : (nuevoAlumno.carrera || '');
         form.curso = nuevoAlumno.curso || '';
-        form.division = nuevoAlumno.division || '';
+        // Convertir división a string para que coincida con el select
+        // Si es null o undefined, dejar como string vacío
+        form.division = nuevoAlumno.division != null ? String(nuevoAlumno.division) : '';
     } else {
         form.reset();
         form.anno = new Date().getFullYear(); // Resetear al año actual
@@ -57,8 +59,10 @@ watch(() => props.alumno, (nuevoAlumno) => {
 }, { immediate: true });
 
 // Calcular curso automáticamente según año de ingreso
+// Solo cuando NO se está editando (props.alumno es null)
 watch(() => form.anno, (nuevoAnno) => {
-    if (nuevoAnno) {
+    // Solo calcular automáticamente si NO estamos en modo edición
+    if (nuevoAnno && !props.alumno) {
         const annoActual = new Date().getFullYear();
         const cursoCalculado = annoActual - nuevoAnno + 1;
         // El curso debe estar entre 1 y 6

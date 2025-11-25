@@ -17,6 +17,8 @@ class CorrelativasController extends Controller
     public function index(Request $request)
     {
         $query = ReglaCorrelativa::with(['materia', 'correlativa', 'carrera'])
+            ->whereHas('materia') // Solo reglas con materia válida
+            ->whereHas('correlativa') // Solo reglas con correlativa válida
             ->orderBy('materia_id')
             ->orderBy('tipo');
 
@@ -53,7 +55,7 @@ class CorrelativasController extends Controller
     public function create()
     {
         return Inertia::render('Admin/Correlativas/Create', [
-            'materias' => Materia::select('id', 'nombre', 'anno', 'semestre')->orderBy('anno')->orderBy('nombre')->get(),
+            'materias' => Materia::select('id', 'nombre', 'anno', 'semestre', 'carrera')->orderBy('anno')->orderBy('nombre')->get(),
             'carreras' => Carrera::select('Id as id', 'Nombre as nombre')->get(),
         ]);
     }
@@ -100,7 +102,7 @@ class CorrelativasController extends Controller
 
         return Inertia::render('Admin/Correlativas/Edit', [
             'regla' => $correlativa,
-            'materias' => Materia::select('id', 'nombre', 'anno', 'semestre')->orderBy('anno')->orderBy('nombre')->get(),
+            'materias' => Materia::select('id', 'nombre', 'anno', 'semestre', 'carrera')->orderBy('anno')->orderBy('nombre')->get(),
             'carreras' => Carrera::select('Id as id', 'Nombre as nombre')->get(),
         ]);
     }
@@ -157,10 +159,17 @@ class CorrelativasController extends Controller
      */
     public function destroy(ReglaCorrelativa $correlativa)
     {
-        $correlativa->delete();
+        try {
+            $correlativa->delete();
 
-        return redirect()->route('admin.correlativas.index')
-            ->with('success', 'Regla de correlativa eliminada exitosamente.');
+            return redirect()->route('admin.correlativas.index')
+                ->with('success', 'Regla de correlativa eliminada exitosamente.');
+        } catch (\Exception $e) {
+            \Log::error('Error al eliminar correlativa: ' . $e->getMessage());
+
+            return redirect()->route('admin.correlativas.index')
+                ->withErrors(['error' => 'Error al eliminar la regla de correlativa.']);
+        }
     }
 
     /**

@@ -19,10 +19,16 @@ const form = useForm({
     observaciones: props.regla.observaciones || '',
 });
 
+// Materias filtradas por carrera
+const materiasPorCarrera = computed(() => {
+    if (!form.carrera_id) return props.materias;
+    return props.materias.filter(m => m.carrera === parseInt(form.carrera_id));
+});
+
 // Materias filtradas para correlativa (excluir la materia seleccionada)
 const materiasDisponibles = computed(() => {
-    if (!form.materia_id) return props.materias;
-    return props.materias.filter(m => m.id !== parseInt(form.materia_id));
+    if (!form.materia_id) return materiasPorCarrera.value;
+    return materiasPorCarrera.value.filter(m => m.id !== parseInt(form.materia_id));
 });
 
 const submit = () => {
@@ -119,7 +125,7 @@ const submit = () => {
                                 class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                                 :class="{ 'border-red-500': form.errors.materia_id }">
                                 <option value="">Seleccione la materia</option>
-                                <option v-for="materia in materias" :key="materia.id" :value="materia.id">
+                                <option v-for="materia in materiasPorCarrera" :key="materia.id" :value="materia.id">
                                     {{ materia.nombre }} ({{ materia.anno }}° año - {{ materia.semestre === 1 ? '1er' : '2do' }} Cuatr.)
                                 </option>
                             </select>

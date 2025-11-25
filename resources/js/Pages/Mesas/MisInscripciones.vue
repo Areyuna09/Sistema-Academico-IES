@@ -58,9 +58,6 @@ const getLlamadoTexto = (llamado) => {
                                     Llamado
                                 </th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Aula
-                                </th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Fecha Inscripción
                                 </th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -73,7 +70,7 @@ const getLlamadoTexto = (llamado) => {
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
                             <tr v-if="inscripciones.length === 0">
-                                <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                                <td colspan="6" class="px-6 py-12 text-center text-gray-500">
                                     <i class="bx bx-calendar-x text-6xl mb-4"></i>
                                     <p class="text-lg">No tienes inscripciones a mesas de examen</p>
                                     <Link
@@ -100,11 +97,6 @@ const getLlamadoTexto = (llamado) => {
                                 <!-- Llamado -->
                                 <td class="px-6 py-4">
                                     <span class="text-sm font-medium text-gray-900">{{ getLlamadoTexto(inscripcion.mesa.llamado) }}</span>
-                                </td>
-
-                                <!-- Aula -->
-                                <td class="px-6 py-4 text-sm text-gray-900">
-                                    {{ inscripcion.mesa.aula || '-' }}
                                 </td>
 
                                 <!-- Fecha Inscripción -->

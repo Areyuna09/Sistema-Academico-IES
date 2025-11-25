@@ -252,7 +252,7 @@ class NotificacionService
     /**
      * Recordatorio de mesa próxima
      */
-    public function recordatorioMesa(int $alumnoId, string $materia, string $fecha, string $hora, string $aula)
+    public function recordatorioMesa(int $alumnoId, string $materia, string $fecha, string $hora)
     {
         $alumno = Alumno::find($alumnoId);
         if (!$alumno || !$alumno->user_id) return;
@@ -262,7 +262,7 @@ class NotificacionService
                 $alumno->user_id,
                 'recordatorio_mesa',
                 'Recordatorio: Mesa de Examen Próxima',
-                "Tienes mesa de {$materia} el {$fecha} a las {$hora} en {$aula}",
+                "Tienes mesa de {$materia} el {$fecha} a las {$hora}",
                 [
                     'icono' => 'bx-calendar-event',
                     'color' => 'blue',
@@ -271,7 +271,6 @@ class NotificacionService
                         'materia' => $materia,
                         'fecha' => $fecha,
                         'hora' => $hora,
-                        'aula' => $aula,
                     ],
                 ]
             );

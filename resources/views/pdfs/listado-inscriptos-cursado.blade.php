@@ -200,27 +200,34 @@
         <table class="inscriptos-table">
             <thead>
                 <tr>
-                    <th style="width: 4%">N°</th>
-                    <th style="width: 10%">DNI</th>
-                    <th style="width: 20%">Alumno</th>
-                    <th style="width: 20%">Materia</th>
-                    <th style="width: 16%">Carrera</th>
+                    <th style="width: 12%">DNI</th>
+                    <th style="width: 28%">Alumno</th>
+                    <th style="width: 25%">Materia</th>
+                    <th style="width: 22%">Carrera</th>
                     <th style="width: 8%">Año</th>
-                    <th style="width: 10%">División</th>
-                    <th style="width: 12%">Turno</th>
+                    <th style="width: 5%">Div.</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach($inscripciones as $index => $inscripcion)
+                    @php
+                        $carreraNombre = '-';
+                        if ($inscripcion->materia && $inscripcion->materia->carrera) {
+                            if (is_object($inscripcion->materia->carrera)) {
+                                $carreraNombre = $inscripcion->materia->carrera->nombre;
+                            } else {
+                                $carreraObj = \App\Models\Carrera::find($inscripcion->materia->carrera);
+                                $carreraNombre = $carreraObj->nombre ?? '-';
+                            }
+                        }
+                    @endphp
                     <tr>
-                        <td class="text-center">{{ $index + 1 }}</td>
                         <td>{{ $inscripcion->alumno->dni }}</td>
                         <td>{{ $inscripcion->alumno->apellido }}, {{ $inscripcion->alumno->nombre }}</td>
                         <td>{{ $inscripcion->materia->nombre }}</td>
-                        <td>{{ $inscripcion->materia->carrera->nombre ?? '-' }}</td>
-                        <td class="text-center">{{ $inscripcion->alumno->curso ?? '-' }}°</td>
-                        <td class="text-center">{{ $inscripcion->division ?? '-' }}</td>
-                        <td class="text-center">{{ $inscripcion->cursado ? ucfirst($inscripcion->cursado) : '-' }}</td>
+                        <td>{{ $carreraNombre }}</td>
+                        <td class="text-center">{{ $inscripcion->materia->anno ?? '-' }}°</td>
+                        <td class="text-center">{{ $inscripcion->alumno->division ?? '-' }}</td>
                     </tr>
                 @endforeach
             </tbody>

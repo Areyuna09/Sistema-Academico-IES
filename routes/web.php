@@ -65,6 +65,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/expediente/aprobar-nota/{id}', [ExpedienteController::class, 'aprobarNota'])->name('expediente.aprobar-nota');
         Route::post('/expediente/rechazar-nota/{id}', [ExpedienteController::class, 'rechazarNota'])->name('expediente.rechazar-nota');
         Route::post('/expediente/configurar-parametros/{profesorMateriaId}', [ExpedienteController::class, 'configurarParametrosAcademicos'])->name('expediente.configurar-parametros');
+        // API para modal de expediente
+        Route::get('/api/expediente/alumno/{alumnoId}', [ExpedienteController::class, 'obtenerExpedienteAlumno'])->name('api.expediente.alumno');
         // Ruta genérica al final
         Route::get('/expediente/{id}', [ExpedienteController::class, 'show'])->name('expediente.show');
     });
@@ -218,11 +220,19 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::put('/inscripciones/{inscripcion}', [AdminInscripcionesController::class, 'update'])->name('inscripciones.update');
     Route::delete('/inscripciones/{inscripcion}', [AdminInscripcionesController::class, 'destroy'])->name('inscripciones.destroy');
 
-    // Exportaciones de inscripciones
-    Route::get('/inscripciones/mesa/{mesa}/pdf', [AdminInscripcionesController::class, 'exportarMesaPdf'])->name('inscripciones.mesa.pdf');
-    Route::get('/inscripciones/mesa/{mesa}/csv', [AdminInscripcionesController::class, 'exportarMesaCsv'])->name('inscripciones.mesa.csv');
-    Route::get('/inscripciones/cursado/pdf', [AdminInscripcionesController::class, 'exportarCursadoPdf'])->name('inscripciones.cursado.pdf');
-    Route::get('/inscripciones/cursado/csv', [AdminInscripcionesController::class, 'exportarCursadoCsv'])->name('inscripciones.cursado.csv');
+    // Exportaciones de inscripciones (sin middleware de Inertia para evitar HTML wrapper)
+    Route::get('/inscripciones/mesa/{mesa}/pdf', [AdminInscripcionesController::class, 'exportarMesaPdf'])
+        ->name('inscripciones.mesa.pdf')
+        ->withoutMiddleware(\App\Http\Middleware\HandleInertiaRequests::class);
+    Route::get('/inscripciones/mesa/{mesa}/csv', [AdminInscripcionesController::class, 'exportarMesaCsv'])
+        ->name('inscripciones.mesa.csv')
+        ->withoutMiddleware(\App\Http\Middleware\HandleInertiaRequests::class);
+    Route::get('/inscripciones/cursado/pdf', [AdminInscripcionesController::class, 'exportarCursadoPdf'])
+        ->name('inscripciones.cursado.pdf')
+        ->withoutMiddleware(\App\Http\Middleware\HandleInertiaRequests::class);
+    Route::get('/inscripciones/cursado/csv', [AdminInscripcionesController::class, 'exportarCursadoCsv'])
+        ->name('inscripciones.cursado.csv')
+        ->withoutMiddleware(\App\Http\Middleware\HandleInertiaRequests::class);
 
     // Configuración de Módulos del Sistema
     Route::get('/configuracion-modulos', [\App\Http\Controllers\Admin\ConfiguracionModulosController::class, 'index'])->name('configuracion-modulos.index');

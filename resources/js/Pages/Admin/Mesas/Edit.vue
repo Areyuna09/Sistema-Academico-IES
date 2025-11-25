@@ -15,14 +15,14 @@ const props = defineProps({
 const form = useForm({
     materia_id: props.mesa.materia.id,
     fecha_examen: props.mesa.fecha_examen.split('T')[0],
-    hora_examen: props.mesa.hora_examen.substring(0,5),//el anterior no dejava que puediera editarlo este era el anterior:hora_examen: props.mesa.hora_examen,
-
+    hora_examen: props.mesa.hora_examen.substring(0,5),
     llamado: props.mesa.llamado,
-    periodo_id: props.mesa.periodo_id || '',
     presidente_id: props.mesa.presidente?.id || '',
     vocal1_id: props.mesa.vocal1?.id || '',
     vocal2_id: props.mesa.vocal2?.id || '',
     estado: props.mesa.estado,
+    fecha_inicio_inscripcion: props.mesa.fecha_inicio_inscripcion ? props.mesa.fecha_inicio_inscripcion.split('T')[0] : '',
+    fecha_fin_inscripcion: props.mesa.fecha_fin_inscripcion ? props.mesa.fecha_fin_inscripcion.split('T')[0] : '',
     observaciones: props.mesa.observaciones || '',
 });
 
@@ -54,7 +54,8 @@ const aniosDisponibles = computed(() => {
 // Verificar si una fecha es fin de semana
 const esFinDeSemana = (fecha) => {
     if (!fecha) return false;
-    const date = new Date(fecha + 'T00:00:00');
+    const [year, month, day] = fecha.split('-').map(Number);
+    const date = new Date(year, month - 1, day); // month es 0-indexed
     const dayOfWeek = date.getDay();
     return dayOfWeek === 0 || dayOfWeek === 6; // 0 = Domingo, 6 = Sábado
 };
@@ -190,6 +191,34 @@ const submit = () => {
                                 <p class="text-xs text-gray-500 mt-1">Horario mínimo: 17:30 (inicio de clases)</p>
                             </div>
 
+                            <!-- Período de Inscripción -->
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    Período de Inscripción
+                                </label>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-xs text-gray-600 mb-1">Fecha Inicio</label>
+                                        <input
+                                            v-model="form.fecha_inicio_inscripcion"
+                                            type="date"
+                                            class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
+                                        />
+                                        <p v-if="form.errors.fecha_inicio_inscripcion" class="text-red-600 text-xs mt-1">{{ form.errors.fecha_inicio_inscripcion }}</p>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs text-gray-600 mb-1">Fecha Fin</label>
+                                        <input
+                                            v-model="form.fecha_fin_inscripcion"
+                                            type="date"
+                                            class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
+                                        />
+                                        <p v-if="form.errors.fecha_fin_inscripcion" class="text-red-600 text-xs mt-1">{{ form.errors.fecha_fin_inscripcion }}</p>
+                                    </div>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1">Si no se especifica, la inscripción estará disponible todo el tiempo</p>
+                            </div>
+
                             <!-- Llamado -->
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">
@@ -202,7 +231,6 @@ const submit = () => {
                                 >
                                     <option :value="1">1° Llamado</option>
                                     <option :value="2">2° Llamado</option>
-                                    <option :value="3">3° Llamado</option>
                                 </select>
                                 <p v-if="form.errors.llamado" class="text-red-600 text-sm mt-1">{{ form.errors.llamado }}</p>
                             </div>
@@ -224,20 +252,6 @@ const submit = () => {
                                 <p v-if="form.errors.estado" class="text-red-600 text-sm mt-1">{{ form.errors.estado }}</p>
                             </div>
 
-                            <!-- Período -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Período Académico</label>
-                                <select
-                                    v-model="form.periodo_id"
-                                    class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
-                                >
-                                    <option value="">Sin período específico</option>
-                                    <option v-for="periodo in periodos" :key="periodo.id" :value="periodo.id">
-                                        {{ periodo.nombre }}
-                                    </option>
-                                </select>
-                                <p v-if="form.errors.periodo_id" class="text-red-600 text-sm mt-1">{{ form.errors.periodo_id }}</p>
-                            </div>
                         </div>
                     </div>
 

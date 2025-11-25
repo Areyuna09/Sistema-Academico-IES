@@ -239,9 +239,6 @@ const asignarFechasMasivo = async () => {
                                     Llamado
                                 </th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Aula
-                                </th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Tribunal
                                 </th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -257,7 +254,7 @@ const asignarFechasMasivo = async () => {
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
                             <tr v-if="mesas.data.length === 0">
-                                <td colspan="8" class="px-6 py-8 text-center text-gray-500">
+                                <td colspan="7" class="px-6 py-8 text-center text-gray-500">
                                     <i class="bx bx-folder-open text-4xl mb-2"></i>
                                     <p>No hay mesas de examen registradas</p>
                                 </td>
@@ -271,18 +268,13 @@ const asignarFechasMasivo = async () => {
 
                                 <!-- Fecha / Hora -->
                                 <td class="px-6 py-4">
-                                    <div class="text-sm text-gray-900">{{ mesa.fecha_examen }}</div>
-                                    <div class="text-sm text-gray-500">{{ mesa.hora_examen }}</div>
+                                    <div class="text-sm text-gray-900">{{ mesa.fecha_examen_formatted }}</div>
+                                    <div class="text-sm text-gray-500">{{ mesa.hora_examen_formatted }}</div>
                                 </td>
 
                                 <!-- Llamado -->
                                 <td class="px-6 py-4">
                                     <span class="text-sm font-medium text-gray-900">{{ getLlamadoTexto(mesa.llamado) }}</span>
-                                </td>
-
-                                <!-- Aula -->
-                                <td class="px-6 py-4">
-                                    <span class="text-sm text-gray-900">{{ mesa.aula || '-' }}</span>
                                 </td>
 
                                 <!-- Tribunal -->

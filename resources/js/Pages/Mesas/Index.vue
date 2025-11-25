@@ -301,16 +301,18 @@ const getBadgeText = (mesa) => {
                 >
                     <!-- Header compacto -->
                     <div class="p-3 md:p-4 border-b">
-                        <div class="flex justify-between items-start gap-2">
-                            <h3 class="font-semibold text-gray-900 text-xs md:text-sm leading-tight flex-1">
-                                {{ mesa.materia.nombre }}
-                            </h3>
-                            <span class="px-1.5 md:px-2 py-0.5 text-[10px] md:text-xs font-semibold rounded-full whitespace-nowrap" :class="getBadgeClasses(mesa)">
-                                {{ getBadgeText(mesa) }}
-                            </span>
-                        </div>
-                        <p class="text-[10px] md:text-xs text-gray-500 mt-0.5 md:mt-1">{{ mesa.materia.carrera }} - {{ mesa.materia.anno }}° Año</p>
-                    </div>
+    <div class="flex justify-between items-start gap-2">
+        <h3 class="font-semibold text-gray-900 text-xs md:text-sm leading-tight flex-1 break-words overflow-hidden">
+            {{ mesa.materia.nombre }}
+        </h3>
+        <span class="px-1.5 md:px-2 py-0.5 text-[10px] md:text-xs font-semibold rounded-full whitespace-nowrap flex-shrink-0" :class="getBadgeClasses(mesa)">
+            {{ getBadgeText(mesa) }}
+        </span>
+    </div>
+    <p class="text-[10px] md:text-xs text-gray-500 mt-0.5 md:mt-1 truncate">
+        {{ mesa.materia.carrera }} - {{ mesa.materia.anno }}° Año
+    </p>
+</div>
 
                     <!-- Body compacto -->
                     <div class="p-3 md:p-4 space-y-1.5 md:space-y-2">
@@ -326,8 +328,6 @@ const getBadgeText = (mesa) => {
                         <div class="flex items-center text-[10px] md:text-xs text-gray-700">
                             <i class="bx bx-medal mr-1 md:mr-1.5 text-gray-400 text-sm md:text-base"></i>
                             <span>{{ getLlamadoTexto(mesa.llamado) }}</span>
-                            <span v-if="mesa.aula" class="mx-1 md:mx-1.5">•</span>
-                            <span v-if="mesa.aula">{{ mesa.aula }}</span>
                         </div>
 
                         <!-- Correlativas faltantes (compacto) -->
@@ -399,7 +399,6 @@ const getBadgeText = (mesa) => {
                             <p class="font-semibold text-gray-900">{{ mesaSeleccionada.materia.nombre }}</p>
                             <p class="text-sm text-gray-600">{{ getLlamadoTexto(mesaSeleccionada.llamado) }}</p>
                             <p class="text-sm text-gray-600">{{ mesaSeleccionada.fecha_examen_formatted }} - {{ mesaSeleccionada.hora_examen }}</p>
-                            <p v-if="mesaSeleccionada.aula" class="text-sm text-gray-600">Aula: {{ mesaSeleccionada.aula }}</p>
                         </div>
                     </div>
 

@@ -46,7 +46,6 @@ class ComprobanteMesaExamen extends Mailable
                 'llamado' => $mesa->llamado,
                 'fecha_examen' => $mesa->fecha_examen,
                 'hora_examen' => $mesa->hora_examen,
-                'aula' => $mesa->aula,
                 'observaciones' => $mesa->observaciones,
             ],
             'materia' => [

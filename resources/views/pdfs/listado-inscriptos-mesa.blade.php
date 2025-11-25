@@ -205,10 +205,6 @@
             <div class="mesa-info-row">
                 <div class="mesa-info-cell mesa-info-label">Llamado:</div>
                 <div class="mesa-info-cell mesa-info-value">{{ $mesa->llamado ?? 'N/A' }}</div>
-                @if($mostrarAula ?? true)
-                    <div class="mesa-info-cell mesa-info-label">Aula:</div>
-                    <div class="mesa-info-cell mesa-info-value">{{ $mesa->aula ?? 'Por confirmar' }}</div>
-                @endif
             </div>
         </div>
     </div>
@@ -218,24 +214,20 @@
         <table class="inscriptos-table">
             <thead>
                 <tr>
-                    <th style="width: 5%">N°</th>
-                    <th style="width: 12%">DNI</th>
+                    <th style="width: 15%">DNI</th>
                     <th style="width: 30%">Alumno</th>
-                    <th style="width: 15%">Legajo</th>
                     <th style="width: 8%">Año</th>
-                    <th style="width: 15%">Condición</th>
+                    <th style="width: 32%">Email</th>
                     <th style="width: 15%">Fecha Insc.</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach($inscripciones as $index => $inscripcion)
                     <tr>
-                        <td class="text-center">{{ $index + 1 }}</td>
                         <td>{{ $inscripcion->alumno->dni }}</td>
                         <td>{{ $inscripcion->alumno->apellido }}, {{ $inscripcion->alumno->nombre }}</td>
-                        <td class="text-center">{{ $inscripcion->alumno->legajo ?? '-' }}</td>
                         <td class="text-center">{{ $inscripcion->alumno->curso ?? '-' }}°</td>
-                        <td class="text-center">{{ $inscripcion->condicion ?? 'Regular' }}</td>
+                        <td>{{ $inscripcion->alumno->email ?? '-' }}</td>
                         <td class="text-center">{{ $inscripcion->created_at ? $inscripcion->created_at->format('d/m/Y') : '-' }}</td>
                     </tr>
                 @endforeach

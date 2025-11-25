@@ -74,7 +74,15 @@ class InscripcionesController extends Controller
         $inscripciones = $query
             ->orderBy('fecha_inscripcion', 'desc')
             ->paginate(20)
-            ->withQueryString();
+            ->withQueryString()
+            ->through(function ($inscripcion) {
+                $data = $inscripcion->toArray();
+                // Formatear fecha de inscripción
+                $data['fecha_inscripcion'] = $inscripcion->fecha_inscripcion
+                    ? $inscripcion->fecha_inscripcion->format('d/m/Y H:i')
+                    : null;
+                return $data;
+            });
 
         // Obtener períodos para el filtro
         $periodos = PeriodoInscripcion::orderBy('anio', 'desc')
@@ -146,7 +154,20 @@ class InscripcionesController extends Controller
         $inscripciones = $query
             ->orderBy('fecha_inscripcion', 'desc')
             ->paginate(20)
-            ->withQueryString();
+            ->withQueryString()
+            ->through(function ($inscripcion) {
+                $data = $inscripcion->toArray();
+                // Formatear fecha de inscripción
+                $data['fecha_inscripcion'] = $inscripcion->fecha_inscripcion
+                    ? $inscripcion->fecha_inscripcion->format('d/m/Y H:i')
+                    : null;
+                // Formatear fecha/hora de mesa
+                if ($inscripcion->mesa) {
+                    $data['mesa']['fecha_examen'] = $inscripcion->mesa->fecha_examen->format('d/m/Y');
+                    $data['mesa']['hora_examen'] = substr($inscripcion->mesa->hora_examen, 0, 5);
+                }
+                return $data;
+            });
 
         // Obtener carreras para el filtro
         $carreras = Carrera::orderBy('nombre')
@@ -465,15 +486,11 @@ class InscripcionesController extends Controller
         // Obtener configuración institucional
         $configuracion = Configuracion::first();
 
-        // Verificar si el módulo de aula está activo
-        $mostrarAula = \App\Models\ConfiguracionModulo::estaActivo('mesas_aula');
-
         $pdf = PDF::loadView('pdfs.listado-inscriptos-mesa', [
             'mesa' => $mesa,
             'carrera' => $carrera,
             'inscripciones' => $inscripciones,
             'configuracion' => $configuracion,
-            'mostrarAula' => $mostrarAula,
         ]);
 
         $pdf->setPaper('A4', 'portrait');
@@ -513,13 +530,14 @@ class InscripcionesController extends Controller
             // Encabezado con información de la mesa
             fputcsv($file, ['LISTADO DE INSCRIPTOS A MESA DE EXAMEN'], ';');
             fputcsv($file, ['Materia:', $mesa->materia->nombre], ';');
-            fputcsv($file, ['Carrera:', $mesa->materia->carrera->nombre], ';');
+            fputcsv($file, ['Carrera:', $mesa->materia->getRelationValue('carrera')->nombre ?? 'Sin carrera'], ';');
             fputcsv($file, ['Fecha:', \Carbon\Carbon::parse($mesa->fecha_examen)->format('d/m/Y')], ';');
             fputcsv($file, ['Hora:', $mesa->hora_examen], ';');
+            fputcsv($file, ['Llamado:', $mesa->llamado ?? 'N/A'], ';');
             fputcsv($file, [''], ';');
 
             // Encabezados de columnas
-            fputcsv($file, ['N°', 'DNI', 'Apellido', 'Nombre', 'Estado', 'Nota', 'Fecha Inscripción'], ';');
+            fputcsv($file, ['N°', 'DNI', 'Alumno', 'Año', 'Email', 'Fecha Inscripción'], ';');
 
             // Datos
             $numero = 1;
@@ -527,11 +545,10 @@ class InscripcionesController extends Controller
                 fputcsv($file, [
                     $numero++,
                     $inscripcion->alumno->dni,
-                    $inscripcion->alumno->apellido,
-                    $inscripcion->alumno->nombre,
-                    ucfirst($inscripcion->estado),
-                    $inscripcion->nota ?? '-',
-                    \Carbon\Carbon::parse($inscripcion->fecha_inscripcion)->format('d/m/Y H:i'),
+                    $inscripcion->alumno->apellido . ', ' . $inscripcion->alumno->nombre,
+                    ($inscripcion->alumno->curso ?? '-') . '°',
+                    $inscripcion->alumno->email ?? '-',
+                    $inscripcion->created_at ? $inscripcion->created_at->format('d/m/Y') : '-',
                 ], ';');
             }
 
@@ -595,7 +612,8 @@ class InscripcionesController extends Controller
 
         $filename = 'listado_inscriptos_cursado_' . now()->format('Y-m-d') . '.pdf';
 
-        return $pdf->download($filename);
+        // stream() abre en navegador para previsualizar
+        return $pdf->stream($filename);
     }
 
     /**
@@ -653,16 +671,27 @@ class InscripcionesController extends Controller
             // Datos
             $numero = 1;
             foreach ($inscripciones as $inscripcion) {
+                // Obtener nombre de carrera
+                $carreraNombre = 'Sin carrera';
+                if ($inscripcion->materia && $inscripcion->materia->carrera) {
+                    if (is_object($inscripcion->materia->carrera)) {
+                        $carreraNombre = $inscripcion->materia->carrera->nombre;
+                    } else {
+                        $carreraObj = Carrera::find($inscripcion->materia->carrera);
+                        $carreraNombre = $carreraObj->nombre ?? 'Sin carrera';
+                    }
+                }
+
                 fputcsv($file, [
                     $numero++,
                     $inscripcion->alumno->dni,
                     $inscripcion->alumno->apellido,
                     $inscripcion->alumno->nombre,
                     $inscripcion->materia->nombre,
-                    $inscripcion->materia->carrera->nombre,
-                    $inscripcion->periodo->nombre,
+                    $carreraNombre,
+                    $inscripcion->periodo->nombre ?? '-',
                     ucfirst($inscripcion->estado),
-                    \Carbon\Carbon::parse($inscripcion->fecha_inscripcion)->format('d/m/Y H:i'),
+                    $inscripcion->fecha_inscripcion ? $inscripcion->fecha_inscripcion->format('d/m/Y H:i') : '-',
                 ], ';');
             }
 

@@ -91,6 +91,13 @@ class ProfileController extends Controller
     {
         $user = $request->user();
 
+        // Verificar si el alumno puede editar su perfil
+        if ($user->tipo === 4 && !\App\Models\ConfiguracionModulo::estaActivo('alumno_editar_perfil')) {
+            return Redirect::route('profile.edit')->withErrors([
+                'error' => 'La edición del perfil está deshabilitada temporalmente.'
+            ]);
+        }
+
         // Actualizar el usuario
         $user->fill($request->only(['name', 'email']));
 

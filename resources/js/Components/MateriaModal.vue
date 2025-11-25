@@ -23,6 +23,9 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'saved']);
 
+// Constante para el límite de caracteres (debe coincidir con el modelo PHP)
+const MAX_NOMBRE_LENGTH = 50;
+
 const form = useForm({
     nombre: '',
     carrera: '',
@@ -30,6 +33,11 @@ const form = useForm({
     anno: '',
     resolucion: ''
 });
+
+// Computed para contar caracteres del nombre
+const caracteresNombre = computed(() => form.nombre.length);
+const caracteresRestantes = computed(() => MAX_NOMBRE_LENGTH - caracteresNombre.value);
+const excedeLimite = computed(() => caracteresNombre.value > MAX_NOMBRE_LENGTH);
 
 // Computed para obtener los años disponibles según la carrera seleccionada
 const annosDisponibles = computed(() => {
@@ -147,14 +155,35 @@ const close = () => {
                                 v-model="form.nombre"
                                 type="text"
                                 required
-                                maxlength="100"
+                                :maxlength="MAX_NOMBRE_LENGTH"
                                 pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\d\-\(\)\.]+"
                                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                :class="{ 'border-red-500': form.errors.nombre }"
+                                :class="{ 'border-red-500': form.errors.nombre || excedeLimite }"
                                 placeholder="Ej: Programación I"
                                 title="Solo letras, números, espacios, guiones y paréntesis"
                             />
-                            <div v-if="form.errors.nombre" class="mt-1 text-sm text-red-600">{{ form.errors.nombre }}</div>
+                            <!-- Contador de caracteres -->
+                            <div class="flex items-center justify-between mt-1">
+                                <span v-if="form.errors.nombre" class="text-xs text-red-600">
+                                    {{ form.errors.nombre }}
+                                </span>
+                                <span 
+                                    class="text-xs ml-auto"
+                                    :class="{
+                                        'text-red-600 font-semibold': excedeLimite,
+                                        'text-yellow-600': caracteresRestantes <= 10 && !excedeLimite,
+                                        'text-gray-500': caracteresRestantes > 10
+                                    }"
+                                >
+                                    {{ caracteresNombre }} / {{ MAX_NOMBRE_LENGTH }} caracteres
+                                    <span v-if="caracteresRestantes <= 10 && !excedeLimite">
+                                        ({{ caracteresRestantes }} restantes)
+                                    </span>
+                                    <span v-if="excedeLimite" class="ml-1">
+                                        ⚠️ Límite excedido
+                                    </span>
+                                </span>
+                            </div>
                         </div>
 
                         <!-- Carrera -->
@@ -246,7 +275,7 @@ const close = () => {
                         </button>
                         <button
                             type="submit"
-                            :disabled="form.processing"
+                            :disabled="form.processing || excedeLimite"
                             class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <span v-if="form.processing">Guardando...</span>

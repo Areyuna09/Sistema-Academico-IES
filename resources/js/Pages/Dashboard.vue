@@ -25,6 +25,12 @@ const modulosConfig = computed(() => page.props.modulosConfig || {});
 
 // Helper para verificar si un módulo está activo
 const moduloActivo = (clave) => {
+    // Admins (tipo 1, 2) y profesores (tipo 3) siempre tienen acceso
+    const tipoUsuario = page.props.auth.user?.tipo;
+    if ([1, 2, 3].includes(tipoUsuario)) {
+        return true;
+    }
+    // Para alumnos (tipo 4), verificar si el módulo está activo
     return modulosConfig.value[clave] !== false;
 };
 
@@ -303,11 +309,11 @@ const irAMateria = (materiaId) => {
             </div>
         </template>
 
-        <div class="p-8 max-w-7xl mx-auto">
-            <!-- Banner Hero -->
-            <div class="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-xl p-8 mb-8 text-white relative overflow-hidden">
-                <!-- Patrón decorativo de fondo -->
-                <div class="absolute inset-0 opacity-10">
+        <div class="p-4 md:p-8 max-w-7xl mx-auto">
+            <!-- Banner Hero - Compacto en móvil -->
+            <div class="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-lg md:rounded-xl p-4 md:p-8 mb-4 md:mb-8 text-white relative overflow-hidden">
+                <!-- Patrón decorativo de fondo - Solo visible en desktop -->
+                <div class="absolute inset-0 opacity-5 md:opacity-10">
                     <svg class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
                         <defs>
                             <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
@@ -319,23 +325,23 @@ const irAMateria = (materiaId) => {
                 </div>
 
                 <div class="relative z-10 flex items-center justify-between">
-                    <div>
-                        <h2 class="text-3xl font-bold mb-2">{{ obtenerSaludo() }}, {{ $page.props.auth.user.name }}</h2>
-                        <p class="text-blue-100 text-lg">
-                            <template v-if="tipoUsuario === 'profesor'">Bienvenido al panel de profesor</template>
-                            <template v-else-if="tipoUsuario === 'alumno'">Bienvenido a tu panel de estudiante</template>
+                    <div class="flex-1 min-w-0">
+                        <h2 class="text-xl md:text-3xl font-bold mb-1 md:mb-2 truncate">{{ obtenerSaludo() }}, {{ $page.props.auth.user.name }}</h2>
+                        <p class="text-blue-100 text-sm md:text-lg mb-1 md:mb-0">
+                            <template v-if="tipoUsuario === 'profesor'">Panel de profesor</template>
+                            <template v-else-if="tipoUsuario === 'alumno'">Panel de estudiante</template>
                             <template v-else-if="tipoUsuario === 'admin'">Panel de administración</template>
-                            <template v-else>Sistema Académico IES</template>
+                            <template v-else>Sistema Académico</template>
                         </p>
-                        <div class="mt-3 text-sm text-blue-100">
+                        <div class="hidden sm:flex mt-2 md:mt-3 text-xs md:text-sm text-blue-100">
                             <i class="bx bx-calendar mr-1"></i>
                             {{ new Date().toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) }}
                         </div>
                     </div>
-                    <!-- Ilustración decorativa -->
-                    <div class="hidden md:block">
-                        <div class="w-32 h-32 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm">
-                            <i :class="['bx text-6xl', tipoUsuario === 'profesor' ? 'bx-chalkboard' : tipoUsuario === 'alumno' ? 'bx-book-reader' : 'bx-briefcase']"></i>
+                    <!-- Ilustración decorativa - Más pequeña en tablet -->
+                    <div class="hidden md:block flex-shrink-0 ml-4">
+                        <div class="w-20 h-20 md:w-32 md:h-32 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm">
+                            <i :class="['bx text-4xl md:text-6xl', tipoUsuario === 'profesor' ? 'bx-chalkboard' : tipoUsuario === 'alumno' ? 'bx-book-reader' : 'bx-briefcase']"></i>
                         </div>
                     </div>
                 </div>
@@ -367,11 +373,11 @@ const irAMateria = (materiaId) => {
 
             <!-- Accesos Rápidos -->
             <div class="mb-6">
-                <h3 class="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-                    <i class="bx bx-grid-alt text-2xl mr-2 text-indigo-600"></i>
+                <h3 class="text-lg md:text-xl font-semibold text-gray-900 mb-3 md:mb-4 flex items-center">
+                    <i class="bx bx-grid-alt text-xl md:text-2xl mr-2 text-indigo-600"></i>
                     Accesos Rápidos
                 </h3>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
                     <template v-for="(acceso, index) in accesosRapidos" :key="index">
                         <!-- Con función onClick -->
                         <div
@@ -379,17 +385,17 @@ const irAMateria = (materiaId) => {
                             @click="acceso.onClick"
                             class="group cursor-pointer"
                         >
-                            <div :class="['bg-white border-2 border-gray-200 rounded-xl p-6 transition-all duration-200 hover:shadow-xl', acceso.hoverBorder]">
-                                <div class="flex items-center mb-4">
-                                    <div :class="['w-14 h-14 rounded-xl flex items-center justify-center mr-4', acceso.bgColor]">
-                                        <i :class="['bx text-2xl', acceso.icono, acceso.textColor]"></i>
+                            <div :class="['bg-white border-2 border-gray-200 rounded-lg md:rounded-xl p-4 md:p-6 transition-all duration-200 hover:shadow-xl', acceso.hoverBorder]">
+                                <div class="flex items-center mb-2 md:mb-4">
+                                    <div :class="['w-10 h-10 md:w-14 md:h-14 rounded-lg md:rounded-xl flex items-center justify-center mr-3 md:mr-4', acceso.bgColor]">
+                                        <i :class="['bx text-xl md:text-2xl', acceso.icono, acceso.textColor]"></i>
                                     </div>
-                                    <div class="flex-1">
-                                        <h3 class="text-lg font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">{{ acceso.titulo }}</h3>
+                                    <div class="flex-1 min-w-0">
+                                        <h3 class="text-base md:text-lg font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors truncate">{{ acceso.titulo }}</h3>
                                     </div>
-                                    <i :class="['bx bx-chevron-right text-2xl text-gray-400 transition-colors', `group-hover:${acceso.textColor}`]"></i>
+                                    <i :class="['bx bx-chevron-right text-xl md:text-2xl text-gray-400 transition-colors flex-shrink-0', `group-hover:${acceso.textColor}`]"></i>
                                 </div>
-                                <p class="text-sm text-gray-600">{{ acceso.descripcion }}</p>
+                                <p class="text-xs md:text-sm text-gray-600">{{ acceso.descripcion }}</p>
                             </div>
                         </div>
                         <!-- Con route -->
@@ -398,17 +404,17 @@ const irAMateria = (materiaId) => {
                             :href="route(acceso.route)"
                             class="group"
                         >
-                            <div :class="['bg-white border-2 border-gray-200 rounded-xl p-6 transition-all duration-200 hover:shadow-xl', acceso.hoverBorder]">
-                                <div class="flex items-center mb-4">
-                                    <div :class="['w-14 h-14 rounded-xl flex items-center justify-center mr-4', acceso.bgColor]">
-                                        <i :class="['bx text-2xl', acceso.icono, acceso.textColor]"></i>
+                            <div :class="['bg-white border-2 border-gray-200 rounded-lg md:rounded-xl p-4 md:p-6 transition-all duration-200 hover:shadow-xl', acceso.hoverBorder]">
+                                <div class="flex items-center mb-2 md:mb-4">
+                                    <div :class="['w-10 h-10 md:w-14 md:h-14 rounded-lg md:rounded-xl flex items-center justify-center mr-3 md:mr-4', acceso.bgColor]">
+                                        <i :class="['bx text-xl md:text-2xl', acceso.icono, acceso.textColor]"></i>
                                     </div>
-                                    <div class="flex-1">
-                                        <h3 class="text-lg font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">{{ acceso.titulo }}</h3>
+                                    <div class="flex-1 min-w-0">
+                                        <h3 class="text-base md:text-lg font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors truncate">{{ acceso.titulo }}</h3>
                                     </div>
-                                    <i :class="['bx bx-chevron-right text-2xl text-gray-400 transition-colors', `group-hover:${acceso.textColor}`]"></i>
+                                    <i :class="['bx bx-chevron-right text-xl md:text-2xl text-gray-400 transition-colors flex-shrink-0', `group-hover:${acceso.textColor}`]"></i>
                                 </div>
-                                <p class="text-sm text-gray-600">{{ acceso.descripcion }}</p>
+                                <p class="text-xs md:text-sm text-gray-600">{{ acceso.descripcion }}</p>
                             </div>
                         </Link>
                         <!-- Con href -->
@@ -417,17 +423,17 @@ const irAMateria = (materiaId) => {
                             :href="acceso.href"
                             class="group"
                         >
-                            <div :class="['bg-white border-2 border-gray-200 rounded-xl p-6 transition-all duration-200 hover:shadow-xl', acceso.hoverBorder]">
-                                <div class="flex items-center mb-4">
-                                    <div :class="['w-14 h-14 rounded-xl flex items-center justify-center mr-4', acceso.bgColor]">
-                                        <i :class="['bx text-2xl', acceso.icono, acceso.textColor]"></i>
+                            <div :class="['bg-white border-2 border-gray-200 rounded-lg md:rounded-xl p-4 md:p-6 transition-all duration-200 hover:shadow-xl', acceso.hoverBorder]">
+                                <div class="flex items-center mb-2 md:mb-4">
+                                    <div :class="['w-10 h-10 md:w-14 md:h-14 rounded-lg md:rounded-xl flex items-center justify-center mr-3 md:mr-4', acceso.bgColor]">
+                                        <i :class="['bx text-xl md:text-2xl', acceso.icono, acceso.textColor]"></i>
                                     </div>
-                                    <div class="flex-1">
-                                        <h3 class="text-lg font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">{{ acceso.titulo }}</h3>
+                                    <div class="flex-1 min-w-0">
+                                        <h3 class="text-base md:text-lg font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors truncate">{{ acceso.titulo }}</h3>
                                     </div>
-                                    <i :class="['bx bx-chevron-right text-2xl text-gray-400 transition-colors', `group-hover:${acceso.textColor}`]"></i>
+                                    <i :class="['bx bx-chevron-right text-xl md:text-2xl text-gray-400 transition-colors flex-shrink-0', `group-hover:${acceso.textColor}`]"></i>
                                 </div>
-                                <p class="text-sm text-gray-600">{{ acceso.descripcion }}</p>
+                                <p class="text-xs md:text-sm text-gray-600">{{ acceso.descripcion }}</p>
                             </div>
                         </a>
                     </template>
@@ -435,14 +441,14 @@ const irAMateria = (materiaId) => {
             </div>
 
             <!-- Información adicional/Tips -->
-            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6">
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg md:rounded-xl p-4 md:p-6">
                 <div class="flex items-start">
-                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
-                        <i class="bx bx-info-circle text-blue-600 text-xl"></i>
+                    <div class="w-8 h-8 md:w-10 md:h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3 md:mr-4 flex-shrink-0">
+                        <i class="bx bx-info-circle text-blue-600 text-lg md:text-xl"></i>
                     </div>
                     <div>
-                        <h3 class="text-base font-semibold text-gray-900 mb-2">Información Importante</h3>
-                        <div class="text-sm text-gray-700 space-y-2">
+                        <h3 class="text-sm md:text-base font-semibold text-gray-900 mb-2">Información Importante</h3>
+                        <div class="text-xs md:text-sm text-gray-700 space-y-1 md:space-y-2">
                             <template v-if="tipoUsuario === 'profesor'">
                                 <p>• Recuerda cargar las asistencias y notas de tus materias regularmente.</p>
                                 <p>• Las notas finales requieren aprobación de Secretaría antes de ser oficiales.</p>
@@ -469,24 +475,24 @@ const irAMateria = (materiaId) => {
         </div>
 
         <!-- Modal de Selección de Materias -->
-        <div v-if="modalMateriasAbierto" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[85vh] overflow-hidden flex flex-col">
+        <div v-if="modalMateriasAbierto" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 md:p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] md:max-h-[85vh] overflow-hidden flex flex-col">
                 <!-- Header del modal -->
-                <div class="bg-orange-600 text-white px-6 py-4 flex items-center justify-between">
-                    <div class="flex items-center">
-                        <i class="bx bx-book text-3xl mr-3"></i>
-                        <div>
-                            <h3 class="text-xl font-semibold">Mis Materias</h3>
-                            <p class="text-sm text-orange-100 mt-1">Selecciona una materia para ver su detalle</p>
+                <div class="bg-orange-600 text-white px-4 md:px-6 py-3 md:py-4 flex items-center justify-between">
+                    <div class="flex items-center flex-1 min-w-0">
+                        <i class="bx bx-book text-2xl md:text-3xl mr-2 md:mr-3 flex-shrink-0"></i>
+                        <div class="min-w-0">
+                            <h3 class="text-lg md:text-xl font-semibold truncate">Mis Materias</h3>
+                            <p class="text-xs md:text-sm text-orange-100 mt-0.5 md:mt-1 hidden sm:block">Selecciona una materia para ver su detalle</p>
                         </div>
                     </div>
-                    <button @click="cerrarModalMaterias" class="text-white hover:text-gray-200 transition-colors">
-                        <i class="bx bx-x text-3xl"></i>
+                    <button @click="cerrarModalMaterias" class="text-white hover:text-gray-200 transition-colors flex-shrink-0 ml-2">
+                        <i class="bx bx-x text-2xl md:text-3xl"></i>
                     </button>
                 </div>
 
                 <!-- Contenido del modal -->
-                <div class="flex-1 overflow-y-auto p-6">
+                <div class="flex-1 overflow-y-auto p-3 md:p-6">
                     <!-- Estado de carga -->
                     <div v-if="cargandoMaterias" class="text-center py-12">
                         <i class="bx bx-loader-alt animate-spin text-6xl text-gray-300 mb-4"></i>
