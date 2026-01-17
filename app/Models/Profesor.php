@@ -42,11 +42,37 @@ class Profesor extends Model
     }
 
     /**
-     * Relación: Carrera del profesor
+     * Relación: Carrera principal del profesor
      */
     public function carrera()
     {
         return $this->belongsTo(Carrera::class, 'carrera', 'Id');
+    }
+
+    /**
+     * Relación: Carreras adicionales del profesor (muchos a muchos)
+     */
+    public function carrerasAdicionales()
+    {
+        return $this->belongsToMany(Carrera::class, 'tbl_profesor_carreras', 'profesor_id', 'carrera_id');
+    }
+
+    /**
+     * Obtener todas las carreras (principal + adicionales)
+     */
+    public function getTodasLasCarrerasAttribute()
+    {
+        $carreras = collect();
+
+        // Agregar carrera principal si existe
+        if ($this->carrera) {
+            $carreras->push($this->carrera);
+        }
+
+        // Agregar carreras adicionales
+        $carreras = $carreras->merge($this->carrerasAdicionales);
+
+        return $carreras->unique('Id');
     }
 
     /**

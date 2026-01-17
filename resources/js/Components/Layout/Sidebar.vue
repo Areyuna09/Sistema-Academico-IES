@@ -224,6 +224,12 @@ const parametrosItems = computed(() => {
             icon: "bx-package",
             path: "/admin/configuracion-modulos",
         },
+        {
+            name: "Importación Masiva",
+            route: "admin.importacion.index",
+            icon: "bx-import",
+            path: "/admin/importacion",
+        },
     ];
 });
 </script>

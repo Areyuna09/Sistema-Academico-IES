@@ -198,7 +198,9 @@ class ExpedienteController extends Controller
         $duracionCarreras = [];
         foreach ($carreras as $carrera) {
             $maxAnno = Materia::where('carrera', $carrera->Id)->max('anno');
-            $duracionCarreras[$carrera->Id] = $maxAnno ? (int)$maxAnno : 4; // Default 4 si no tiene materias
+            $duracion = $maxAnno ? (int)$maxAnno : 3; // Default 3 si no tiene materias
+            $duracionCarreras[$carrera->Id] = $duracion;
+            $carrera->duracion = $duracion; // Agregar duración al objeto carrera
         }
 
         // Debug temporal
@@ -246,6 +248,12 @@ class ExpedienteController extends Controller
                         ->withQueryString();
 
         $carreras = Carrera::all();
+
+        // Agregar duración a cada carrera
+        foreach ($carreras as $carrera) {
+            $maxAnno = Materia::where('carrera', $carrera->Id)->max('anno');
+            $carrera->duracion = $maxAnno ? (int)$maxAnno : 3;
+        }
 
         return Inertia::render('Expediente/Index', [
             'alumnos' => $alumnos,

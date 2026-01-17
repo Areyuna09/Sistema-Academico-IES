@@ -245,6 +245,15 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/solicitudes-email/{solicitud}/aprobar', [SolicitudesCambioEmailController::class, 'aprobar'])->name('solicitudes-email.aprobar');
     Route::post('/solicitudes-email/{solicitud}/rechazar', [SolicitudesCambioEmailController::class, 'rechazar'])->name('solicitudes-email.rechazar');
     Route::delete('/solicitudes-email/{solicitud}', [SolicitudesCambioEmailController::class, 'destroy'])->name('solicitudes-email.destroy');
+
+    // Importación Masiva desde Excel
+    Route::prefix('importacion')->name('importacion.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\ImportacionController::class, 'index'])->name('index');
+        Route::get('/{tipo}/crear', [\App\Http\Controllers\Admin\ImportacionController::class, 'create'])->name('create');
+        Route::post('/{tipo}/analizar', [\App\Http\Controllers\Admin\ImportacionController::class, 'analizar'])->name('analizar');
+        Route::post('/importar', [\App\Http\Controllers\Admin\ImportacionController::class, 'importar'])->name('importar');
+        Route::get('/{tipo}/plantilla', [\App\Http\Controllers\Admin\ImportacionController::class, 'descargarPlantilla'])->name('plantilla');
+    });
 });
 
 // Rutas de Profesores (asistencias y materias)

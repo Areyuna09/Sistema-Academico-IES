@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Alumno;
 use App\Models\Carrera;
+use App\Models\Materia;
 use App\Traits\HandlesErrors;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -11,6 +12,23 @@ use Inertia\Inertia;
 class AlumnoController extends Controller
 {
     use HandlesErrors;
+
+    /**
+     * Obtener carreras con su duración máxima (años)
+     */
+    private function getCarrerasConDuracion()
+    {
+        $carreras = Carrera::all();
+
+        // Calcular duración máxima por carrera basándose en las materias
+        foreach ($carreras as $carrera) {
+            $maxAnno = Materia::where('carrera', $carrera->Id)->max('anno');
+            $carrera->duracion = $maxAnno ? (int)$maxAnno : 3; // Default 3 si no hay materias
+        }
+
+        return $carreras;
+    }
+
     /**
      * Display a listing of the resource.
      */
@@ -24,10 +42,8 @@ class AlumnoController extends Controller
      */
     public function create()
     {
-        $carreras = Carrera::all();
-
         return Inertia::render('Admin/Alumno/Create', [
-            'carreras' => $carreras
+            'carreras' => $this->getCarrerasConDuracion()
         ]);
     }
 
@@ -43,11 +59,11 @@ class AlumnoController extends Controller
             'email' => 'nullable|email|max:255|unique:tbl_alumnos,email',
             'telefono' => 'nullable|string|max:50|regex:/^[0-9\s\-\+\(\)]*$/',
             'celular' => 'nullable|string|min:8|max:50|regex:/^[0-9\s\-\+\(\)]*$/',
-            'legajo' => 'nullable|string|max:50|regex:/^[a-zA-Z0-9\-\/]+$/',
+            'legajo' => 'nullable|string|max:50',
             'anno' => 'nullable|integer|min:1900|max:' . (date('Y') + 1),
             'carrera' => 'required|exists:tbl_carreras,Id',
-            'curso' => 'nullable|integer|min:1|max:6',
-            'division' => 'nullable|string|max:10|regex:/^[a-zA-Z0-9]+$/',
+            'curso' => 'nullable|integer|min:1',
+            'division' => 'nullable|max:10',
         ], [
             'dni.required' => 'El DNI es obligatorio.',
             'dni.unique' => 'Ya existe un alumno con este DNI.',
@@ -71,7 +87,7 @@ class AlumnoController extends Controller
             'carrera.required' => 'La carrera es obligatoria.',
             'carrera.exists' => 'La carrera seleccionada no existe.',
             'curso.min' => 'El curso debe ser al menos 1.',
-            'curso.max' => 'El curso no puede ser mayor a 6.',
+            'curso.max' => 'El curso no puede ser mayor a 10.',
             'division.regex' => 'La división solo puede contener letras y números.',
         ]);
 
@@ -121,11 +137,9 @@ class AlumnoController extends Controller
      */
     public function edit(Alumno $alumno)
     {
-        $carreras = Carrera::all();
-
         return Inertia::render('Admin/Alumno/Edit', [
             'alumno' => $alumno,
-            'carreras' => $carreras
+            'carreras' => $this->getCarrerasConDuracion()
         ]);
     }
 
@@ -134,6 +148,11 @@ class AlumnoController extends Controller
      */
     public function update(Request $request, Alumno $alumno)
     {
+        \Log::info('AlumnoController@update - Inicio', [
+            'alumno_id' => $alumno->id,
+            'request_data' => $request->all(),
+        ]);
+
         $validated = $request->validate([
             'dni' => 'required|string|max:20|unique:tbl_alumnos,dni,' . $alumno->id . '|regex:/^[0-9]+$/',
             'apellido' => 'required|string|max:100|regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$/',
@@ -141,11 +160,11 @@ class AlumnoController extends Controller
             'email' => 'nullable|email|max:255',
             'telefono' => 'nullable|string|max:50|regex:/^[0-9\s\-\+\(\)]*$/',
             'celular' => 'nullable|string|max:50|regex:/^[0-9\s\-\+\(\)]*$/',
-            'legajo' => 'nullable|string|max:50|regex:/^[a-zA-Z0-9\-\/]+$/',
+            'legajo' => 'nullable|string|max:50',
             'anno' => 'nullable|integer|min:1900|max:' . (date('Y') + 1),
             'carrera' => 'required|exists:tbl_carreras,Id',
-            'curso' => 'nullable|integer|min:1|max:6',
-            'division' => 'nullable|string|max:10|regex:/^[a-zA-Z0-9]+$/',
+            'curso' => 'nullable|integer|min:1',
+            'division' => 'nullable|max:10',
         ], [
             'dni.required' => 'El DNI es obligatorio.',
             'dni.unique' => 'Ya existe otro alumno con este DNI.',
@@ -182,12 +201,11 @@ class AlumnoController extends Controller
             \Log::info('Alumno actualizado', [
                 'alumno_id' => $alumno->id,
                 'dni' => $alumno->dni,
+                'datos' => $validated,
                 'actualizado_por' => auth()->id(),
             ]);
 
-            return redirect()
-                ->route('expediente.index')
-                ->with('success', 'Alumno actualizado exitosamente');
+            return back()->with('success', 'Alumno actualizado exitosamente');
 
         } catch (\Exception $e) {
             $this->handleError($e, 'actualizar alumno', [

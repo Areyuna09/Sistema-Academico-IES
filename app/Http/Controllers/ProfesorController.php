@@ -85,9 +85,13 @@ class ProfesorController extends Controller
             // Asignar materias si se seleccionaron
             if (!empty($validated['materias'])) {
                 foreach ($validated['materias'] as $materiaId) {
+                    // Obtener la carrera de la materia (no del profesor)
+                    $materia = \App\Models\Materia::find($materiaId);
+                    $carreraMateria = $materia ? $materia->carrera : $validated['carrera'];
+
                     \DB::table('tbl_profesor_tiene_materias')->insert([
                         'profesor' => $profesor->id,
-                        'carrera' => $validated['carrera'],
+                        'carrera' => $carreraMateria,
                         'materia' => $materiaId,
                         'division' => $validated['division'],
                         'cursado' => '1er Cuatrimestre', // Valor por defecto
@@ -217,9 +221,13 @@ class ProfesorController extends Controller
             // Asignar nuevas materias si se seleccionaron
             if (!empty($validated['materias'])) {
                 foreach ($validated['materias'] as $materiaId) {
+                    // Obtener la carrera de la materia (no del profesor)
+                    $materia = \App\Models\Materia::find($materiaId);
+                    $carreraMateria = $materia ? $materia->carrera : $validated['carrera'];
+
                     \DB::table('tbl_profesor_tiene_materias')->insert([
                         'profesor' => $profesor->id,
-                        'carrera' => $validated['carrera'],
+                        'carrera' => $carreraMateria,
                         'materia' => $materiaId,
                         'division' => $validated['division'],
                         'cursado' => '1er Cuatrimestre',
