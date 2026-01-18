@@ -51,11 +51,9 @@ class MateriasDatosSheet implements FromArray, WithTitle, WithHeadings, WithStyl
 
     public function array(): array
     {
+        // Una sola fila de ejemplo
         return [
-            ['Anatomía I', 'Tecnicatura Superior en Enfermería', '1', '1', '', '', '', 'Res. 123/2020'],
-            ['Anatomía II', 'Tecnicatura Superior en Enfermería', '1', '2', 'Anatomía I', '', 'Anatomía I', 'Res. 123/2020'],
-            ['Fisiología', 'Tecnicatura Superior en Enfermería', '2', '1', 'Anatomía I:Anatomía II', 'Anatomía I', 'Anatomía I:Anatomía II', 'Res. 123/2020'],
-            ['', '', '', '', '', '', '', ''],
+            ['Programación V', 'Tecnicatura Superior en Desarrollo de Software', '3', '1', '', '', '', 'Res. 123/2024'],
         ];
     }
 
@@ -89,14 +87,14 @@ class MateriasDatosSheet implements FromArray, WithTitle, WithHeadings, WithStyl
             ],
         ]);
 
-        $sheet->getStyle('A2:H4')->applyFromArray([
+        $sheet->getStyle('A2:H2')->applyFromArray([
             'fill' => [
                 'fillType' => Fill::FILL_SOLID,
                 'startColor' => ['rgb' => 'F5F3FF'],
             ],
         ]);
 
-        $sheet->getStyle('A1:H4')->applyFromArray([
+        $sheet->getStyle('A1:H2')->applyFromArray([
             'borders' => [
                 'allBorders' => [
                     'borderStyle' => Border::BORDER_THIN,

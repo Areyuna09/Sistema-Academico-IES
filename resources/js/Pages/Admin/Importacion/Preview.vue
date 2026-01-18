@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
 
 const props = defineProps({
@@ -11,6 +11,8 @@ const props = defineProps({
 const duplicadosSeleccionados = ref([]);
 const crearUsuarios = ref(true);
 const importando = ref(false);
+const mostrarExito = ref(false);
+const mensajeExito = ref('');
 
 const getColor = (tipo) => {
     const colores = {
@@ -50,6 +52,16 @@ const confirmarImportacion = () => {
         actualizar_duplicados: duplicadosSeleccionados.value,
         crear_usuarios: crearUsuarios.value,
     }, {
+        onSuccess: (page) => {
+            const flash = page.props.flash;
+            if (flash?.success) {
+                mensajeExito.value = flash.success;
+                mostrarExito.value = true;
+                setTimeout(() => {
+                    mostrarExito.value = false;
+                }, 4000);
+            }
+        },
         onFinish: () => {
             importando.value = false;
         },
@@ -59,6 +71,24 @@ const confirmarImportacion = () => {
 
 <template>
     <Head :title="`Preview Importacion - ${preview.entidad}`" />
+
+    <!-- Popup de exito -->
+    <Transition
+        enter-active-class="transition ease-out duration-300"
+        enter-from-class="opacity-0 translate-y-[-20px]"
+        enter-to-class="opacity-100 translate-y-0"
+        leave-active-class="transition ease-in duration-200"
+        leave-from-class="opacity-100 translate-y-0"
+        leave-to-class="opacity-0 translate-y-[-20px]"
+    >
+        <div v-if="mostrarExito" class="fixed top-4 right-4 z-50 bg-green-500 text-white px-6 py-4 rounded-lg shadow-lg flex items-center space-x-3">
+            <i class="bx bx-check-circle text-2xl"></i>
+            <span class="font-medium">{{ mensajeExito }}</span>
+            <button @click="mostrarExito = false" class="ml-2 hover:bg-green-600 rounded p-1">
+                <i class="bx bx-x text-xl"></i>
+            </button>
+        </div>
+    </Transition>
 
     <SidebarLayout :user="$page.props.auth.user">
         <template #header>
@@ -138,21 +168,23 @@ const confirmarImportacion = () => {
                         <thead class="bg-gray-50 sticky top-0">
                             <tr>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fila</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">DNI</th>
+                                <th v-if="tipo !== 'materias'" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">DNI</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
                                 <th v-if="tipo !== 'materias'" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Carrera</th>
+                                <th v-if="tipo === 'materias'" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Año</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
                             <tr v-for="item in preview.datos.nuevos" :key="item.fila" class="hover:bg-gray-50">
                                 <td class="px-4 py-2 text-sm text-gray-500">{{ item.fila }}</td>
-                                <td class="px-4 py-2 text-sm font-medium text-gray-900">{{ item.datos.dni || item.datos.nombre }}</td>
+                                <td v-if="tipo !== 'materias'" class="px-4 py-2 text-sm font-medium text-gray-900">{{ item.datos.dni }}</td>
                                 <td class="px-4 py-2 text-sm text-gray-900">
                                     {{ tipo === 'materias' ? item.datos.nombre : `${item.datos.apellido}, ${item.datos.nombre}` }}
                                 </td>
                                 <td v-if="tipo !== 'materias'" class="px-4 py-2 text-sm text-gray-500">{{ item.datos.email || '-' }}</td>
                                 <td class="px-4 py-2 text-sm text-gray-500">{{ item.datos.carrera }}</td>
+                                <td v-if="tipo === 'materias'" class="px-4 py-2 text-sm text-gray-500">{{ item.datos.anno || '-' }}</td>
                             </tr>
                         </tbody>
                     </table>

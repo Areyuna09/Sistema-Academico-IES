@@ -224,34 +224,46 @@ class AlumnoController extends Controller
      */
     public function destroy(Alumno $alumno)
     {
+        \Log::info('=== DELETE ALUMNO ===', [
+            'alumno_id' => $alumno->id,
+            'dni' => $alumno->dni,
+        ]);
+
         try {
-            // Verificar si tiene usuario asociado
+            \DB::beginTransaction();
+
+            $dni = $alumno->dni;
+            $usuarioEliminado = false;
+
+            // Eliminar usuario asociado si existe
             if ($alumno->user) {
-                return back()->withErrors([
-                    'error' => 'No se puede eliminar el alumno porque tiene un usuario asociado. Primero elimine el usuario.'
-                ]);
+                $alumno->user->delete();
+                $usuarioEliminado = true;
             }
 
             // Verificar si tiene materias cursadas
             if ($alumno->materiasCursadas()->count() > 0) {
+                \DB::rollBack();
                 return back()->withErrors([
                     'error' => 'No se puede eliminar el alumno porque tiene materias cursadas en su legajo.'
                 ]);
             }
 
-            $dni = $alumno->dni;
             $alumno->delete();
+
+            \DB::commit();
 
             \Log::info('Alumno eliminado', [
                 'dni' => $dni,
+                'usuario_eliminado' => $usuarioEliminado,
                 'eliminado_por' => auth()->id(),
             ]);
 
-            return redirect()
-                ->route('expediente.index')
-                ->with('success', 'Alumno eliminado exitosamente');
+            return back()->with('success', 'Alumno eliminado exitosamente');
 
         } catch (\Exception $e) {
+            \DB::rollBack();
+
             $this->handleError($e, 'eliminar alumno', [
                 'alumno_id' => $alumno->id
             ]);

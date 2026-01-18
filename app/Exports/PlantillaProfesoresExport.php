@@ -47,10 +47,9 @@ class ProfesoresDatosSheet implements FromArray, WithTitle, WithHeadings, WithSt
 
     public function array(): array
     {
+        // Una sola fila de ejemplo
         return [
-            ['20123456', 'Pérez', 'Carlos Alberto', 'carlos.perez@email.com', 'Tecnicatura Superior en Enfermería', 'A'],
-            ['21654321', 'Gómez', 'Ana María', 'ana.gomez@email.com', '', 'B'],
-            ['', '', '', '', '', ''],
+            ['20123456', 'Pérez', 'Carlos Alberto', 'carlos.perez@email.com', 'Tecnicatura Superior en Desarrollo de Software', '1'],
         ];
     }
 
@@ -82,14 +81,14 @@ class ProfesoresDatosSheet implements FromArray, WithTitle, WithHeadings, WithSt
             ],
         ]);
 
-        $sheet->getStyle('A2:F3')->applyFromArray([
+        $sheet->getStyle('A2:F2')->applyFromArray([
             'fill' => [
                 'fillType' => Fill::FILL_SOLID,
                 'startColor' => ['rgb' => 'ECFDF5'],
             ],
         ]);
 
-        $sheet->getStyle('A1:F3')->applyFromArray([
+        $sheet->getStyle('A1:F2')->applyFromArray([
             'borders' => [
                 'allBorders' => [
                     'borderStyle' => Border::BORDER_THIN,

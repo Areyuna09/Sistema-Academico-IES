@@ -45,7 +45,6 @@ class AlumnosDatosSheet implements FromArray, WithTitle, WithHeadings, WithStyle
             'celular',
             'legajo',
             'anno',
-            'curso',
             'division',
             'turno',
         ];
@@ -53,11 +52,9 @@ class AlumnosDatosSheet implements FromArray, WithTitle, WithHeadings, WithStyle
 
     public function array(): array
     {
-        // Filas de ejemplo
+        // Una sola fila de ejemplo
         return [
-            ['12345924', 'García', 'Juan Carlos', 'Tecnicatura Superior en Desarrollo de Software', 'juan.garcia@email.com', '0381-4567890', '3814567890', '', '2025', '1', '1', ''],
-            ['87654321', 'López', 'María Elena', 'Tecnicatura Superior en Desarrollo de Software', 'maria.lopez@email.com', '', '3814123456', '', '2025', '2', '2', ''],
-            ['', '', '', '', '', '', '', '', '', '', '', ''],
+            ['12345678', 'García', 'Juan Carlos', 'Tecnicatura Superior en Desarrollo de Software', 'juan.garcia@email.com', '0381-4567890', '3814567890', '', '2025', '1', ''],
         ];
     }
 
@@ -73,16 +70,15 @@ class AlumnosDatosSheet implements FromArray, WithTitle, WithHeadings, WithStyle
             'G' => 15,  // celular
             'H' => 10,  // legajo
             'I' => 8,   // anno
-            'J' => 10,  // curso
-            'K' => 10,  // division
-            'L' => 12,  // turno
+            'J' => 10,  // division
+            'K' => 12,  // turno
         ];
     }
 
     public function styles(Worksheet $sheet): array
     {
         // Estilo para encabezados
-        $sheet->getStyle('A1:L1')->applyFromArray([
+        $sheet->getStyle('A1:K1')->applyFromArray([
             'font' => [
                 'bold' => true,
                 'color' => ['rgb' => 'FFFFFF'],
@@ -96,8 +92,8 @@ class AlumnosDatosSheet implements FromArray, WithTitle, WithHeadings, WithStyle
             ],
         ]);
 
-        // Estilo para filas de ejemplo
-        $sheet->getStyle('A2:L3')->applyFromArray([
+        // Estilo para fila de ejemplo
+        $sheet->getStyle('A2:K2')->applyFromArray([
             'fill' => [
                 'fillType' => Fill::FILL_SOLID,
                 'startColor' => ['rgb' => 'EFF6FF'],
@@ -105,7 +101,7 @@ class AlumnosDatosSheet implements FromArray, WithTitle, WithHeadings, WithStyle
         ]);
 
         // Bordes
-        $sheet->getStyle('A1:L3')->applyFromArray([
+        $sheet->getStyle('A1:K2')->applyFromArray([
             'borders' => [
                 'allBorders' => [
                     'borderStyle' => Border::BORDER_THIN,
@@ -144,7 +140,6 @@ class AlumnosInstruccionesSheet implements FromArray, WithTitle, WithStyles, Wit
             ['celular', 'Telefono celular', '3814567890'],
             ['legajo', 'Numero de legajo', '001'],
             ['anno', 'Año de ingreso (ej: 2024, 2025)', '2025'],
-            ['curso', 'Año que cursa (1, 2, 3 segun carrera)', '1'],
             ['division', 'Division', 'A'],
             ['turno', 'Turno (Mañana, Tarde, Noche)', 'Mañana'],
             [''],
@@ -154,6 +149,7 @@ class AlumnosInstruccionesSheet implements FromArray, WithTitle, WithStyles, Wit
             ['3. Se creara automaticamente un usuario con contraseña igual al DNI'],
             ['4. Los registros duplicados (mismo DNI) se pueden actualizar o ignorar'],
             ['5. Elimine las filas de ejemplo antes de importar'],
+            ['6. El CURSO se calcula automaticamente segun el año de ingreso'],
         ];
     }
 

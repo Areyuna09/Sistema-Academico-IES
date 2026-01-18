@@ -4,6 +4,7 @@ namespace App\Services\Importacion\Importadores;
 
 use App\Models\Alumno;
 use App\Models\Carrera;
+use App\Models\Materia;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -123,6 +124,9 @@ class AlumnoImportador implements ImportadorInterface
             foreach ($datos['nuevos'] as $item) {
                 $registro = $item['datos'];
 
+                $annoIngreso = $registro['anno'] ?? date('Y');
+                $cursoCalculado = $this->calcularCurso($annoIngreso, $registro['carrera_id']);
+
                 $alumno = Alumno::create([
                     'dni' => $registro['dni'],
                     'apellido' => $registro['apellido'],
@@ -132,8 +136,8 @@ class AlumnoImportador implements ImportadorInterface
                     'celular' => $registro['celular'] ?? null,
                     'legajo' => $registro['legajo'] ?? null,
                     'carrera' => $registro['carrera_id'],
-                    'anno' => $registro['anno'] ?? 1,
-                    'curso' => $registro['curso'] ?? '',
+                    'anno' => $annoIngreso,
+                    'curso' => $cursoCalculado,
                     'division' => $registro['division'] ?? '',
                     'turno' => $registro['turno'] ?? '',
                     'fecha' => $registro['fecha'] ?? now()->toDateString(),
@@ -162,6 +166,9 @@ class AlumnoImportador implements ImportadorInterface
                 $alumno = Alumno::where('dni', $dni)->first();
 
                 if ($alumno) {
+                    $annoIngreso = $registro['anno'] ?? $alumno->anno;
+                    $cursoCalculado = $this->calcularCurso($annoIngreso, $registro['carrera_id']);
+
                     $alumno->update([
                         'apellido' => $registro['apellido'],
                         'nombre' => $registro['nombre'],
@@ -170,8 +177,8 @@ class AlumnoImportador implements ImportadorInterface
                         'celular' => $registro['celular'] ?? $alumno->celular,
                         'legajo' => $registro['legajo'] ?? $alumno->legajo,
                         'carrera' => $registro['carrera_id'],
-                        'anno' => $registro['anno'] ?? $alumno->anno,
-                        'curso' => $registro['curso'] ?? $alumno->curso,
+                        'anno' => $annoIngreso,
+                        'curso' => $cursoCalculado,
                         'division' => $registro['division'] ?? $alumno->division,
                         'turno' => $registro['turno'] ?? $alumno->turno,
                     ]);
@@ -228,8 +235,7 @@ class AlumnoImportador implements ImportadorInterface
             'telefono' => 'Teléfono fijo',
             'celular' => 'Teléfono celular',
             'legajo' => 'Número de legajo',
-            'anno' => 'Año que cursa (1, 2, 3, 4)',
-            'curso' => 'Curso del alumno',
+            'anno' => 'Año de ingreso (ej: 2024, 2025)',
             'division' => 'División',
             'turno' => 'Turno (Mañana, Tarde, Noche)',
         ];
@@ -325,5 +331,25 @@ class AlumnoImportador implements ImportadorInterface
         ]);
 
         return true;
+    }
+
+    private function calcularCurso(int $annoIngreso, int $carreraId): int
+    {
+        $annoActual = (int) date('Y');
+        $cursoCalculado = $annoActual - $annoIngreso + 1;
+
+        // Obtener duración máxima de la carrera
+        $maxAnno = Materia::where('carrera', $carreraId)->max('anno');
+        $duracionCarrera = $maxAnno ? (int) $maxAnno : 3;
+
+        // Limitar al rango válido
+        if ($cursoCalculado < 1) {
+            return 1;
+        }
+        if ($cursoCalculado > $duracionCarrera) {
+            return $duracionCarrera;
+        }
+
+        return $cursoCalculado;
     }
 }

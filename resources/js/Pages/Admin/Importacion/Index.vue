@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
 
@@ -8,36 +8,19 @@ const props = defineProps({
 });
 
 const page = usePage();
-const flashMessage = ref('');
-const flashType = ref('');
-const showFlash = ref(false);
+const dismissed = ref(false);
 
-const checkFlashMessages = () => {
-    const flash = page.props.flash;
-    if (flash?.success) {
-        flashMessage.value = flash.success;
-        flashType.value = 'success';
-        showFlash.value = true;
-        setTimeout(() => showFlash.value = false, 5000);
-    } else if (flash?.error) {
-        flashMessage.value = flash.error;
-        flashType.value = 'error';
-        showFlash.value = true;
-        setTimeout(() => showFlash.value = false, 8000);
+const flashMessage = computed(() => page.props.flash?.success || page.props.flash?.error || '');
+const flashType = computed(() => page.props.flash?.success ? 'success' : 'error');
+const showFlash = computed(() => !!flashMessage.value && !dismissed.value);
+
+// Auto-hide después de unos segundos
+watch(flashMessage, (newVal) => {
+    if (newVal) {
+        dismissed.value = false;
+        setTimeout(() => dismissed.value = true, flashType.value === 'success' ? 5000 : 8000);
     }
-};
-
-onMounted(() => {
-    checkFlashMessages();
-});
-
-watch(
-    () => page.props.flash,
-    () => {
-        checkFlashMessages();
-    },
-    { deep: true }
-);
+}, { immediate: true });
 
 const getIcono = (tipo) => {
     const iconos = {

@@ -306,19 +306,19 @@ class ProfesorController extends Controller
      */
     public function destroy(Request $request, Profesor $profesor)
     {
+        \Log::info('=== DELETE PROFESOR ===', [
+            'profesor_id' => $profesor->id,
+            'dni' => $profesor->dni,
+        ]);
+
         try {
-            // Verificar si tiene usuario asociado
-            if ($profesor->user) {
-                return back()->withErrors([
-                    'error' => 'No se puede eliminar el profesor porque tiene un usuario asociado. Primero elimine el usuario.'
-                ]);
-            }
+            \DB::beginTransaction();
 
             // Verificar si tiene materias asignadas
             $materiasCount = $profesor->materias()->count();
-            $forceDelete = $request->boolean('force');
 
             if ($materiasCount > 0) {
+                \DB::rollBack();
                 // Obtener lista de materias para mostrar al usuario
                 $materias = $profesor->materias()
                     ->with('materiaRelacion')
@@ -343,19 +343,29 @@ class ProfesorController extends Controller
             }
 
             $dni = $profesor->dni;
+            $usuarioEliminado = false;
+
+            // Eliminar usuario asociado si existe
+            if ($profesor->user) {
+                $profesor->user->delete();
+                $usuarioEliminado = true;
+            }
+
             $profesor->delete();
+
+            \DB::commit();
 
             \Log::info('Profesor eliminado', [
                 'dni' => $dni,
+                'usuario_eliminado' => $usuarioEliminado,
                 'eliminado_por' => auth()->id(),
-                'forzado' => $forceDelete,
             ]);
 
-            return redirect()
-                ->route('expediente.index')
-                ->with('success', 'Profesor eliminado exitosamente');
+            return back()->with('success', 'Profesor eliminado exitosamente');
 
         } catch (\Exception $e) {
+            \DB::rollBack();
+
             $this->handleError($e, 'eliminar profesor', [
                 'profesor_id' => $profesor->id
             ]);
