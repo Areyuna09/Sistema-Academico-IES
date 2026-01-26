@@ -52,7 +52,3 @@ npm run dev               # Terminal 2
 
 - Ramón Areyuna
 - Alan Rodriguez
-- Agustin Godoy
-- Amilcar Fernandez
-- Luis Gomez
-- Fabricio Antunez

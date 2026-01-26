@@ -24,6 +24,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
             'directivo' => \App\Http\Middleware\DirectivoMiddleware::class,
             'supervisor' => \App\Http\Middleware\SupervisorMiddleware::class,
+            'bedel' => \App\Http\Middleware\BedelMiddleware::class,
+        'preceptor' => \App\Http\Middleware\PreceptorMiddleware::class,
             'modulo' => \App\Http\Middleware\VerificarModuloActivo::class,
         ]);
     })

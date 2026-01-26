@@ -20,14 +20,23 @@ class DashboardController extends Controller
         $user = $request->user();
 
         // Redirigir Directivos a su panel
-        if ($user->tipo == 5) {
-            return redirect()->route('directivo.index');
-        }
+         if ($user->isDirectivo()) {
+        return redirect()->route('directivo.index');
+    }
 
-        // Redirigir Supervisores a su panel
-        if ($user->tipo == 6) {
-            return redirect()->route('supervisor.index');
-        }
+    if ($user->isSupervisor()) {
+        return redirect()->route('supervisor.index');
+    }
+
+    // --- QUITAR estas dos redirecciones ---
+    // if ($user->isBedel()) {
+    //     return redirect()->route('bedel.index');
+    // }
+    //
+    // if ($user->isPreceptor()) {
+    //     return redirect()->route('preceptor.index');
+    // }
+    // --- FIN: ya no redirigen ---
 
         // Dashboard para profesores
         if ($user->tipo == 3) {
@@ -39,10 +48,11 @@ class DashboardController extends Controller
             return $this->dashboardAlumno($user);
         }
 
-        // Dashboard para admin/bedel
-        if (in_array($user->tipo, [1, 2])) {
-            return $this->dashboardAdmin($user);
-        }
+        // Dashboard para admin/bedel/preceptor
+    // Incluir BEDEL (7) y PRECEPTOR (8) para que caigan en las métricas "admin/operativo"
+    if (in_array($user->tipo, [1, 2, 7, 8])) {
+        return $this->dashboardAdmin($user);
+    }
 
         // Dashboard por defecto
         return Inertia::render('Dashboard', [

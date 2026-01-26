@@ -5,25 +5,22 @@ namespace App\Http\Controllers;
 use App\Models\Profesor;
 use App\Models\Carrera;
 use App\Traits\HandlesErrors;
+use App\Traits\ChecksPermissions;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class ProfesorController extends Controller
 {
-    use HandlesErrors;
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        //
-    }
+    use HandlesErrors, ChecksPermissions;
 
     /**
      * Show the form for creating a new resource.
      */
-    public function create()
+    public function create(Request $request)
     {
+        // Verificar permisos de creación
+        $this->autorizarCrear($request);
+
         $carreras = Carrera::all();
 
         return Inertia::render('Admin/Profesor/Create', [
@@ -36,6 +33,9 @@ class ProfesorController extends Controller
      */
     public function store(Request $request)
     {
+        // Verificar permisos de creación
+        $this->autorizarCrear($request);
+
         \Log::info('Datos recibidos para crear profesor', [
             'datos' => $request->all()
         ]);
@@ -72,7 +72,6 @@ class ProfesorController extends Controller
         try {
             \DB::beginTransaction();
 
-            // Crear el profesor
             $profesor = Profesor::create([
                 'dni' => $validated['dni'],
                 'apellido' => $validated['apellido'],
@@ -82,19 +81,14 @@ class ProfesorController extends Controller
                 'division' => $validated['division'],
             ]);
 
-            // Asignar materias si se seleccionaron
             if (!empty($validated['materias'])) {
                 foreach ($validated['materias'] as $materiaId) {
-                    // Obtener la carrera de la materia (no del profesor)
-                    $materia = \App\Models\Materia::find($materiaId);
-                    $carreraMateria = $materia ? $materia->carrera : $validated['carrera'];
-
                     \DB::table('tbl_profesor_tiene_materias')->insert([
                         'profesor' => $profesor->id,
-                        'carrera' => $carreraMateria,
+                        'carrera' => $validated['carrera'],
                         'materia' => $materiaId,
                         'division' => $validated['division'],
-                        'cursado' => '1er Cuatrimestre', // Valor por defecto
+                        'cursado' => '1er Cuatrimestre',
                         'nota_minima_promocion' => 7.00,
                         'nota_minima_regularidad' => 4.00,
                         'permite_promocion' => true,
@@ -110,7 +104,8 @@ class ProfesorController extends Controller
                 'profesor_id' => $profesor->id,
                 'dni' => $profesor->dni,
                 'materias_asignadas' => count($validated['materias'] ?? []),
-                'creado_por' => auth()->id(),
+                'creado_por' => auth()->user()->nombre,
+                'tipo_usuario' => auth()->user()->tipo,
             ]);
 
             return redirect()
@@ -132,21 +127,15 @@ class ProfesorController extends Controller
     }
 
     /**
-     * Display the specified resource.
-     */
-    public function show(Profesor $profesor)
-    {
-        //
-    }
-
-    /**
      * Show the form for editing the specified resource.
      */
-    public function edit(Profesor $profesor)
+    public function edit(Request $request, Profesor $profesor)
     {
+        // Verificar permisos de modificación
+        $this->autorizarModificar($request);
+
         $carreras = Carrera::all();
 
-        // Cargar las materias asignadas al profesor
         $materias = \DB::table('tbl_profesor_tiene_materias')
             ->where('profesor', $profesor->id)
             ->pluck('materia')
@@ -166,6 +155,9 @@ class ProfesorController extends Controller
      */
     public function update(Request $request, Profesor $profesor)
     {
+        // Verificar permisos de modificación
+        $this->autorizarModificar($request);
+
         \Log::info('=== UPDATE PROFESOR ===', [
             'profesor_id' => $profesor->id,
             'profesor_object' => $profesor->toArray(),
@@ -202,7 +194,6 @@ class ProfesorController extends Controller
         try {
             \DB::beginTransaction();
 
-            // Actualizar datos del profesor
             $profesor->update([
                 'dni' => $validated['dni'],
                 'apellido' => $validated['apellido'],
@@ -212,22 +203,15 @@ class ProfesorController extends Controller
                 'division' => $validated['division'],
             ]);
 
-            // Actualizar materias asignadas
-            // Eliminar las materias actuales
             \DB::table('tbl_profesor_tiene_materias')
                 ->where('profesor', $profesor->id)
                 ->delete();
 
-            // Asignar nuevas materias si se seleccionaron
             if (!empty($validated['materias'])) {
                 foreach ($validated['materias'] as $materiaId) {
-                    // Obtener la carrera de la materia (no del profesor)
-                    $materia = \App\Models\Materia::find($materiaId);
-                    $carreraMateria = $materia ? $materia->carrera : $validated['carrera'];
-
                     \DB::table('tbl_profesor_tiene_materias')->insert([
                         'profesor' => $profesor->id,
-                        'carrera' => $carreraMateria,
+                        'carrera' => $validated['carrera'],
                         'materia' => $materiaId,
                         'division' => $validated['division'],
                         'cursado' => '1er Cuatrimestre',
@@ -246,7 +230,8 @@ class ProfesorController extends Controller
                 'profesor_id' => $profesor->id,
                 'dni' => $profesor->dni,
                 'materias_asignadas' => count($validated['materias'] ?? []),
-                'actualizado_por' => auth()->id(),
+                'actualizado_por' => auth()->user()->nombre,
+                'tipo_usuario' => auth()->user()->tipo,
             ]);
 
             return redirect()
@@ -270,8 +255,11 @@ class ProfesorController extends Controller
     /**
      * Limpiar las materias asignadas a un profesor
      */
-    public function limpiarMaterias(Profesor $profesor)
+    public function limpiarMaterias(Request $request, Profesor $profesor)
     {
+        // Verificar permisos de modificación
+        $this->autorizarModificar($request);
+
         try {
             $materiasCount = $profesor->materias()->count();
 
@@ -282,7 +270,8 @@ class ProfesorController extends Controller
                     'profesor_id' => $profesor->id,
                     'dni' => $profesor->dni,
                     'materias_eliminadas' => $materiasCount,
-                    'limpiado_por' => auth()->id(),
+                    'limpiado_por' => auth()->user()->nombre,
+                    'tipo_usuario' => auth()->user()->tipo,
                 ]);
 
                 return back()->with('success', 'Se eliminaron ' . $materiasCount . ' asignación(es) de materias. Ahora puedes eliminar al profesor.');
@@ -306,20 +295,20 @@ class ProfesorController extends Controller
      */
     public function destroy(Request $request, Profesor $profesor)
     {
-        \Log::info('=== DELETE PROFESOR ===', [
-            'profesor_id' => $profesor->id,
-            'dni' => $profesor->dni,
-        ]);
+        // Solo Admin y Bedel pueden eliminar
+        $this->autorizarEliminar($request);
 
         try {
-            \DB::beginTransaction();
+            if ($profesor->user) {
+                return back()->withErrors([
+                    'error' => 'No se puede eliminar el profesor porque tiene un usuario asociado. Primero elimine el usuario.'
+                ]);
+            }
 
-            // Verificar si tiene materias asignadas
             $materiasCount = $profesor->materias()->count();
+            $forceDelete = $request->boolean('force');
 
             if ($materiasCount > 0) {
-                \DB::rollBack();
-                // Obtener lista de materias para mostrar al usuario
                 $materias = $profesor->materias()
                     ->with('materiaRelacion')
                     ->get()
@@ -328,13 +317,11 @@ class ProfesorController extends Controller
                     ->values()
                     ->toArray();
 
-                // Lanzar ValidationException para que Inertia lo capture en onError
                 $validator = \Validator::make([], []);
                 $validator->errors()->add('requires_force', 'true');
                 $validator->errors()->add('materias_count', $materiasCount);
                 $validator->errors()->add('error', 'Este profesor tiene ' . $materiasCount . ' materia(s) asignada(s). Debes limpiar las asignaciones antes de eliminarlo.');
 
-                // Agregar las materias como un JSON string ya que ValidationException no soporta arrays directamente
                 foreach ($materias as $index => $materia) {
                     $validator->errors()->add('materias.' . $index, $materia);
                 }
@@ -343,29 +330,20 @@ class ProfesorController extends Controller
             }
 
             $dni = $profesor->dni;
-            $usuarioEliminado = false;
-
-            // Eliminar usuario asociado si existe
-            if ($profesor->user) {
-                $profesor->user->delete();
-                $usuarioEliminado = true;
-            }
-
             $profesor->delete();
-
-            \DB::commit();
 
             \Log::info('Profesor eliminado', [
                 'dni' => $dni,
-                'usuario_eliminado' => $usuarioEliminado,
-                'eliminado_por' => auth()->id(),
+                'eliminado_por' => auth()->user()->nombre,
+                'tipo_usuario' => auth()->user()->tipo,
+                'forzado' => $forceDelete,
             ]);
 
-            return back()->with('success', 'Profesor eliminado exitosamente');
+            return redirect()
+                ->route('expediente.index')
+                ->with('success', 'Profesor eliminado exitosamente');
 
         } catch (\Exception $e) {
-            \DB::rollBack();
-
             $this->handleError($e, 'eliminar profesor', [
                 'profesor_id' => $profesor->id
             ]);

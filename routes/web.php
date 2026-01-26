@@ -17,6 +17,10 @@ use App\Http\Controllers\Admin\MesasExamenController;
 use App\Http\Controllers\Admin\ExcepcionesController;
 use App\Http\Controllers\Admin\InscripcionesController as AdminInscripcionesController;
 use App\Http\Controllers\Admin\SolicitudesCambioEmailController;
+use App\Http\Controllers\Admin\ConfiguracionModulosController;
+use App\Http\Controllers\BedelController;
+use App\Http\Controllers\PreceptorController;
+use App\Http\Controllers\AsistenciasController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -118,8 +122,17 @@ Route::middleware('auth')->group(function () {
     Route::delete('/notificaciones/limpiar-leidas', [NotificacionesController::class, 'limpiarLeidas'])->name('notificaciones.limpiar-leidas');
 });
 
-// Rutas de administración (solo para admin y profesores)
+// ============================
+// RUTAS POR ROLES
+// ============================
+
+// SOLO ADMIN - Gestión crítica
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    // Configuración del sistema
+    Route::get('/configuracion', [ConfiguracionController::class, 'index'])->name('configuracion.index');
+    Route::get('/configuracion-modulos', [ConfiguracionModulosController::class, 'index'])->name('configuracion-modulos.index');
+    
+    // Resto de rutas de admin (ya existentes)
     // Gestión de Usuarios
     Route::get('/usuarios', [UsuariosController::class, 'index'])->name('usuarios.index');
     Route::get('/usuarios/crear', [UsuariosController::class, 'create'])->name('usuarios.create');
@@ -175,14 +188,6 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/periodos/{periodo}/toggle', [PeriodosController::class, 'toggle'])->name('periodos.toggle');
     Route::delete('/periodos/{periodo}', [PeriodosController::class, 'destroy'])->name('periodos.destroy');
 
-    // Configuración General
-    Route::get('/configuracion', [ConfiguracionController::class, 'index'])->name('configuracion.index');
-    Route::get('/configuracion/editar', [ConfiguracionController::class, 'edit'])->name('configuracion.edit');
-    Route::post('/configuracion', [ConfiguracionController::class, 'update'])->name('configuracion.update');
-    Route::delete('/configuracion/logo', [ConfiguracionController::class, 'deleteLogo'])->name('configuracion.delete-logo');
-    Route::delete('/configuracion/logo-dark', [ConfiguracionController::class, 'deleteLogoDark'])->name('configuracion.delete-logo-dark');
-    Route::delete('/configuracion/firma', [ConfiguracionController::class, 'deleteFirma'])->name('configuracion.delete-firma');
-
     // Gestión de Mesas de Examen
     Route::get('/mesas', [MesasExamenController::class, 'index'])->name('mesas.index');
     Route::get('/mesas/crear', [MesasExamenController::class, 'create'])->name('mesas.create');
@@ -235,10 +240,10 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         ->withoutMiddleware(\App\Http\Middleware\HandleInertiaRequests::class);
 
     // Configuración de Módulos del Sistema
-    Route::get('/configuracion-modulos', [\App\Http\Controllers\Admin\ConfiguracionModulosController::class, 'index'])->name('configuracion-modulos.index');
-    Route::post('/configuracion-modulos/{modulo}/toggle', [\App\Http\Controllers\Admin\ConfiguracionModulosController::class, 'toggle'])->name('configuracion-modulos.toggle');
-    Route::post('/configuracion-modulos/update-batch', [\App\Http\Controllers\Admin\ConfiguracionModulosController::class, 'updateBatch'])->name('configuracion-modulos.update-batch');
-    Route::post('/configuracion-modulos/reset', [\App\Http\Controllers\Admin\ConfiguracionModulosController::class, 'resetDefaults'])->name('configuracion-modulos.reset');
+    Route::get('/configuracion-modulos', [ConfiguracionModulosController::class, 'index'])->name('configuracion-modulos.index');
+    Route::post('/configuracion-modulos/{modulo}/toggle', [ConfiguracionModulosController::class, 'toggle'])->name('configuracion-modulos.toggle');
+    Route::post('/configuracion-modulos/update-batch', [ConfiguracionModulosController::class, 'updateBatch'])->name('configuracion-modulos.update-batch');
+    Route::post('/configuracion-modulos/reset', [ConfiguracionModulosController::class, 'resetDefaults'])->name('configuracion-modulos.reset');
 
     // Gestión de Solicitudes de Cambio de Email
     Route::get('/solicitudes-email', [SolicitudesCambioEmailController::class, 'index'])->name('solicitudes-email.index');
@@ -254,6 +259,25 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         Route::post('/importar', [\App\Http\Controllers\Admin\ImportacionController::class, 'importar'])->name('importar');
         Route::get('/{tipo}/plantilla', [\App\Http\Controllers\Admin\ImportacionController::class, 'descargarPlantilla'])->name('plantilla');
     });
+});
+
+// BEDEL + ADMIN - Gestión académica
+Route::middleware(['auth', 'bedel'])->prefix('bedel')->name('bedel.')->group(function () {
+    // Panel principal del bedel
+    Route::get('/', [BedelController::class, 'index'])->name('index');
+    
+    // Inscripciones, materias, alumnos
+    Route::resource('inscripciones', InscripcionesController::class);
+    Route::resource('alumnos', AlumnoController::class);
+});
+
+// PRECEPTOR + ADMIN - Asistencias
+Route::middleware(['auth', 'preceptor'])->prefix('preceptor')->name('preceptor.')->group(function () {
+    // Panel principal del preceptor
+    Route::get('/', [PreceptorController::class, 'index'])->name('index');
+    
+    // Asistencias y seguimiento
+    Route::get('/asistencias', [AsistenciasController::class, 'index'])->name('asistencias.index');
 });
 
 // Rutas de Profesores (asistencias y materias)
@@ -281,25 +305,31 @@ Route::middleware(['auth'])->prefix('profesor')->name('profesor.')->group(functi
         ->name('asistencias.store');
 });
 
-// Rutas de Directivo (Tipo 5) - Revisión de legajos
+// DIRECTIVO + ADMIN - Solo lectura
 Route::middleware(['auth', 'directivo'])->prefix('directivo')->name('directivo.')->group(function () {
     // Panel principal
     Route::get('/', [\App\Http\Controllers\DirectivoController::class, 'index'])->name('index');
 
     // Ver detalle de legajo
     Route::get('/legajo/{id}', [\App\Http\Controllers\DirectivoController::class, 'show'])->name('show');
+    
+    // NO rutas POST/PUT/DELETE aquí - solo lectura
 
-    // Aprobar legajo
-    Route::post('/legajo/{id}/aprobar', [\App\Http\Controllers\DirectivoController::class, 'aprobar'])->name('aprobar');
+    // Las rutas existentes (aprobar, rechazar, actualizar) deberían ser accesibles solo para admin
+    // Por lo tanto, las mantenemos protegidas con middleware 'admin' adicional
+    Route::middleware('admin')->group(function () {
+        // Aprobar legajo
+        Route::post('/legajo/{id}/aprobar', [\App\Http\Controllers\DirectivoController::class, 'aprobar'])->name('aprobar');
 
-    // Rechazar legajo con observaciones
-    Route::post('/legajo/{id}/rechazar', [\App\Http\Controllers\DirectivoController::class, 'rechazar'])->name('rechazar');
+        // Rechazar legajo con observaciones
+        Route::post('/legajo/{id}/rechazar', [\App\Http\Controllers\DirectivoController::class, 'rechazar'])->name('rechazar');
 
-    // Editar/Corregir legajo
-    Route::put('/legajo/{id}', [\App\Http\Controllers\DirectivoController::class, 'actualizar'])->name('actualizar');
+        // Editar/Corregir legajo
+        Route::put('/legajo/{id}', [\App\Http\Controllers\DirectivoController::class, 'actualizar'])->name('actualizar');
+    });
 });
 
-// Rutas de Supervisor (Tipo 6) - Supervisión ministerial
+// SUPERVISOR + ADMIN - Solo lectura superior
 Route::middleware(['auth', 'supervisor'])->prefix('supervisor')->name('supervisor.')->group(function () {
     // Panel principal
     Route::get('/', [\App\Http\Controllers\SupervisorController::class, 'index'])->name('index');
@@ -307,13 +337,19 @@ Route::middleware(['auth', 'supervisor'])->prefix('supervisor')->name('superviso
     // Ver detalle de legajo
     Route::get('/legajo/{id}', [\App\Http\Controllers\SupervisorController::class, 'show'])->name('show');
 
-    // Aprobar legajo (aprobación final)
-    Route::post('/legajo/{id}/aprobar', [\App\Http\Controllers\SupervisorController::class, 'aprobar'])->name('aprobar');
+    // NO rutas POST/PUT/DELETE aquí - solo lectura
 
-    // Rechazar legajo con observaciones (devolver a Directivo)
-    Route::post('/legajo/{id}/rechazar', [\App\Http\Controllers\SupervisorController::class, 'rechazar'])->name('rechazar');
+    // Las rutas existentes (aprobar, rechazar) deberían ser accesibles solo para admin
+    // Por lo tanto, las mantenemos protegidas con middleware 'admin' adicional
+    Route::middleware('admin')->group(function () {
+        // Aprobar legajo (aprobación final)
+        Route::post('/legajo/{id}/aprobar', [\App\Http\Controllers\SupervisorController::class, 'aprobar'])->name('aprobar');
 
-    // Ver historial completo de un alumno
+        // Rechazar legajo con observaciones (devolver a Directivo)
+        Route::post('/legajo/{id}/rechazar', [\App\Http\Controllers\SupervisorController::class, 'rechazar'])->name('rechazar');
+    });
+
+    // Ver historial completo de un alumno (solo lectura para supervisor)
     Route::get('/alumno/{alumnoId}/historial', [\App\Http\Controllers\SupervisorController::class, 'historialAlumno'])->name('historial-alumno');
 });
 

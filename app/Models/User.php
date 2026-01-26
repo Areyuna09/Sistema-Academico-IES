@@ -8,24 +8,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-
 use App\Notifications\ResetPasswordNotification;
 
 class User extends Authenticatable implements CanResetPassword
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, HasApiTokens, CanResetPasswordTrait;
 
-    /**
-     * Usar la tabla legacy tbl_usuarios
-     */
     protected $table = 'tbl_usuarios';
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
     protected $fillable = [
         'dni',
         'nombre',
@@ -43,30 +33,15 @@ class User extends Authenticatable implements CanResetPassword
         'profesor_id',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
         'clave',
         'remember_token',
     ];
 
-    /**
-     * The accessors to append to the model's array form.
-     *
-     * @var array
-     */
     protected $appends = [
         'name',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
@@ -76,145 +51,283 @@ class User extends Authenticatable implements CanResetPassword
         ];
     }
 
-    /**
-     * Sobrescribir el nombre del campo de password para Laravel Auth
-     */
     public function getAuthPassword()
     {
         return $this->clave;
     }
 
-    /**
-     * NOTA: NO sobrescribir getAuthIdentifierName() ni getAuthIdentifier()
-     * Estos métodos definen la clave primaria del usuario (id), no el campo de login.
-     * Para login con DNI, se configura en config/auth.php o en el LoginRequest.
-     */
-
-    /**
-     * Get the e-mail address where password reset links are sent.
-     */
     public function getEmailForPasswordReset()
     {
         return $this->email;
     }
 
-    /**
-     * Accessor para 'name' (Laravel espera este campo)
-     */
     public function getNameAttribute()
     {
         return $this->attributes['nombre'] ?? '';
     }
 
-    /**
-     * Mutator para 'name'
-     */
     public function setNameAttribute($value)
     {
         $this->attributes['nombre'] = $value;
     }
 
-    /**
-     * Accessor para 'password' (mapear a 'clave')
-     */
     public function getPasswordAttribute()
     {
         return $this->attributes['clave'] ?? '';
     }
 
-    /**
-     * Mutator para 'password' (guardar en 'clave')
-     */
     public function setPasswordAttribute($value)
     {
         $this->attributes['clave'] = bcrypt($value);
     }
 
-    /**
-     * Accessor para 'role' basado en 'tipo'
-     * 1 = admin, 2 = usuario, 3 = profesor, 4 = alumno
-     */
     public function getRoleAttribute()
     {
         $roleMap = [
-            1 => 'admin',
-            2 => 'alumno',
-            3 => 'profesor',
-            4 => 'alumno',
+            TipoUsuario::ADMIN => 'admin',
+            TipoUsuario::USUARIO => 'bedel',
+            TipoUsuario::PROFESOR => 'profesor',
+            TipoUsuario::ALUMNO => 'alumno',
+            TipoUsuario::DIRECTIVO => 'directivo',
+            TipoUsuario::SUPERVISOR => 'supervisor',
+            TipoUsuario::BEDEL => 'bedel',
+            TipoUsuario::PRECEPTOR => 'preceptor',
         ];
 
         return $roleMap[$this->attributes['tipo'] ?? 4] ?? 'alumno';
     }
 
-    /**
-     * Mutator para 'role'
-     */
     public function setRoleAttribute($value)
     {
         $typeMap = [
-            'admin' => 1,
-            'profesor' => 3,
-            'alumno' => 4,
+            'admin' => TipoUsuario::ADMIN,
+            'profesor' => TipoUsuario::PROFESOR,
+            'alumno' => TipoUsuario::ALUMNO,
+            'directivo' => TipoUsuario::DIRECTIVO,
+            'supervisor' => TipoUsuario::SUPERVISOR,
+            'bedel' => TipoUsuario::BEDEL,
+            'preceptor' => TipoUsuario::PRECEPTOR,
         ];
 
-        $this->attributes['tipo'] = $typeMap[$value] ?? 4;
+        $this->attributes['tipo'] = $typeMap[$value] ?? TipoUsuario::ALUMNO;
+    }
+
+    // ========================================
+    // MÉTODOS DE VERIFICACIÓN DE ROL
+    // ========================================
+
+    public function isAdmin(): bool
+    {
+        return $this->tipo === TipoUsuario::ADMIN;
+    }
+
+    public function isProfesor(): bool
+    {
+        return $this->tipo === TipoUsuario::PROFESOR;
+    }
+
+    public function isAlumno(): bool
+    {
+        return $this->tipo === TipoUsuario::ALUMNO;
+    }
+
+    public function isDirectivo(): bool
+    {
+        return $this->tipo === TipoUsuario::DIRECTIVO;
+    }
+
+    public function isSupervisor(): bool
+    {
+        return $this->tipo === TipoUsuario::SUPERVISOR;
+    }
+
+    public function isBedel(): bool
+    {
+        return $this->tipo === TipoUsuario::BEDEL || $this->tipo === TipoUsuario::USUARIO;
+    }
+
+    public function isPreceptor(): bool
+    {
+        return $this->tipo === TipoUsuario::PRECEPTOR;
+    }
+
+    // ========================================
+    // MÉTODOS DE PERMISOS GRANULARES
+    // ========================================
+
+    /**
+     * Verifica si el usuario puede crear registros
+     */
+    public function puedeCrear(): bool
+    {
+        return in_array($this->tipo, [
+            TipoUsuario::ADMIN,
+            TipoUsuario::BEDEL,
+            TipoUsuario::PRECEPTOR,
+        ]);
     }
 
     /**
-     * Relación con el alumno
+     * Verifica si el usuario puede modificar registros
      */
+    public function puedeModificar(): bool
+    {
+        return in_array($this->tipo, [
+            TipoUsuario::ADMIN,
+            TipoUsuario::BEDEL,
+            TipoUsuario::PRECEPTOR,
+        ]);
+    }
+
+    /**
+     * Verifica si el usuario puede eliminar registros
+     */
+    public function puedeEliminar(): bool
+    {
+        return in_array($this->tipo, [
+            TipoUsuario::ADMIN,
+            TipoUsuario::BEDEL,
+        ]);
+    }
+
+    /**
+     * Verifica si el usuario tiene permisos de administrador
+     */
+    public function esAdministrativo(): bool
+    {
+        return in_array($this->tipo, TipoUsuario::rolesAdministrativos());
+    }
+
+    /**
+     * Verifica si el usuario tiene rol de revisión
+     */
+    public function esRevisor(): bool
+    {
+        return in_array($this->tipo, TipoUsuario::rolesRevision());
+    }
+
+    /**
+     * Verifica si el usuario solo tiene permisos de lectura
+     */
+    public function esSoloLectura(): bool
+    {
+        return in_array($this->tipo, TipoUsuario::rolesSoloLectura());
+    }
+
+    /**
+     * Verifica si puede acceder al panel administrativo
+     */
+    public function puedeAccederAdmin(): bool
+    {
+        return $this->esAdministrativo() || $this->tipo === TipoUsuario::PROFESOR;
+    }
+
+    /**
+     * Verifica si puede gestionar usuarios
+     */
+    public function puedeGestionarUsuarios(): bool
+    {
+        return in_array($this->tipo, [
+            TipoUsuario::ADMIN,
+            TipoUsuario::BEDEL,
+        ]);
+    }
+
+    /**
+     * Verifica si puede gestionar inscripciones
+     */
+    public function puedeGestionarInscripciones(): bool
+    {
+        return in_array($this->tipo, [
+            TipoUsuario::ADMIN,
+            TipoUsuario::BEDEL,
+            TipoUsuario::PRECEPTOR,
+        ]);
+    }
+
+    /**
+     * Verifica si puede revisar legajos (primer nivel)
+     */
+    public function puedeRevisarLegajos(): bool
+    {
+        return $this->tipo === TipoUsuario::DIRECTIVO || $this->isAdmin();
+    }
+
+    /**
+     * Verifica si puede supervisar (segundo nivel)
+     */
+    public function puedeSupervisar(): bool
+    {
+        return $this->tipo === TipoUsuario::SUPERVISOR || $this->isAdmin();
+    }
+
+    /**
+     * Verifica si puede gestionar mesas de examen
+     */
+    public function puedeGestionarMesas(): bool
+    {
+        return in_array($this->tipo, [
+            TipoUsuario::ADMIN,
+            TipoUsuario::BEDEL,
+            TipoUsuario::PRECEPTOR,
+        ]);
+    }
+
+    /**
+     * Verifica si puede tomar asistencias
+     */
+    public function puedeTomarAsistencias(): bool
+    {
+        return in_array($this->tipo, [
+            TipoUsuario::ADMIN,
+            TipoUsuario::PROFESOR,
+            TipoUsuario::PRECEPTOR,
+        ]);
+    }
+
+    /**
+     * Verifica si puede cargar notas
+     */
+    public function puedeCargarNotas(): bool
+    {
+        return in_array($this->tipo, [
+            TipoUsuario::ADMIN,
+            TipoUsuario::PROFESOR,
+        ]);
+    }
+
+    /**
+     * Verifica si puede aprobar notas finales
+     */
+    public function puedeAprobarNotas(): bool
+    {
+        return in_array($this->tipo, [
+            TipoUsuario::ADMIN,
+            TipoUsuario::BEDEL,
+        ]);
+    }
+
+    // ========================================
+    // RELACIONES
+    // ========================================
+
     public function alumno()
     {
         return $this->belongsTo(Alumno::class, 'alumno_id');
     }
 
-    /**
-     * Relación con el profesor
-     */
     public function profesor()
     {
         return $this->belongsTo(Profesor::class, 'profesor_id');
     }
 
-    /**
-     * Verificar si el usuario es administrador
-     */
-    public function isAdmin()
-    {
-        return $this->role === 'admin';
-    }
-
-    /**
-     * Verificar si el usuario es profesor
-     */
-    public function isProfesor()
-    {
-        return $this->role === 'profesor';
-    }
-
-    /**
-     * Verificar si el usuario es alumno
-     */
-    public function isAlumno()
-    {
-        return $this->role === 'alumno';
-    }
-
-    /**
-     * Obtener el campo de username para autenticación (DNI)
-     */
     public function username()
     {
         return 'dni';
     }
-    /**
- * Send the password reset notification.
- *
- * @param  string  $token
- * @return void
- */
-public function sendPasswordResetNotification($token)
-{
-    $this->notify(new ResetPasswordNotification($token));
-}
+
+    public function sendPasswordResetNotification($token)
+    {
+        $this->notify(new ResetPasswordNotification($token));
+    }
 }

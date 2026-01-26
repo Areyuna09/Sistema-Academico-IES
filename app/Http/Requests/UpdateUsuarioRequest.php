@@ -53,10 +53,10 @@ class UpdateUsuarioRequest extends FormRequest
                 Rule::unique('tbl_users', 'dni')->ignore($userId),
             ],
             'tipo' => [
-                'required',
-                'integer',
-                Rule::in([1, 2, 3, 4]),
-            ],
+    'required',
+    'integer',
+    Rule::in([1, 2, 3, 4, 5, 6, 7, 8]), // Agregar 7 y 8
+],
             'password' => [
                 'nullable', // Password es opcional en actualización
                 'string',

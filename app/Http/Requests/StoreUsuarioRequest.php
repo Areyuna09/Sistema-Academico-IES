@@ -47,7 +47,7 @@ class StoreUsuarioRequest extends FormRequest
             'tipo' => [
                 'required',
                 'integer',
-                Rule::in([1, 2, 3, 4]), // 1=Admin, 2=Bedel, 3=Profesor, 4=Alumno
+                Rule::in([1, 2, 3, 4, 5, 6,7, 8]), // 1=Admin, 2=Bedel, 3=Profesor, 4=Alumno, 5=Directivo, 6=Supervisor, 7=Bedel, 8=Preceptor
             ],
             'password' => [
                 'required',

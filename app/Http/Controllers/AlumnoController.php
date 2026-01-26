@@ -4,46 +4,27 @@ namespace App\Http\Controllers;
 
 use App\Models\Alumno;
 use App\Models\Carrera;
-use App\Models\Materia;
 use App\Traits\HandlesErrors;
+use App\Traits\ChecksPermissions;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class AlumnoController extends Controller
 {
-    use HandlesErrors;
-
-    /**
-     * Obtener carreras con su duración máxima (años)
-     */
-    private function getCarrerasConDuracion()
-    {
-        $carreras = Carrera::all();
-
-        // Calcular duración máxima por carrera basándose en las materias
-        foreach ($carreras as $carrera) {
-            $maxAnno = Materia::where('carrera', $carrera->Id)->max('anno');
-            $carrera->duracion = $maxAnno ? (int)$maxAnno : 3; // Default 3 si no hay materias
-        }
-
-        return $carreras;
-    }
-
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        //
-    }
+    use HandlesErrors, ChecksPermissions;
 
     /**
      * Show the form for creating a new resource.
      */
-    public function create()
+    public function create(Request $request)
     {
+        // Verificar permisos de creación
+        $this->autorizarCrear($request);
+
+        $carreras = Carrera::all();
+
         return Inertia::render('Admin/Alumno/Create', [
-            'carreras' => $this->getCarrerasConDuracion()
+            'carreras' => $carreras
         ]);
     }
 
@@ -52,6 +33,9 @@ class AlumnoController extends Controller
      */
     public function store(Request $request)
     {
+        // Verificar permisos de creación
+        $this->autorizarCrear($request);
+
         $validated = $request->validate([
             'dni' => 'required|string|min:7|max:20|unique:tbl_alumnos,dni|regex:/^[0-9]+$/',
             'apellido' => 'required|string|min:2|max:100|regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\'\-]+$/',
@@ -59,11 +43,11 @@ class AlumnoController extends Controller
             'email' => 'nullable|email|max:255|unique:tbl_alumnos,email',
             'telefono' => 'nullable|string|max:50|regex:/^[0-9\s\-\+\(\)]*$/',
             'celular' => 'nullable|string|min:8|max:50|regex:/^[0-9\s\-\+\(\)]*$/',
-            'legajo' => 'nullable|string|max:50',
+            'legajo' => 'nullable|string|max:50|regex:/^[a-zA-Z0-9\-\/]+$/',
             'anno' => 'nullable|integer|min:1900|max:' . (date('Y') + 1),
             'carrera' => 'required|exists:tbl_carreras,Id',
-            'curso' => 'nullable|integer|min:1',
-            'division' => 'nullable|max:10',
+            'curso' => 'nullable|integer|min:1|max:6',
+            'division' => 'nullable|string|max:10|regex:/^[a-zA-Z0-9]+$/',
         ], [
             'dni.required' => 'El DNI es obligatorio.',
             'dni.unique' => 'Ya existe un alumno con este DNI.',
@@ -87,16 +71,14 @@ class AlumnoController extends Controller
             'carrera.required' => 'La carrera es obligatoria.',
             'carrera.exists' => 'La carrera seleccionada no existe.',
             'curso.min' => 'El curso debe ser al menos 1.',
-            'curso.max' => 'El curso no puede ser mayor a 10.',
+            'curso.max' => 'El curso no puede ser mayor a 6.',
             'division.regex' => 'La división solo puede contener letras y números.',
         ]);
 
-        // Si no se proporciona año, usar el año actual
         if (empty($validated['anno'])) {
             $validated['anno'] = date('Y');
         }
 
-        // Agregar fecha actual si no existe
         $validated['fecha'] = now();
 
         try {
@@ -105,7 +87,8 @@ class AlumnoController extends Controller
             \Log::info('Alumno creado', [
                 'alumno_id' => $alumno->id,
                 'dni' => $alumno->dni,
-                'creado_por' => auth()->id(),
+                'creado_por' => auth()->user()->nombre,
+                'tipo_usuario' => auth()->user()->tipo,
             ]);
 
             return redirect()
@@ -125,21 +108,18 @@ class AlumnoController extends Controller
     }
 
     /**
-     * Display the specified resource.
-     */
-    public function show(Alumno $alumno)
-    {
-        //
-    }
-
-    /**
      * Show the form for editing the specified resource.
      */
-    public function edit(Alumno $alumno)
+    public function edit(Request $request, Alumno $alumno)
     {
+        // Verificar permisos de modificación
+        $this->autorizarModificar($request);
+
+        $carreras = Carrera::all();
+
         return Inertia::render('Admin/Alumno/Edit', [
             'alumno' => $alumno,
-            'carreras' => $this->getCarrerasConDuracion()
+            'carreras' => $carreras
         ]);
     }
 
@@ -148,10 +128,8 @@ class AlumnoController extends Controller
      */
     public function update(Request $request, Alumno $alumno)
     {
-        \Log::info('AlumnoController@update - Inicio', [
-            'alumno_id' => $alumno->id,
-            'request_data' => $request->all(),
-        ]);
+        // Verificar permisos de modificación
+        $this->autorizarModificar($request);
 
         $validated = $request->validate([
             'dni' => 'required|string|max:20|unique:tbl_alumnos,dni,' . $alumno->id . '|regex:/^[0-9]+$/',
@@ -160,11 +138,11 @@ class AlumnoController extends Controller
             'email' => 'nullable|email|max:255',
             'telefono' => 'nullable|string|max:50|regex:/^[0-9\s\-\+\(\)]*$/',
             'celular' => 'nullable|string|max:50|regex:/^[0-9\s\-\+\(\)]*$/',
-            'legajo' => 'nullable|string|max:50',
+            'legajo' => 'nullable|string|max:50|regex:/^[a-zA-Z0-9\-\/]+$/',
             'anno' => 'nullable|integer|min:1900|max:' . (date('Y') + 1),
             'carrera' => 'required|exists:tbl_carreras,Id',
-            'curso' => 'nullable|integer|min:1',
-            'division' => 'nullable|max:10',
+            'curso' => 'nullable|integer|min:1|max:6',
+            'division' => 'nullable|string|max:10|regex:/^[a-zA-Z0-9]+$/',
         ], [
             'dni.required' => 'El DNI es obligatorio.',
             'dni.unique' => 'Ya existe otro alumno con este DNI.',
@@ -185,12 +163,10 @@ class AlumnoController extends Controller
             'division.regex' => 'La división solo puede contener letras y números.',
         ]);
 
-        // Si no se proporciona año, usar el año actual
         if (empty($validated['anno'])) {
             $validated['anno'] = date('Y');
         }
 
-        // Mantener la fecha si existe, si no usar la actual
         if (!$alumno->fecha) {
             $validated['fecha'] = now();
         }
@@ -201,11 +177,13 @@ class AlumnoController extends Controller
             \Log::info('Alumno actualizado', [
                 'alumno_id' => $alumno->id,
                 'dni' => $alumno->dni,
-                'datos' => $validated,
-                'actualizado_por' => auth()->id(),
+                'actualizado_por' => auth()->user()->nombre,
+                'tipo_usuario' => auth()->user()->tipo,
             ]);
 
-            return back()->with('success', 'Alumno actualizado exitosamente');
+            return redirect()
+                ->route('expediente.index')
+                ->with('success', 'Alumno actualizado exitosamente');
 
         } catch (\Exception $e) {
             $this->handleError($e, 'actualizar alumno', [
@@ -222,48 +200,38 @@ class AlumnoController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Alumno $alumno)
+    public function destroy(Request $request, Alumno $alumno)
     {
-        \Log::info('=== DELETE ALUMNO ===', [
-            'alumno_id' => $alumno->id,
-            'dni' => $alumno->dni,
-        ]);
+        // Solo Admin y Bedel pueden eliminar
+        $this->autorizarEliminar($request);
 
         try {
-            \DB::beginTransaction();
-
-            $dni = $alumno->dni;
-            $usuarioEliminado = false;
-
-            // Eliminar usuario asociado si existe
             if ($alumno->user) {
-                $alumno->user->delete();
-                $usuarioEliminado = true;
+                return back()->withErrors([
+                    'error' => 'No se puede eliminar el alumno porque tiene un usuario asociado. Primero elimine el usuario.'
+                ]);
             }
 
-            // Verificar si tiene materias cursadas
             if ($alumno->materiasCursadas()->count() > 0) {
-                \DB::rollBack();
                 return back()->withErrors([
                     'error' => 'No se puede eliminar el alumno porque tiene materias cursadas en su legajo.'
                 ]);
             }
 
+            $dni = $alumno->dni;
             $alumno->delete();
-
-            \DB::commit();
 
             \Log::info('Alumno eliminado', [
                 'dni' => $dni,
-                'usuario_eliminado' => $usuarioEliminado,
-                'eliminado_por' => auth()->id(),
+                'eliminado_por' => auth()->user()->nombre,
+                'tipo_usuario' => auth()->user()->tipo,
             ]);
 
-            return back()->with('success', 'Alumno eliminado exitosamente');
+            return redirect()
+                ->route('expediente.index')
+                ->with('success', 'Alumno eliminado exitosamente');
 
         } catch (\Exception $e) {
-            \DB::rollBack();
-
             $this->handleError($e, 'eliminar alumno', [
                 'alumno_id' => $alumno->id
             ]);
