@@ -250,6 +250,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::prefix('importacion')->name('importacion.')->group(function () {
         Route::get('/', [\App\Http\Controllers\Admin\ImportacionController::class, 'index'])->name('index');
         Route::get('/{tipo}/crear', [\App\Http\Controllers\Admin\ImportacionController::class, 'create'])->name('create');
+        Route::post('/{tipo}/validar-estructura', [\App\Http\Controllers\Admin\ImportacionController::class, 'validarEstructura'])->name('validar-estructura');
         Route::post('/{tipo}/analizar', [\App\Http\Controllers\Admin\ImportacionController::class, 'analizar'])->name('analizar');
         Route::post('/importar', [\App\Http\Controllers\Admin\ImportacionController::class, 'importar'])->name('importar');
         Route::get('/{tipo}/plantilla', [\App\Http\Controllers\Admin\ImportacionController::class, 'descargarPlantilla'])->name('plantilla');

@@ -11,8 +11,6 @@ const props = defineProps({
 const duplicadosSeleccionados = ref([]);
 const crearUsuarios = ref(true);
 const importando = ref(false);
-const mostrarExito = ref(false);
-const mensajeExito = ref('');
 
 const getColor = (tipo) => {
     const colores = {
@@ -52,16 +50,6 @@ const confirmarImportacion = () => {
         actualizar_duplicados: duplicadosSeleccionados.value,
         crear_usuarios: crearUsuarios.value,
     }, {
-        onSuccess: (page) => {
-            const flash = page.props.flash;
-            if (flash?.success) {
-                mensajeExito.value = flash.success;
-                mostrarExito.value = true;
-                setTimeout(() => {
-                    mostrarExito.value = false;
-                }, 4000);
-            }
-        },
         onFinish: () => {
             importando.value = false;
         },
@@ -71,24 +59,6 @@ const confirmarImportacion = () => {
 
 <template>
     <Head :title="`Preview Importacion - ${preview.entidad}`" />
-
-    <!-- Popup de exito -->
-    <Transition
-        enter-active-class="transition ease-out duration-300"
-        enter-from-class="opacity-0 translate-y-[-20px]"
-        enter-to-class="opacity-100 translate-y-0"
-        leave-active-class="transition ease-in duration-200"
-        leave-from-class="opacity-100 translate-y-0"
-        leave-to-class="opacity-0 translate-y-[-20px]"
-    >
-        <div v-if="mostrarExito" class="fixed top-4 right-4 z-50 bg-green-500 text-white px-6 py-4 rounded-lg shadow-lg flex items-center space-x-3">
-            <i class="bx bx-check-circle text-2xl"></i>
-            <span class="font-medium">{{ mensajeExito }}</span>
-            <button @click="mostrarExito = false" class="ml-2 hover:bg-green-600 rounded p-1">
-                <i class="bx bx-x text-xl"></i>
-            </button>
-        </div>
-    </Transition>
 
     <SidebarLayout :user="$page.props.auth.user">
         <template #header>

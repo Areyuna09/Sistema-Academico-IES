@@ -69,12 +69,46 @@ class ImportacionService
 
         $resultado = $importador->analizar($file);
 
+        // Si hay error de estructura, retornar inmediatamente
+        if (!empty($resultado['error_estructura'])) {
+            Log::warning('Error de estructura en archivo de importación', [
+                'tipo' => $tipo,
+                'archivo' => $file->getClientOriginalName(),
+                'error' => $resultado['error_estructura'],
+            ]);
+
+            return [
+                'error_estructura' => $resultado['error_estructura'],
+            ];
+        }
+
         Log::info('Análisis completado', [
             'tipo' => $tipo,
             'nuevos' => count($resultado['nuevos']),
             'duplicados' => count($resultado['duplicados']),
             'errores' => count($resultado['errores']),
         ]);
+
+        // Clasificar columnas detectadas
+        $encabezadosDetectados = array_values($resultado['encabezados_detectados'] ?? []);
+        $camposRequeridos = $importador->getCamposRequeridos();
+        $camposOpcionales = $importador->getCamposOpcionales();
+
+        $estructura = [
+            'requeridos' => array_map(function($campo) use ($encabezadosDetectados) {
+                return [
+                    'nombre' => $campo,
+                    'detectado' => in_array($campo, $encabezadosDetectados),
+                ];
+            }, $camposRequeridos),
+            'opcionales' => array_map(function($campo) use ($encabezadosDetectados) {
+                return [
+                    'nombre' => $campo,
+                    'detectado' => in_array($campo, $encabezadosDetectados),
+                ];
+            }, $camposOpcionales),
+            'encabezados_archivo' => $encabezadosDetectados,
+        ];
 
         return [
             'tipo' => $tipo,
@@ -87,8 +121,10 @@ class ImportacionService
                 'errores' => count($resultado['errores']),
             ],
             'datos' => $resultado,
-            'campos_requeridos' => $importador->getCamposRequeridos(),
-            'campos_opcionales' => $importador->getCamposOpcionales(),
+            'campos_requeridos' => $camposRequeridos,
+            'campos_opcionales' => $camposOpcionales,
+            'estructura' => $estructura,
+            'error_estructura' => null,
         ];
     }
 
