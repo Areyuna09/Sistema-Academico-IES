@@ -14,6 +14,21 @@ class ProfesorImportador implements ImportadorInterface
 {
     private array $carrerasCache = [];
 
+    /**
+     * Columnas requeridas para validar que es una plantilla de profesores
+     */
+    private const COLUMNAS_REQUERIDAS = ['dni', 'apellido', 'nombre'];
+
+    /**
+     * Columnas que indican plantilla de materias (NO deben estar)
+     */
+    private const COLUMNAS_MATERIAS = ['correlativas_regular', 'correlativas_rendido', 'resolucion', 'semestre'];
+
+    /**
+     * Columnas que indican plantilla de alumnos (para diferenciar)
+     */
+    private const COLUMNAS_SOLO_ALUMNOS = ['legajo', 'celular', 'turno'];
+
     public function analizar(UploadedFile $file): array
     {
         $this->cargarCacheCarreras();
@@ -26,15 +41,29 @@ class ProfesorImportador implements ImportadorInterface
                 'duplicados' => [],
                 'errores' => [],
                 'total' => 0,
+                'error_estructura' => null,
             ];
         }
 
         // Primera fila es encabezado - limpiar asteriscos y espacios
         $encabezados = array_map(function($h) {
-            $h = strtolower(trim($h));
+            $h = strtolower(trim($h ?? ''));
             $h = preg_replace('/\s*\*\s*$/', '', $h);
             return trim($h);
         }, $filas[0]);
+
+        // Validar estructura del Excel
+        $errorEstructura = $this->validarEstructura($encabezados);
+        if ($errorEstructura) {
+            return [
+                'nuevos' => [],
+                'duplicados' => [],
+                'errores' => [],
+                'total' => 0,
+                'error_estructura' => $errorEstructura,
+            ];
+        }
+
         $datos = array_slice($filas, 1);
 
         $nuevos = [];
@@ -104,7 +133,52 @@ class ProfesorImportador implements ImportadorInterface
             'duplicados' => $duplicados,
             'errores' => $errores,
             'total' => count($datos),
+            'error_estructura' => null,
+            'encabezados_detectados' => array_filter($encabezados, fn($h) => $h !== ''),
         ];
+    }
+
+    /**
+     * Validar que el Excel tenga la estructura esperada para profesores
+     */
+    private function validarEstructura(array $encabezados): ?string
+    {
+        // Verificar columnas requeridas
+        $columnasFaltantes = [];
+        foreach (self::COLUMNAS_REQUERIDAS as $columna) {
+            if (!in_array($columna, $encabezados)) {
+                $columnasFaltantes[] = $columna;
+            }
+        }
+
+        if (!empty($columnasFaltantes)) {
+            return "El archivo no tiene la estructura correcta para importar PROFESORES. " .
+                   "Columnas faltantes: " . implode(', ', $columnasFaltantes) . ". " .
+                   "Por favor, descargue la plantilla correcta desde el botón 'Descargar Plantilla'.";
+        }
+
+        // Verificar que no sea una plantilla de materias
+        foreach (self::COLUMNAS_MATERIAS as $columna) {
+            if (in_array($columna, $encabezados)) {
+                return "El archivo parece ser una plantilla de MATERIAS, no de PROFESORES. " .
+                       "Por favor, use la plantilla correcta para importar profesores.";
+            }
+        }
+
+        // Verificar que no sea una plantilla de alumnos
+        $columnasAlumnoEncontradas = 0;
+        foreach (self::COLUMNAS_SOLO_ALUMNOS as $columna) {
+            if (in_array($columna, $encabezados)) {
+                $columnasAlumnoEncontradas++;
+            }
+        }
+        // Si tiene 2 o más columnas exclusivas de alumnos, es plantilla de alumnos
+        if ($columnasAlumnoEncontradas >= 2) {
+            return "El archivo parece ser una plantilla de ALUMNOS, no de PROFESORES. " .
+                   "Por favor, use la plantilla correcta para importar profesores.";
+        }
+
+        return null;
     }
 
     public function importar(array $datos, array $opciones = []): array

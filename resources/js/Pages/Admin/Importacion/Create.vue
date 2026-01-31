@@ -1,7 +1,8 @@
 <script setup>
-import { ref } from 'vue';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { ref, computed } from 'vue';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
+import axios from 'axios';
 
 const props = defineProps({
     tipo: String,
@@ -9,10 +10,17 @@ const props = defineProps({
     campos: Object,
 });
 
+const page = usePage();
+const flashError = computed(() => page.props.flash?.error);
+
 const archivo = ref(null);
 const arrastrando = ref(false);
 const cargando = ref(false);
 const error = ref('');
+
+// Estado de validación de estructura
+const validando = ref(false);
+const validacion = ref(null); // null = sin validar, objeto = resultado
 
 const getColor = (tipo) => {
     const colores = {
@@ -32,19 +40,24 @@ const getIcono = (tipo) => {
     return iconos[tipo] || 'bx-file';
 };
 
+const puedeAnalizar = computed(() => {
+    return archivo.value && !cargando.value && !validando.value && validacion.value?.valido === true;
+});
+
 const onFileChange = (event) => {
     const file = event.target.files[0];
-    validarArchivo(file);
+    seleccionarArchivo(file);
 };
 
 const onDrop = (event) => {
     arrastrando.value = false;
     const file = event.dataTransfer.files[0];
-    validarArchivo(file);
+    seleccionarArchivo(file);
 };
 
-const validarArchivo = (file) => {
+const seleccionarArchivo = (file) => {
     error.value = '';
+    validacion.value = null;
 
     if (!file) return;
 
@@ -62,15 +75,44 @@ const validarArchivo = (file) => {
     }
 
     archivo.value = file;
+    validarEstructura(file);
 };
 
 const quitarArchivo = () => {
     archivo.value = null;
     error.value = '';
+    validacion.value = null;
+};
+
+const validarEstructura = async (file) => {
+    validando.value = true;
+    validacion.value = null;
+    error.value = '';
+
+    const formData = new FormData();
+    formData.append('archivo', file);
+
+    try {
+        const response = await axios.post(
+            route('admin.importacion.validar-estructura', props.tipo),
+            formData,
+            { headers: { 'Content-Type': 'multipart/form-data' } }
+        );
+        validacion.value = response.data;
+    } catch (err) {
+        if (err.response?.status === 422) {
+            const errors = err.response.data.errors;
+            error.value = errors?.archivo?.[0] || 'Error de validación del archivo.';
+        } else {
+            error.value = 'Error al validar la estructura del archivo.';
+        }
+    } finally {
+        validando.value = false;
+    }
 };
 
 const analizarArchivo = () => {
-    if (!archivo.value) return;
+    if (!puedeAnalizar.value) return;
 
     cargando.value = true;
     error.value = '';
@@ -127,8 +169,8 @@ const formatearTamano = (bytes) => {
                 </div>
             </div>
 
-            <!-- Campos requeridos y opcionales -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <!-- Campos requeridos y opcionales (solo si no hay archivo seleccionado) -->
+            <div v-if="!archivo" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div class="bg-white rounded-lg shadow-md p-6">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                         <i class="bx bx-check-circle text-green-500 mr-2"></i>
@@ -156,14 +198,131 @@ const formatearTamano = (bytes) => {
                 </div>
             </div>
 
+            <!-- Panel de validación de estructura (cuando hay archivo) -->
+            <div v-if="archivo && (validando || validacion)" class="mb-6">
+                <!-- Cargando validación -->
+                <div v-if="validando" class="bg-white rounded-lg shadow-md p-6">
+                    <div class="flex items-center space-x-3">
+                        <i class="bx bx-loader-alt bx-spin text-2xl text-blue-500"></i>
+                        <span class="text-gray-600">Validando estructura del archivo...</span>
+                    </div>
+                </div>
+
+                <!-- Resultado: Válido -->
+                <div v-else-if="validacion?.valido" class="bg-white rounded-lg shadow-md border-2 border-green-200 overflow-hidden">
+                    <div class="bg-green-50 px-6 py-4 flex items-center space-x-3">
+                        <i class="bx bx-check-circle text-2xl text-green-600"></i>
+                        <div>
+                            <h3 class="font-semibold text-green-800">Plantilla aceptada</h3>
+                            <p class="text-sm text-green-600">La estructura del archivo es correcta para importar {{ tipoInfo?.nombre?.toLowerCase() }}.</p>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <p class="text-xs text-gray-500 mb-4">Todos los encabezados de la plantilla fueron detectados. Los datos en las columnas opcionales pueden quedar vacíos.</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Datos obligatorios -->
+                            <div>
+                                <h4 class="text-sm font-semibold text-gray-700 mb-3 flex items-center">
+                                    <i class="bx bx-check-circle text-green-500 mr-1"></i>
+                                    Datos Obligatorios
+                                </h4>
+                                <ul class="space-y-1.5">
+                                    <li v-for="campo in validacion.campos_requeridos" :key="campo.nombre" class="flex items-center text-sm">
+                                        <i class="bx bx-check text-green-500 mr-2 text-lg"></i>
+                                        <span class="font-mono bg-green-100 text-green-800 px-1.5 py-0.5 rounded text-xs">{{ campo.nombre }}</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            <!-- Datos opcionales -->
+                            <div>
+                                <h4 class="text-sm font-semibold text-gray-700 mb-3 flex items-center">
+                                    <i class="bx bx-info-circle text-blue-500 mr-1"></i>
+                                    Datos Opcionales
+                                </h4>
+                                <ul class="space-y-1.5">
+                                    <li v-for="campo in validacion.campos_opcionales" :key="campo.nombre" class="flex items-center text-sm">
+                                        <i class="bx bx-check text-blue-500 mr-2 text-lg"></i>
+                                        <span class="font-mono bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded text-xs">{{ campo.nombre }}</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <!-- Columnas extra no reconocidas -->
+                        <div v-if="validacion.columnas_invalidas?.length > 0" class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                            <div class="flex items-start">
+                                <i class="bx bx-info-circle text-yellow-600 mr-2 mt-0.5"></i>
+                                <div class="text-sm">
+                                    <span class="font-medium text-yellow-800">Columnas no reconocidas (serán ignoradas):</span>
+                                    <span class="text-yellow-700 ml-1">{{ validacion.columnas_invalidas.join(', ') }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Advertencias de datos -->
+                        <div v-if="validacion.advertencias?.length > 0" class="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                            <div class="flex items-start">
+                                <i class="bx bx-error text-orange-600 mr-2 mt-0.5"></i>
+                                <div class="text-sm">
+                                    <span class="font-medium text-orange-800">Problemas detectados en los datos (primeras filas):</span>
+                                    <ul class="mt-1.5 space-y-1 text-orange-700">
+                                        <li v-for="(adv, idx) in validacion.advertencias" :key="idx">{{ adv }}</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resultado: Inválido -->
+                <div v-else-if="validacion && !validacion.valido" class="bg-white rounded-lg shadow-md border-2 border-red-200 overflow-hidden">
+                    <div class="bg-red-50 px-6 py-4 flex items-center space-x-3">
+                        <i class="bx bx-error-circle text-2xl text-red-600"></i>
+                        <div>
+                            <h3 class="font-semibold text-red-800">Plantilla rechazada</h3>
+                            <p class="text-sm text-red-600">{{ validacion.error }}</p>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <!-- Mostrar qué se esperaba -->
+                        <div v-if="validacion.campos_requeridos?.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <h4 class="text-sm font-semibold text-gray-700 mb-3">Campos requeridos para {{ tipoInfo?.nombre }}</h4>
+                                <ul class="space-y-1.5">
+                                    <li v-for="campo in validacion.campos_requeridos" :key="campo.nombre" class="flex items-center text-sm">
+                                        <i :class="campo.detectado ? 'bx bx-check text-green-500' : 'bx bx-x text-red-500'" class="mr-2 text-lg"></i>
+                                        <span :class="campo.detectado ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'" class="font-mono px-1.5 py-0.5 rounded text-xs">{{ campo.nombre }}</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            <!-- Columnas prohibidas encontradas -->
+                            <div v-if="validacion.columnas_prohibidas?.length > 0">
+                                <h4 class="text-sm font-semibold text-gray-700 mb-3">Columnas no permitidas encontradas</h4>
+                                <ul class="space-y-1.5">
+                                    <li v-for="col in validacion.columnas_prohibidas" :key="col" class="flex items-center text-sm">
+                                        <i class="bx bx-block text-red-500 mr-2 text-lg"></i>
+                                        <span class="font-mono bg-red-100 text-red-800 px-1.5 py-0.5 rounded text-xs">{{ col }}</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <!-- Encabezados detectados en el archivo -->
+                        <div v-if="validacion.encabezados_detectados?.length > 0" class="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                            <p class="text-sm font-medium text-gray-700 mb-2">Encabezados detectados en el archivo:</p>
+                            <div class="flex flex-wrap gap-1.5">
+                                <span v-for="enc in validacion.encabezados_detectados" :key="enc" class="font-mono text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">{{ enc }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Zona de carga -->
             <div class="bg-white rounded-lg shadow-md p-6 mb-6">
                 <h3 class="text-lg font-semibold text-gray-800 mb-4">Subir Archivo</h3>
 
                 <!-- Error -->
-                <div v-if="error" class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center">
+                <div v-if="error || flashError" class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center">
                     <i class="bx bx-error-circle text-red-500 text-xl mr-2"></i>
-                    <span class="text-red-700">{{ error }}</span>
+                    <span class="text-red-700">{{ error || flashError }}</span>
                 </div>
 
                 <!-- Dropzone -->
@@ -207,6 +366,7 @@ const formatearTamano = (bytes) => {
                         <button
                             @click="quitarArchivo"
                             class="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                            :disabled="cargando"
                         >
                             <i class="bx bx-trash text-xl"></i>
                         </button>
@@ -235,10 +395,10 @@ const formatearTamano = (bytes) => {
 
                     <button
                         @click="analizarArchivo"
-                        :disabled="!archivo || cargando"
+                        :disabled="!puedeAnalizar"
                         :class="[
                             'inline-flex items-center px-6 py-2 font-semibold rounded-lg transition-colors duration-200',
-                            archivo && !cargando
+                            puedeAnalizar
                                 ? `bg-${getColor(tipo)}-600 hover:bg-${getColor(tipo)}-700 text-white`
                                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                         ]"

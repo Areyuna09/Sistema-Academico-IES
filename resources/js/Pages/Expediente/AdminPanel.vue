@@ -521,12 +521,14 @@ const limpiarMateriasProfesor = async (profesor) => {
 
 const eliminarProfesor = async (profesor) => {
     // Verificar primero si tiene materias asignadas (viene en los datos del profesor)
-    if (profesor.materias && profesor.materias.length > 0) {
+    // materias_lista tiene objetos con id/nombre, materias tiene solo IDs
+    const materiasLista = profesor.materias_lista || [];
+    if (materiasLista.length > 0) {
         // Construir mensaje con lista de materias
-        let mensaje = `⚠️ El profesor ${profesor.apellido}, ${profesor.nombre} tiene ${profesor.materias.length} materia(s) asignada(s):\n\n`;
+        let mensaje = `⚠️ El profesor ${profesor.apellido}, ${profesor.nombre} tiene ${materiasLista.length} materia(s) asignada(s):\n\n`;
 
         // Las materias ya vienen cargadas en el objeto profesor
-        profesor.materias.forEach(materia => {
+        materiasLista.forEach(materia => {
             mensaje += `  • ${materia.nombre || 'Materia'}\n`;
         });
 
@@ -1282,9 +1284,9 @@ const getEstadoBadge = (estado) => {
                                         {{ profesor.email || '-' }}
                                     </td>
                                     <td class="px-6 py-4 text-sm text-gray-500">
-                                        <span v-if="profesor.materias && profesor.materias.length > 0" class="inline-flex items-center">
+                                        <span v-if="profesor.materias_lista && profesor.materias_lista.length > 0" class="inline-flex items-center">
                                             <span class="px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium">
-                                                {{ profesor.materias.length }} materia{{ profesor.materias.length !== 1 ? 's' : '' }}
+                                                {{ profesor.materias_lista.length }} materia{{ profesor.materias_lista.length !== 1 ? 's' : '' }}
                                             </span>
                                         </span>
                                         <span v-else class="text-gray-400">Sin materias</span>

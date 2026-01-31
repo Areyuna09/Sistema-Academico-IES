@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Services\Importacion\ImportacionService;
+use App\Services\Importacion\ValidadorEstructuraExcel;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -62,6 +63,11 @@ class ImportacionController extends Controller
 
         try {
             $preview = $this->importacionService->analizar($tipo, $archivo);
+
+            // Verificar si hay error de estructura (plantilla incorrecta)
+            if (!empty($preview['error_estructura'])) {
+                return back()->with('error', $preview['error_estructura']);
+            }
 
             // Guardar datos en sesión para la confirmación
             session(['importacion_preview' => $preview]);
@@ -126,6 +132,21 @@ class ImportacionController extends Controller
             return redirect()->route('admin.importacion.index')
                 ->with('error', 'Error al importar: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Valida la estructura del archivo Excel antes de analizar
+     */
+    public function validarEstructura(Request $request, string $tipo)
+    {
+        $request->validate([
+            'archivo' => 'required|file|mimes:xlsx,xls,csv|max:10240',
+        ]);
+
+        $validador = new ValidadorEstructuraExcel();
+        $resultado = $validador->validar($tipo, $request->file('archivo'));
+
+        return response()->json($resultado);
     }
 
     /**

@@ -98,22 +98,27 @@ class ExpedienteController extends Controller
                                      ->paginate(15)
                                      ->withQueryString();
 
-        // Cargar las materias asignadas a cada profesor con sus nombres
+        // Cargar las materias asignadas a cada profesor
+        // materias_lista: objetos con id y nombre (para mostrar en tabla)
+        // materias: array de IDs (para el v-model del modal de edición)
         $profesores->getCollection()->transform(function($profesor) {
-            $materias = \DB::table('tbl_profesor_tiene_materias')
+            $materiasData = \DB::table('tbl_profesor_tiene_materias')
                 ->join('tbl_materias', 'tbl_profesor_tiene_materias.materia', '=', 'tbl_materias.id')
                 ->where('tbl_profesor_tiene_materias.profesor', $profesor->id)
                 ->select('tbl_materias.id', 'tbl_materias.nombre')
-                ->get()
-                ->map(function($materia) {
-                    return [
-                        'id' => $materia->id,
-                        'nombre' => $materia->nombre
-                    ];
-                })
-                ->toArray();
+                ->get();
 
-            $profesor->materias = $materias;
+            // Lista de objetos para mostrar en la tabla
+            $profesor->materias_lista = $materiasData->map(function($materia) {
+                return [
+                    'id' => $materia->id,
+                    'nombre' => $materia->nombre
+                ];
+            })->toArray();
+
+            // Array de IDs para el v-model del checkbox en el modal
+            $profesor->materias = $materiasData->pluck('id')->toArray();
+
             return $profesor;
         });
 

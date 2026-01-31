@@ -15,6 +15,16 @@ class AlumnoImportador implements ImportadorInterface
 {
     private array $carrerasCache = [];
 
+    /**
+     * Columnas requeridas para validar que es una plantilla de alumnos
+     */
+    private const COLUMNAS_REQUERIDAS = ['dni', 'apellido', 'nombre', 'carrera'];
+
+    /**
+     * Columnas que NO deben estar (para detectar plantilla incorrecta)
+     */
+    private const COLUMNAS_PROHIBIDAS = ['correlativas_regular', 'correlativas_rendido', 'resolucion'];
+
     public function analizar(UploadedFile $file): array
     {
         $this->cargarCacheCarreras();
@@ -27,15 +37,29 @@ class AlumnoImportador implements ImportadorInterface
                 'duplicados' => [],
                 'errores' => [],
                 'total' => 0,
+                'error_estructura' => null,
             ];
         }
 
         // Primera fila es encabezado - limpiar asteriscos y espacios
         $encabezados = array_map(function($h) {
-            $h = strtolower(trim($h));
+            $h = strtolower(trim($h ?? ''));
             $h = preg_replace('/\s*\*\s*$/', '', $h); // Quitar asteriscos al final
             return trim($h);
         }, $filas[0]);
+
+        // Validar estructura del Excel
+        $errorEstructura = $this->validarEstructura($encabezados);
+        if ($errorEstructura) {
+            return [
+                'nuevos' => [],
+                'duplicados' => [],
+                'errores' => [],
+                'total' => 0,
+                'error_estructura' => $errorEstructura,
+            ];
+        }
+
         $datos = array_slice($filas, 1);
 
         $nuevos = [];
@@ -104,7 +128,39 @@ class AlumnoImportador implements ImportadorInterface
             'duplicados' => $duplicados,
             'errores' => $errores,
             'total' => count($datos),
+            'error_estructura' => null,
+            'encabezados_detectados' => array_filter($encabezados, fn($h) => $h !== ''),
         ];
+    }
+
+    /**
+     * Validar que el Excel tenga la estructura esperada para alumnos
+     */
+    private function validarEstructura(array $encabezados): ?string
+    {
+        // Verificar columnas requeridas
+        $columnasFaltantes = [];
+        foreach (self::COLUMNAS_REQUERIDAS as $columna) {
+            if (!in_array($columna, $encabezados)) {
+                $columnasFaltantes[] = $columna;
+            }
+        }
+
+        if (!empty($columnasFaltantes)) {
+            return "El archivo no tiene la estructura correcta para importar ALUMNOS. " .
+                   "Columnas faltantes: " . implode(', ', $columnasFaltantes) . ". " .
+                   "Por favor, descargue la plantilla correcta desde el botón 'Descargar Plantilla'.";
+        }
+
+        // Verificar que no tenga columnas de otras plantillas
+        foreach (self::COLUMNAS_PROHIBIDAS as $columna) {
+            if (in_array($columna, $encabezados)) {
+                return "El archivo parece ser una plantilla de MATERIAS, no de ALUMNOS. " .
+                       "Por favor, use la plantilla correcta para importar alumnos.";
+            }
+        }
+
+        return null;
     }
 
     public function importar(array $datos, array $opciones = []): array
