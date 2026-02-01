@@ -40,17 +40,6 @@ onMounted(() => {
     if (stored) {
         try {
             savedProfiles.value = JSON.parse(stored);
-            console.log('========== PERFILES CARGADOS ==========');
-            console.log('Perfiles:', savedProfiles.value);
-            savedProfiles.value.forEach((profile, index) => {
-                console.log(`Perfil ${index + 1}:`, {
-                    nombre: profile.name,
-                    dni: profile.dni,
-                    avatar: profile.avatar,
-                    tieneAvatar: !!profile.avatar
-                });
-            });
-            console.log('=======================================');
             // Si no hay perfiles guardados, redirigir al login
             if (savedProfiles.value.length === 0) {
                 sessionStorage.setItem('from_profile_select', 'true');
@@ -73,14 +62,10 @@ onMounted(() => {
 const selectProfile = (profile) => {
     if (loggingIn.value) return; // Evitar clicks múltiples
 
-    console.log('Perfil seleccionado:', profile);
-    console.log('Tiene contraseña?', !!profile.password);
-
     loggingIn.value = true;
 
     // Si el perfil tiene contraseña guardada, hacer login automático
     if (profile.password) {
-        console.log('Intentando login automático con DNI:', profile.dni);
         router.post(route('login'), {
             dni: profile.dni,
             password: profile.password,
@@ -88,7 +73,6 @@ const selectProfile = (profile) => {
         }, {
             onSuccess: () => {
                 // Login exitoso, redirigir al dashboard
-                console.log('Login exitoso, redirigiendo al dashboard');
             },
             onError: (errors) => {
                 // Si hay error de autenticación, mostrar mensaje o redirigir al login
@@ -115,7 +99,6 @@ const selectProfile = (profile) => {
         });
     } else {
         // Si no tiene contraseña, redirigir al login con el DNI prellenado
-        console.log('No tiene contraseña, redirigiendo al login');
         sessionStorage.setItem('selected_profile_dni', profile.dni);
         sessionStorage.setItem('from_profile_select', 'true');
         router.visit(route('login'));
