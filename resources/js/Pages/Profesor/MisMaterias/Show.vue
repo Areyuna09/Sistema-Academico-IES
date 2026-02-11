@@ -2,7 +2,11 @@
 import { Head, Link } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
+import Dialog from '@/Components/Dialog.vue';
+import { useDialog } from '@/Composables/useDialog';
 import axios from 'axios';
+
+const { alert: showAlert } = useDialog();
 
 const props = defineProps({
     profesorMateria: {
@@ -75,6 +79,22 @@ const getBadgeNota = (estado) => {
     return badges[estado] || 'bg-gray-100 text-gray-700 border-gray-300';
 };
 
+// Determinar estado académico de una nota (reactivo)
+// Retorna: 'aprueba' | 'regular' | 'no_aprueba'
+const estadoAcademico = (nota) => {
+    const minimaPromocion = props.profesorMateria.nota_minima_promocion ?? 7;
+    const minimaRegularidad = props.profesorMateria.nota_minima_regularidad ?? 4;
+    if (nota.nota >= minimaPromocion) return 'aprueba';
+    if (nota.nota >= minimaRegularidad) return 'regular';
+    return 'no_aprueba';
+};
+
+const estadoAcademicoConfig = {
+    aprueba: { texto: 'Aprueba', colorNota: 'bg-green-100 text-green-700', colorTexto: 'text-green-600' },
+    regular: { texto: 'Regular', colorNota: 'bg-blue-100 text-blue-700', colorTexto: 'text-blue-600' },
+    no_aprueba: { texto: 'No aprueba', colorNota: 'bg-red-100 text-red-700', colorTexto: 'text-red-600' },
+};
+
 // Funciones para modal de Asistencia Final
 const abrirModalAsistenciaFinal = () => {
     // Inicializar valores con asistencias existentes si ya hay datos finales
@@ -112,7 +132,7 @@ const cerrarModalAsistenciaFinal = () => {
 
 const guardarAsistenciaFinalMasiva = async () => {
     if (!totalClasesCuatrimestre.value || totalClasesCuatrimestre.value < 1) {
-        alert('Por favor ingresa el total de clases del cuatrimestre');
+        showAlert('Por favor ingresa el total de clases del cuatrimestre', 'Campo requerido');
         return;
     }
 
@@ -134,17 +154,15 @@ const guardarAsistenciaFinalMasiva = async () => {
             asistencias: asistenciasArray
         });
 
-        alert(response.data.message + '\n\nRecarga la página para ver los cambios reflejados.');
+        await showAlert(response.data.message, 'Asistencia guardada');
         cerrarModalAsistenciaFinal();
-
-        // Recargar la página para ver los cambios
         window.location.reload();
     } catch (error) {
         console.error(error);
         if (error.response && error.response.data && error.response.data.message) {
-            alert('Error: ' + error.response.data.message);
+            showAlert(error.response.data.message, 'Error');
         } else {
-            alert('Error al guardar la asistencia final');
+            showAlert('Error al guardar la asistencia final', 'Error');
         }
     } finally {
         guardandoAsistenciaFinal.value = false;
@@ -191,7 +209,7 @@ const cerrarModalNotasFinales = () => {
 
 const guardarNotasFinalesMasivas = async () => {
     if (!fechaNotasFinales.value) {
-        alert('Por favor selecciona una fecha');
+        showAlert('Por favor selecciona una fecha', 'Campo requerido');
         return;
     }
 
@@ -205,7 +223,7 @@ const guardarNotasFinalesMasivas = async () => {
         }));
 
     if (notasIngresadas.length === 0) {
-        alert('Debes ingresar al menos una nota');
+        showAlert('Debes ingresar al menos una nota', 'Campo requerido');
         return;
     }
 
@@ -218,17 +236,15 @@ const guardarNotasFinalesMasivas = async () => {
             notas: notasIngresadas
         });
 
-        alert(response.data.message + '\n\nRecarga la página para ver los cambios reflejados.');
+        await showAlert(response.data.message, 'Notas guardadas');
         cerrarModalNotasFinales();
-
-        // Recargar la página para ver los cambios
         window.location.reload();
     } catch (error) {
         console.error(error);
         if (error.response && error.response.data && error.response.data.message) {
-            alert('Error: ' + error.response.data.message);
+            showAlert(error.response.data.message, 'Error');
         } else {
-            alert('Error al guardar las notas finales');
+            showAlert('Error al guardar las notas finales', 'Error');
         }
     } finally {
         guardandoNotasFinales.value = false;
@@ -530,7 +546,7 @@ const guardarNotasFinalesMasivas = async () => {
                                 <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700 border-b">Alumno</th>
                                 <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700 border-b">Tipo Evaluación</th>
                                 <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700 border-b">Nota</th>
-                                <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700 border-b">Estado</th>
+                                <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700 border-b">Revisión</th>
                                 <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700 border-b">Observaciones</th>
                             </tr>
                         </thead>
@@ -543,14 +559,19 @@ const guardarNotasFinalesMasivas = async () => {
                                 </td>
                                 <td class="px-4 py-3 text-sm text-gray-900">{{ nota.tipo_evaluacion }}</td>
                                 <td class="px-4 py-3 text-center">
-                                    <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold">
+                                    <span :class="['px-3 py-1 rounded-full text-sm font-semibold', estadoAcademicoConfig[estadoAcademico(nota)].colorNota]">
                                         {{ nota.nota }}
                                     </span>
                                 </td>
                                 <td class="px-4 py-3 text-center">
-                                    <span :class="['px-3 py-1 rounded-full text-xs font-medium border capitalize', getBadgeNota(nota.estado)]">
-                                        {{ nota.estado }}
-                                    </span>
+                                    <div class="flex flex-col items-center gap-1">
+                                        <span :class="['px-3 py-1 rounded-full text-xs font-medium border capitalize', getBadgeNota(nota.estado)]">
+                                            {{ nota.estado }}
+                                        </span>
+                                        <span :class="['text-[10px] font-medium', estadoAcademicoConfig[estadoAcademico(nota)].colorTexto]">
+                                            {{ estadoAcademicoConfig[estadoAcademico(nota)].texto }}
+                                        </span>
+                                    </div>
                                 </td>
                                 <td class="px-4 py-3 text-sm text-gray-600">{{ nota.observaciones || '-' }}</td>
                             </tr>
@@ -841,4 +862,5 @@ const guardarNotasFinalesMasivas = async () => {
             </div>
         </div>
     </SidebarLayout>
+    <Dialog />
 </template>

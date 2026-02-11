@@ -1068,8 +1068,6 @@ const getEstadoBadge = (estado) => {
                                     <option value="2">2° Año</option>
                                     <option value="3">3° Año</option>
                                     <option value="4">4° Año</option>
-                                    <option value="5">5° Año</option>
-                                    <option value="6">6° Año</option>
                                 </select>
                             </div>
 
@@ -1496,7 +1494,20 @@ const getEstadoBadge = (estado) => {
                                         <div class="text-xs text-gray-500">{{ nota.carrera }}</div>
                                     </td>
                                     <td class="px-6 py-4 text-center">
-                                        <span class="text-lg font-bold text-gray-900">{{ nota.nota }}</span>
+                                        <div class="flex flex-col items-center">
+                                            <span :class="['text-lg font-bold', {
+                                                'text-green-600': nota.estado_academico === 'aprueba',
+                                                'text-blue-600': nota.estado_academico === 'regular',
+                                                'text-red-600': nota.estado_academico === 'no_aprueba'
+                                            }]">{{ nota.nota }}</span>
+                                            <span :class="['text-[10px] font-medium', {
+                                                'text-green-500': nota.estado_academico === 'aprueba',
+                                                'text-blue-500': nota.estado_academico === 'regular',
+                                                'text-red-500': nota.estado_academico === 'no_aprueba'
+                                            }]">
+                                                {{ nota.estado_academico === 'aprueba' ? 'Aprueba' : (nota.estado_academico === 'regular' ? 'Regular' : 'No aprueba') }}
+                                            </span>
+                                        </div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">

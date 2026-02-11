@@ -140,12 +140,23 @@ class MisMateriasController extends Controller
         // Calcular total de clases para estadísticas (usar el máximo)
         $totalClases = $asistencias->max('total_clases') ?? 0;
 
+        // Obtener notas mínimas configuradas
+        $notaMinimaPromocion = $profesorMateria->nota_minima_promocion ?? 7.00;
+        $notaMinimaRegularidad = $profesorMateria->nota_minima_regularidad ?? 4.00;
+
         // Obtener notas temporales de la materia
         $notasTemporales = NotaTemporal::with(['alumno', 'registradoPor', 'aprobadoPor'])
             ->where('profesor_materia_id', $profesorMateriaId)
             ->orderBy('fecha', 'desc')
             ->get()
-            ->map(function ($nota) {
+            ->map(function ($nota) use ($notaMinimaPromocion, $notaMinimaRegularidad) {
+                // Determinar si la nota alcanza para aprobar/regularizar
+                $esFinal = str_contains(strtolower($nota->tipo_evaluacion), 'final')
+                    || str_contains(strtolower($nota->tipo_evaluacion), 'mesa')
+                    || str_contains(strtolower($nota->tipo_evaluacion), 'examen');
+                $notaMinima = $esFinal ? $notaMinimaPromocion : $notaMinimaRegularidad;
+                $aprueba = $nota->nota >= $notaMinima;
+
                 return [
                     'id' => $nota->id,
                     'alumno_id' => $nota->alumno_id,
@@ -154,6 +165,8 @@ class MisMateriasController extends Controller
                     'nota' => $nota->nota,
                     'tipo_evaluacion' => $nota->tipo_evaluacion,
                     'estado' => $nota->estado,
+                    'aprueba' => $aprueba,
+                    'nota_minima' => $notaMinima,
                     'fecha' => $nota->fecha->format('d/m/Y'),
                     'observaciones' => $nota->observaciones,
                     'registrado_por' => $nota->registradoPor->name ?? 'N/A',
@@ -175,6 +188,8 @@ class MisMateriasController extends Controller
                 'division' => $profesorMateria->division,
                 'horario' => $profesorMateria->horario ?? null,
                 'aula' => $profesorMateria->aula ?? null,
+                'nota_minima_promocion' => $notaMinimaPromocion,
+                'nota_minima_regularidad' => $notaMinimaRegularidad,
             ],
             'alumnos' => $alumnos,
             'asistencias' => $asistencias,

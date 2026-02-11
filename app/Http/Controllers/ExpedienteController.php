@@ -174,6 +174,18 @@ class ExpedienteController extends Controller
                 ->orderBy('created_at', 'desc')
                 ->get()
                 ->map(function($nota) {
+            // Determinar estado académico con 3 niveles
+            $notaMinimaPromocion = $nota->profesorMateria->nota_minima_promocion ?? 7.00;
+            $notaMinimaRegularidad = $nota->profesorMateria->nota_minima_regularidad ?? 4.00;
+
+            if ($nota->nota >= $notaMinimaPromocion) {
+                $estadoAcademico = 'aprueba';
+            } elseif ($nota->nota >= $notaMinimaRegularidad) {
+                $estadoAcademico = 'regular';
+            } else {
+                $estadoAcademico = 'no_aprueba';
+            }
+
             return [
                 'id' => $nota->id,
                 'alumno' => $nota->alumno ? $nota->alumno->apellido . ', ' . $nota->alumno->nombre : 'N/A',
@@ -187,6 +199,7 @@ class ExpedienteController extends Controller
                     : 'N/A',
                 'nota' => $nota->nota,
                 'tipo_evaluacion' => $nota->tipo_evaluacion,
+                'estado_academico' => $estadoAcademico,
                 'fecha' => $nota->fecha ? \Carbon\Carbon::parse($nota->fecha)->format('d/m/Y') : 'N/A',
                 'registrado_por' => $nota->registradoPor ? $nota->registradoPor->nombre : 'N/A',
                 'estado' => $nota->estado,
@@ -795,8 +808,8 @@ class ExpedienteController extends Controller
             // Determinar si es nota de cursada o final
             $esFinal = strtolower($nota->tipo_evaluacion) === 'final';
 
-            // Obtener notas mínimas configuradas
-            $notaMinimaPromocion = $profesorMateria->nota_minima_promocion ?? 4.00;
+            // Obtener notas mínimas configuradas (defaults según migración: promoción=7, regularidad=4)
+            $notaMinimaPromocion = $profesorMateria->nota_minima_promocion ?? 7.00;
             $notaMinimaRegularidad = $profesorMateria->nota_minima_regularidad ?? 4.00;
 
             if ($alumnoMateria) {

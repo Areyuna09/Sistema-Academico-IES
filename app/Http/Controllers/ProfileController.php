@@ -73,6 +73,7 @@ class ProfileController extends Controller
                     'apellido' => $profesor->apellido,
                     'nombre_completo' => $profesor->apellido . ', ' . $profesor->nombre,
                     'email' => $profesor->email,
+                    'telefono' => $user->telefono,
                     'carrera' => $carreraData,
                 ] : null,
             ]);
@@ -138,6 +139,12 @@ class ProfileController extends Controller
             }
 
             $profesor->save();
+
+            // Guardar teléfono en tbl_usuarios (tbl_profesores no tiene esa columna)
+            if ($request->has('telefono')) {
+                $user->telefono = $request->telefono;
+                $user->save();
+            }
         }
 
         return Redirect::route('profile.edit')->with('status', 'profile-updated');

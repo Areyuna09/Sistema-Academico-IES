@@ -48,7 +48,7 @@ const form = useForm({
     name: user.name,
     email: user.email,
     telefono: props.alumno?.telefono || props.profesor?.telefono || '',
-    celular: props.alumno?.celular || props.profesor?.celular || '',
+    celular: props.alumno?.celular || '',
     descripcion_personalizada: props.alumno?.descripcion_personalizada || '',
 });
 
@@ -350,8 +350,8 @@ const additionalInfo = computed(() => {
                 <InputError class="mt-1 text-xs" :message="form.errors.telefono" />
             </div>
 
-            <!-- Celular (solo para alumno y profesor) -->
-            <div v-if="alumno || profesor" class="group">
+            <!-- Celular (solo para alumno, tbl_profesores no tiene esta columna) -->
+            <div v-if="alumno" class="group">
                 <label for="celular" class="block text-sm font-semibold text-gray-700 mb-2">
                     Celular
                 </label>
