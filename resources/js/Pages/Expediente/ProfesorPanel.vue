@@ -51,6 +51,11 @@ const tipoEvaluacion = ref('');
 const fechaNotas = ref(new Date().toISOString().split('T')[0]);
 const notas = ref({});
 
+// Variables para modal de expediente alumno
+const modalExpedienteAbierto = ref(false);
+const expedienteAlumno = ref(null);
+const cargandoExpediente = ref(false);
+
 // Variables para configuración académica
 const modalConfiguracionAbierto = ref(false);
 const guardandoConfiguracion = ref(false);
@@ -175,6 +180,27 @@ const limpiarBusqueda = () => {
     alumnoEncontrado.value = null;
     historialAcademico.value = null;
     errorBusqueda.value = '';
+};
+
+const verExpedienteAlumno = async (alumno) => {
+    modalExpedienteAbierto.value = true;
+    cargandoExpediente.value = true;
+    expedienteAlumno.value = null;
+
+    try {
+        const response = await axios.get(route('api.expediente.alumno', alumno.id));
+        expedienteAlumno.value = response.data;
+    } catch (error) {
+        await showAlert('Error al cargar el expediente del alumno', 'error');
+        modalExpedienteAbierto.value = false;
+    } finally {
+        cargandoExpediente.value = false;
+    }
+};
+
+const cerrarModalExpediente = () => {
+    modalExpedienteAbierto.value = false;
+    expedienteAlumno.value = null;
 };
 
 const cargarMaterias = async () => {
@@ -651,8 +677,9 @@ onMounted(() => {
                                             <td class="px-4 py-3 text-sm text-gray-600">{{ alumno.email }}</td>
                                             <td class="px-4 py-3 text-center">
                                                 <button
-                                                    class="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
-                                                    title="Ver detalle del alumno"
+                                                    @click="verExpedienteAlumno(alumno)"
+                                                    class="px-3 py-1 text-xs bg-teal-100 text-teal-700 rounded hover:bg-teal-200 transition-colors"
+                                                    title="Ver expediente del alumno"
                                                 >
                                                     <i class="bx bx-show"></i>
                                                     Ver detalle
@@ -1189,6 +1216,125 @@ onMounted(() => {
                     >
                         <i :class="['bx mr-2', guardandoConfiguracion ? 'bx-loader-alt animate-spin' : 'bx-save']"></i>
                         {{ guardandoConfiguracion ? 'Guardando...' : 'Guardar Configuración' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Expediente Alumno -->
+        <div v-if="modalExpedienteAbierto" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+                <!-- Header -->
+                <div class="bg-teal-600 px-6 py-4 flex items-center justify-between">
+                    <div>
+                        <h3 class="text-lg font-bold text-white">Expediente del Alumno</h3>
+                        <p v-if="expedienteAlumno" class="text-teal-100 text-sm">{{ expedienteAlumno.alumno.nombre_completo }}</p>
+                    </div>
+                    <button @click="cerrarModalExpediente" class="text-white hover:text-gray-200">
+                        <i class="bx bx-x text-2xl"></i>
+                    </button>
+                </div>
+
+                <!-- Contenido -->
+                <div class="flex-1 overflow-y-auto p-6">
+                    <!-- Loading -->
+                    <div v-if="cargandoExpediente" class="text-center py-12">
+                        <i class="bx bx-loader-alt animate-spin text-4xl text-teal-600"></i>
+                        <p class="text-gray-600 mt-2">Cargando expediente...</p>
+                    </div>
+
+                    <div v-else-if="expedienteAlumno">
+                        <!-- Datos del alumno -->
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+                            <div class="bg-gray-50 rounded-lg p-3">
+                                <p class="text-xs text-gray-500 font-semibold">DNI</p>
+                                <p class="text-sm font-bold text-gray-900">{{ expedienteAlumno.alumno.dni }}</p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-3">
+                                <p class="text-xs text-gray-500 font-semibold">Legajo</p>
+                                <p class="text-sm font-bold text-gray-900">{{ expedienteAlumno.alumno.legajo || 'Sin asignar' }}</p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-3">
+                                <p class="text-xs text-gray-500 font-semibold">Carrera</p>
+                                <p class="text-sm font-bold text-gray-900">{{ expedienteAlumno.carrera?.nombre || 'Sin carrera' }}</p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-3">
+                                <p class="text-xs text-gray-500 font-semibold">Curso</p>
+                                <p class="text-sm font-bold text-gray-900">{{ expedienteAlumno.alumno.curso ? `${expedienteAlumno.alumno.curso}° - Div. ${expedienteAlumno.alumno.division}` : '-' }}</p>
+                            </div>
+                        </div>
+
+                        <!-- Estadísticas -->
+                        <div class="grid grid-cols-4 gap-3 mb-5">
+                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
+                                <p class="text-2xl font-bold text-blue-700">{{ expedienteAlumno.estadisticas.total_materias }}</p>
+                                <p class="text-xs text-blue-600">Total</p>
+                            </div>
+                            <div class="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+                                <p class="text-2xl font-bold text-green-700">{{ expedienteAlumno.estadisticas.aprobadas }}</p>
+                                <p class="text-xs text-green-600">Aprobadas</p>
+                            </div>
+                            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-center">
+                                <p class="text-2xl font-bold text-yellow-700">{{ expedienteAlumno.estadisticas.regulares }}</p>
+                                <p class="text-xs text-yellow-600">Regulares</p>
+                            </div>
+                            <div class="bg-purple-50 border border-purple-200 rounded-lg p-3 text-center">
+                                <p class="text-2xl font-bold text-purple-700">{{ expedienteAlumno.estadisticas.promedio ?? '-' }}</p>
+                                <p class="text-xs text-purple-600">Promedio</p>
+                            </div>
+                        </div>
+
+                        <!-- Barra de progreso -->
+                        <div class="mb-5">
+                            <div class="flex justify-between text-xs text-gray-600 mb-1">
+                                <span>Progreso académico</span>
+                                <span>{{ expedienteAlumno.estadisticas.porcentaje_progreso }}%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-teal-500 h-2 rounded-full transition-all" :style="{ width: expedienteAlumno.estadisticas.porcentaje_progreso + '%' }"></div>
+                            </div>
+                        </div>
+
+                        <!-- Historial de materias -->
+                        <h4 class="text-sm font-bold text-gray-700 mb-2">Historial Académico</h4>
+                        <div v-if="expedienteAlumno.historial.length > 0" class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead>
+                                    <tr class="bg-gray-50">
+                                        <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">Materia</th>
+                                        <th class="px-3 py-2 text-center text-xs font-semibold text-gray-600">Año</th>
+                                        <th class="px-3 py-2 text-center text-xs font-semibold text-gray-600">Nota</th>
+                                        <th class="px-3 py-2 text-center text-xs font-semibold text-gray-600">Estado</th>
+                                        <th class="px-3 py-2 text-center text-xs font-semibold text-gray-600">Fecha</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="materia in expedienteAlumno.historial" :key="materia.id" class="border-b border-gray-100 hover:bg-gray-50">
+                                        <td class="px-3 py-2 text-gray-900">{{ materia.materia.nombre }}</td>
+                                        <td class="px-3 py-2 text-center text-gray-600">{{ materia.materia.anno }}°</td>
+                                        <td class="px-3 py-2 text-center font-semibold" :class="materia.nota_final >= 4 ? 'text-green-700' : 'text-red-600'">
+                                            {{ materia.nota_final || '-' }}
+                                        </td>
+                                        <td class="px-3 py-2 text-center">
+                                            <span v-if="materia.rendida" class="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700">Aprobada</span>
+                                            <span v-else-if="materia.cursada" class="px-2 py-0.5 text-xs rounded-full bg-yellow-100 text-yellow-700">Regular</span>
+                                            <span v-else class="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-600">Pendiente</span>
+                                        </td>
+                                        <td class="px-3 py-2 text-center text-gray-500 text-xs">{{ materia.fecha || '-' }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div v-else class="text-center py-6 bg-gray-50 rounded-lg">
+                            <p class="text-gray-500 text-sm">Este alumno aún no tiene materias registradas</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="bg-gray-100 px-6 py-3 flex justify-end">
+                    <button @click="cerrarModalExpediente" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                        Cerrar
                     </button>
                 </div>
             </div>
