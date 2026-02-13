@@ -210,14 +210,7 @@ const getInitials = (name) => {
                                 <div
                                     class="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center overflow-hidden ring-2 ring-gray-600 group-hover:ring-blue-500 transition-all"
                                 >
-                                    <img
-                                        v-if="profile.avatar && estaModuloActivo('avatares')"
-                                        :src="`/storage/${profile.avatar}`"
-                                        :alt="profile.name"
-                                        class="w-full h-full object-cover"
-                                    />
                                     <span
-                                        v-else
                                         class="text-white font-bold text-base sm:text-lg"
                                     >
                                         {{ getInitials(profile.name) }}

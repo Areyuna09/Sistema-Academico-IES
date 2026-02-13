@@ -272,7 +272,7 @@
             @endif
             <div class="institution-name">{{ $configuracion->nombre_institucion }}</div>
             <div class="document-title">Comprobante de Inscripción a Mesa de Examen</div>
-            <div class="document-subtitle">{{ $mesa->periodo->nombre ?? 'Mesa de Examen' }}</div>
+            <div class="document-subtitle">{{ $mesa->periodo?->nombre ?? 'Mesa de Examen' }}</div>
         </div>
 
         <!-- Número de comprobante -->
@@ -304,7 +304,7 @@
             </tr>
             <tr>
                 <td class="label">Carrera:</td>
-                <td class="value">{{ $mesa->materia->getRelation('carrera')->nombre ?? 'Sin especificar' }}</td>
+                <td class="value">{{ $carrera?->nombre ?? 'Sin especificar' }}</td>
             </tr>
         </table>
 
@@ -329,13 +329,13 @@
                 <strong>👥 Tribunal Evaluador</strong>
                 <p>
                     @if($mesa->presidente)
-                        Presidente: {{ $mesa->presidente->nombre_completo }}<br>
+                        Presidente: {{ $mesa->presidente?->nombre_completo }}<br>
                     @endif
                     @if($mesa->vocal1)
-                        Vocal 1: {{ $mesa->vocal1->nombre_completo }}<br>
+                        Vocal 1: {{ $mesa->vocal1?->nombre_completo }}<br>
                     @endif
                     @if($mesa->vocal2)
-                        Vocal 2: {{ $mesa->vocal2->nombre_completo }}
+                        Vocal 2: {{ $mesa->vocal2?->nombre_completo }}
                     @endif
                 </p>
             </div>

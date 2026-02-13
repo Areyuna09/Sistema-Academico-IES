@@ -380,13 +380,19 @@ class InscripcionesMesaController extends Controller
             abort(403, 'No tienes un perfil de alumno asociado');
         }
 
-        $inscripcion = InscripcionMesa::with(['mesa.materia.carrera', 'mesa.presidente', 'mesa.vocal1', 'mesa.vocal2', 'mesa.periodo', 'alumno'])
+        $inscripcion = InscripcionMesa::with(['mesa.materia', 'mesa.presidente', 'mesa.vocal1', 'mesa.vocal2', 'mesa.periodo', 'alumno'])
             ->where('id', $inscripcionId)
             ->where('alumno_id', $user->alumno_id)
             ->firstOrFail();
 
         // Obtener alumno
         $alumno = $inscripcion->alumno;
+
+        // Resolver carrera explícitamente (la columna 'carrera' en tbl_materias colisiona con la relación)
+        $carrera = null;
+        if ($inscripcion->mesa->materia) {
+            $carrera = \App\Models\Carrera::find($inscripcion->mesa->materia->carrera);
+        }
 
         // Obtener configuración global
         $configuracion = \App\Models\Configuracion::get();
@@ -396,6 +402,7 @@ class InscripcionesMesaController extends Controller
             'alumno' => $alumno,
             'inscripcion' => $inscripcion,
             'mesa' => $inscripcion->mesa,
+            'carrera' => $carrera,
             'configuracion' => $configuracion,
         ]);
 

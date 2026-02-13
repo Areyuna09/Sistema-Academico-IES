@@ -427,14 +427,7 @@ const parametrosItems = computed(() => {
                     <div
                         class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center overflow-hidden ring-2 ring-gray-600"
                     >
-                        <img
-                            v-if="user?.avatar && estaModuloActivo('avatares')"
-                            :src="`/storage/${user.avatar}`"
-                            :alt="user.name"
-                            class="w-full h-full object-cover"
-                        />
                         <span
-                            v-else
                             class="text-white font-bold text-xs"
                         >
                             {{ user?.name?.charAt(0).toUpperCase() || "U" }}
