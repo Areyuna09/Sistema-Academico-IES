@@ -15,6 +15,10 @@ const props = defineProps({
     carreras: {
         type: Array,
         required: true
+    },
+    periodoActivo: {
+        type: Object,
+        default: null
     }
 });
 
@@ -32,9 +36,21 @@ const form = useForm({
 
 // Guardar referencia al profesor para evitar problemas con el reactivo
 const profesorActual = ref(null);
+const periodoActivoCargado = ref(null);
 
 const materiasDisponibles = ref([]);
 const cargandoMaterias = ref(false);
+
+// Computed for the effective period (prop or loaded)
+const periodoActivoEfectivo = computed(() => props.periodoActivo || periodoActivoCargado.value);
+
+// Computed para label del período activo
+const periodoActivoLabel = computed(() => {
+    const p = periodoActivoEfectivo.value;
+    if (!p) return null;
+    const cuatri = p.cuatrimestre == '1' ? '1er' : '2do';
+    return `${cuatri} Cuatrimestre ${p.anio}`;
+});
 
 // Computed para agrupar materias por plan
 const materiasAgrupadasPorPlan = computed(() => {
@@ -278,6 +294,20 @@ const close = () => {
                     <!-- Asignación de materias -->
                     <div class="mb-6">
                         <h3 class="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">Asignación de Materias</h3>
+
+                        <!-- Info del período activo -->
+                        <div v-if="periodoActivoLabel" class="mb-4 p-3 bg-indigo-50 border border-indigo-200 rounded-lg flex items-center">
+                            <i class="bx bx-calendar text-indigo-600 mr-2 text-lg"></i>
+                            <p class="text-sm text-indigo-800">
+                                Las materias se asignarán al período: <strong>{{ periodoActivoLabel }}</strong>
+                            </p>
+                        </div>
+                        <div v-else class="mb-4 p-3 bg-yellow-50 border border-yellow-300 rounded-lg flex items-center">
+                            <i class="bx bx-warning text-yellow-600 mr-2 text-lg"></i>
+                            <p class="text-sm text-yellow-800">
+                                <strong>Atención:</strong> No hay un período activo configurado. Las materias se asignarán sin período asociado.
+                            </p>
+                        </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                             <!-- Carrera -->

@@ -12,6 +12,7 @@ use App\Models\Asistencia;
 use App\Models\NotaTemporal;
 use App\Models\User;
 use App\Models\Materia;
+use App\Models\PeriodoInscripcion;
 
 class DashboardController extends Controller
 {
@@ -72,18 +73,28 @@ class DashboardController extends Controller
             ]);
         }
 
-        // Obtener materias del profesor
-        $materias = ProfesorMateria::where('profesor', $profesorId)->get();
+        // Obtener materias del profesor (filtrar por período activo y cuatrimestre)
+        $query = ProfesorMateria::where('profesor', $profesorId);
+        $periodoActivo = PeriodoInscripcion::activo();
+        if ($periodoActivo) {
+            $query->delPeriodoActivo();
+            if ($periodoActivo->cuatrimestre) {
+                $query->delCuatrimestre($periodoActivo->cuatrimestre);
+            }
+        }
+        $materias = $query->get();
         $totalMaterias = $materias->count();
 
-        // Obtener total de alumnos únicos en todas sus materias
+        // Obtener total de alumnos únicos en todas sus materias (del período activo)
         $alumnosIds = [];
         foreach ($materias as $materia) {
-            $ids = Inscripcion::where('materia_id', $materia->materia)
+            $queryIns = Inscripcion::where('materia_id', $materia->materia)
                 ->where('carrera_id', $materia->carrera)
-                ->where('estado', 'confirmada')
-                ->pluck('alumno_id')
-                ->toArray();
+                ->where('estado', 'confirmada');
+            if ($materia->periodo_id) {
+                $queryIns->where('periodo_id', $materia->periodo_id);
+            }
+            $ids = $queryIns->pluck('alumno_id')->toArray();
             $alumnosIds = array_merge($alumnosIds, $ids);
         }
         $totalAlumnos = count(array_unique($alumnosIds));
@@ -124,10 +135,14 @@ class DashboardController extends Controller
             ]);
         }
 
-        // Inscripciones actuales
-        $inscripcionesActuales = Inscripcion::where('alumno_id', $alumno->id)
-            ->where('estado', 'confirmada')
-            ->count();
+        // Inscripciones actuales (del período activo)
+        $periodoActivoAlumno = PeriodoInscripcion::activo();
+        $queryInscActuales = Inscripcion::where('alumno_id', $alumno->id)
+            ->where('estado', 'confirmada');
+        if ($periodoActivoAlumno) {
+            $queryInscActuales->where('periodo_id', $periodoActivoAlumno->id);
+        }
+        $inscripcionesActuales = $queryInscActuales->count();
 
         // Materias aprobadas
         $materiasAprobadas = AlumnoMateria::where('alumno', $alumno->id)
@@ -187,7 +202,12 @@ class DashboardController extends Controller
         // Métricas para admin/bedel
         $totalUsuarios = User::where('activo', true)->count();
         $totalMaterias = Materia::count();
-        $inscripcionesActivas = Inscripcion::where('estado', 'confirmada')->count();
+        $periodoActivoAdmin = PeriodoInscripcion::activo();
+        $queryInscAdmin = Inscripcion::where('estado', 'confirmada');
+        if ($periodoActivoAdmin) {
+            $queryInscAdmin->where('periodo_id', $periodoActivoAdmin->id);
+        }
+        $inscripcionesActivas = $queryInscAdmin->count();
 
         // Notas finales pendientes de aprobación
         $notasPendientes = NotaTemporal::where('estado', 'pendiente')

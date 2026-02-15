@@ -45,6 +45,8 @@ class HandleInertiaRequests extends Middleware
             'flash' => [
                 'success' => $request->session()->get('success'),
                 'error' => $request->session()->get('error'),
+                'sin_asignaciones' => $request->session()->get('sin_asignaciones'),
+                'periodo_id' => $request->session()->get('periodo_id'),
             ],
             'configuracion' => $configuracion ? [
                 'nombre_institucion' => $configuracion->nombre_institucion ?? 'IES Gral. Manuel Belgrano',

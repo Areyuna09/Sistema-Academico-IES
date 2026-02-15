@@ -14,6 +14,7 @@ use App\Models\AlumnoMateria;
 use App\Models\Materia;
 use App\Models\User;
 use App\Models\Notificacion;
+use App\Models\PeriodoInscripcion;
 use App\Services\EstadoAcademicoService;
 use App\Traits\HandlesErrors;
 
@@ -98,15 +99,20 @@ class ExpedienteController extends Controller
                                      ->paginate(15)
                                      ->withQueryString();
 
-        // Cargar las materias asignadas a cada profesor
+        // Cargar las materias asignadas a cada profesor (del período activo)
         // materias_lista: objetos con id y nombre (para mostrar en tabla)
         // materias: array de IDs (para el v-model del modal de edición)
-        $profesores->getCollection()->transform(function($profesor) {
-            $materiasData = \DB::table('tbl_profesor_tiene_materias')
+        $periodoActivoObj = PeriodoInscripcion::activo();
+        $profesores->getCollection()->transform(function($profesor) use ($periodoActivoObj) {
+            $query = \DB::table('tbl_profesor_tiene_materias')
                 ->join('tbl_materias', 'tbl_profesor_tiene_materias.materia', '=', 'tbl_materias.id')
-                ->where('tbl_profesor_tiene_materias.profesor', $profesor->id)
-                ->select('tbl_materias.id', 'tbl_materias.nombre')
-                ->get();
+                ->where('tbl_profesor_tiene_materias.profesor', $profesor->id);
+
+            if ($periodoActivoObj) {
+                $query->where('tbl_profesor_tiene_materias.periodo_id', $periodoActivoObj->id);
+            }
+
+            $materiasData = $query->select('tbl_materias.id', 'tbl_materias.nombre')->get();
 
             // Lista de objetos para mostrar en la tabla
             $profesor->materias_lista = $materiasData->map(function($materia) {
@@ -230,6 +236,9 @@ class ExpedienteController extends Controller
             'notas_pendientes_count' => $notasPendientes->count()
         ]);
 
+        // Obtener período activo para info en modal de profesor
+        $periodoActivo = PeriodoInscripcion::activo();
+
         return Inertia::render('Expediente/AdminPanel', [
             'materias' => $materias,
             'carreras' => $carreras,
@@ -237,6 +246,12 @@ class ExpedienteController extends Controller
             'alumnos' => $alumnos,
             'notasPendientes' => $notasPendientes,
             'duracionCarreras' => $duracionCarreras,
+            'periodoActivo' => $periodoActivo ? [
+                'id' => $periodoActivo->id,
+                'nombre' => $periodoActivo->nombre,
+                'anio' => $periodoActivo->anio,
+                'cuatrimestre' => $periodoActivo->cuatrimestre,
+            ] : null,
             'filtrosMaterias' => $request->only(['carrera_materias', 'anno', 'semestre', 'buscar_materias']),
             'filtrosProfesores' => $request->only(['activo', 'buscar_profesores']),
             'filtrosAlumnos' => $request->only(['activo', 'buscar_alumnos', 'carrera_alumnos']),
@@ -448,20 +463,42 @@ class ExpedienteController extends Controller
             ], 404);
         }
 
-        // Obtener materias del profesor
-        $materias = ProfesorMateria::with(['materiaRelacion', 'carreraRelacion'])
-            ->where('profesor', $user->profesor_id)
-            ->get();
+        // Determinar filtro de período
+        $periodoActivo = PeriodoInscripcion::activo();
+
+        $query = ProfesorMateria::with(['materiaRelacion', 'carreraRelacion', 'periodoRelacion'])
+            ->where('profesor', $user->profesor_id);
+
+        if ($request->filled('archivo') && $request->archivo == '1') {
+            // Modo archivo: mostrar todos los períodos
+        } elseif ($request->filled('periodo_id')) {
+            $query->delPeriodo($request->periodo_id);
+            // Filtrar por cuatrimestre del período seleccionado
+            $periodoSel = PeriodoInscripcion::find($request->periodo_id);
+            if ($periodoSel && $periodoSel->cuatrimestre) {
+                $query->delCuatrimestre($periodoSel->cuatrimestre);
+            }
+        } elseif ($periodoActivo) {
+            $query->delPeriodoActivo();
+            if ($periodoActivo->cuatrimestre) {
+                $query->delCuatrimestre($periodoActivo->cuatrimestre);
+            }
+        }
+
+        $materias = $query->get();
 
         // Agrupar alumnos por materia
         $alumnosPorMateria = [];
 
         foreach ($materias as $materia) {
-            $inscripciones = Inscripcion::with(['alumno'])
+            $queryInsc = Inscripcion::with(['alumno'])
                 ->where('materia_id', $materia->materia)
                 ->where('carrera_id', $materia->carrera)
-                ->where('estado', 'confirmada')
-                ->get();
+                ->where('estado', 'confirmada');
+            if ($materia->periodo_id) {
+                $queryInsc->where('periodo_id', $materia->periodo_id);
+            }
+            $inscripciones = $queryInsc->get();
 
             $alumnos = $inscripciones->map(function($inscripcion) {
                 return [
@@ -473,6 +510,24 @@ class ExpedienteController extends Controller
                 ];
             })->sortBy('apellido')->values();
 
+            // Verificar si existe carga de asistencia final para esta materia
+            $tieneAsistenciaFinal = Asistencia::where('profesor_materia_id', $materia->id)
+                ->where('tipo_carga', 'final')
+                ->exists();
+
+            // Info del período
+            $periodoInfo = null;
+            if ($materia->periodoRelacion) {
+                $p = $materia->periodoRelacion;
+                $periodoInfo = [
+                    'id' => $p->id,
+                    'nombre' => $p->nombre,
+                    'anio' => $p->anio,
+                    'cuatrimestre' => $p->cuatrimestre,
+                    'activo' => $p->activo,
+                ];
+            }
+
             $alumnosPorMateria[] = [
                 'materia_id' => $materia->id,
                 'materia' => $materia->materiaRelacion->nombre ?? 'Sin nombre',
@@ -481,6 +536,8 @@ class ExpedienteController extends Controller
                 'division' => $materia->division ?? 'N/A',
                 'alumnos' => $alumnos,
                 'total_alumnos' => $alumnos->count(),
+                'tiene_asistencia_final' => $tieneAsistenciaFinal,
+                'periodo' => $periodoInfo,
                 // Configuración académica
                 'configuracion' => [
                     'nota_minima_promocion' => $materia->nota_minima_promocion ?? 7.00,
@@ -494,7 +551,105 @@ class ExpedienteController extends Controller
         }
 
         return response()->json([
-            'materias' => $alumnosPorMateria
+            'materias' => $alumnosPorMateria,
+            'periodo_activo' => $periodoActivo ? [
+                'id' => $periodoActivo->id,
+                'nombre' => $periodoActivo->nombre,
+                'anio' => $periodoActivo->anio,
+                'cuatrimestre' => $periodoActivo->cuatrimestre,
+            ] : null,
+        ]);
+    }
+
+    /**
+     * Obtener períodos disponibles para el profesor (que tienen asignaciones)
+     */
+    public function obtenerPeriodosProfesor(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user->profesor_id) {
+            return response()->json(['periodos' => []]);
+        }
+
+        $periodoIds = ProfesorMateria::where('profesor', $user->profesor_id)
+            ->whereNotNull('periodo_id')
+            ->distinct()
+            ->pluck('periodo_id');
+
+        $periodos = PeriodoInscripcion::whereIn('id', $periodoIds)
+            ->orderByDesc('anio')
+            ->orderByDesc('cuatrimestre')
+            ->get()
+            ->map(function ($p) {
+                return [
+                    'id' => $p->id,
+                    'nombre' => $p->nombre,
+                    'anio' => $p->anio,
+                    'cuatrimestre' => $p->cuatrimestre,
+                    'activo' => $p->activo,
+                    'label' => ($p->cuatrimestre == '1' ? '1er' : '2do') . " Cuatrimestre {$p->anio}" . ($p->activo ? ' (activo)' : ''),
+                ];
+            });
+
+        return response()->json(['periodos' => $periodos]);
+    }
+
+    public function obtenerAsistenciasDiarias($profesorMateriaId)
+    {
+        $user = auth()->user();
+
+        // Verificar que el profesor sea dueño de esta materia
+        $profesorMateria = ProfesorMateria::findOrFail($profesorMateriaId);
+
+        if ($user->tipo == 3 && $user->profesor_id != $profesorMateria->profesor) {
+            return response()->json([
+                'error' => 'No tiene permisos para ver las asistencias de esta materia'
+            ], 403);
+        }
+
+        // Obtener todas las asistencias diarias para esta materia
+        $asistencias = Asistencia::where('profesor_materia_id', $profesorMateriaId)
+            ->where('tipo_carga', 'diaria')
+            ->orderBy('fecha', 'asc')
+            ->get();
+
+        // Agrupar por fecha
+        $fechas = [];
+        foreach ($asistencias as $asistencia) {
+            $fecha = $asistencia->fecha instanceof \Carbon\Carbon
+                ? $asistencia->fecha->format('Y-m-d')
+                : \Carbon\Carbon::parse($asistencia->fecha)->format('Y-m-d');
+
+            if (!isset($fechas[$fecha])) {
+                $fechas[$fecha] = [];
+            }
+
+            $fechas[$fecha][] = [
+                'alumno_id' => $asistencia->alumno_id,
+                'estado' => $asistencia->estado,
+                'observaciones' => $asistencia->observaciones,
+            ];
+        }
+
+        // Obtener alumnos inscriptos en esta materia
+        $inscripciones = Inscripcion::with(['alumno'])
+            ->where('materia_id', $profesorMateria->materia)
+            ->where('carrera_id', $profesorMateria->carrera)
+            ->where('estado', 'confirmada')
+            ->get();
+
+        $alumnos = $inscripciones->map(function($inscripcion) {
+            return [
+                'id' => $inscripcion->alumno->id,
+                'apellido' => $inscripcion->alumno->apellido,
+                'nombre' => $inscripcion->alumno->nombre,
+            ];
+        })->sortBy('apellido')->values();
+
+        return response()->json([
+            'fechas' => $fechas,
+            'alumnos' => $alumnos,
         ]);
     }
 
@@ -510,6 +665,18 @@ class ExpedienteController extends Controller
         ]);
 
         $user = $request->user();
+
+        // Verificar si ya existe carga de asistencia final para esta materia
+        $existeCargaFinal = Asistencia::where('profesor_materia_id', $request->profesor_materia_id)
+            ->where('tipo_carga', 'final')
+            ->exists();
+
+        if ($existeCargaFinal) {
+            return response()->json([
+                'message' => 'Ya existe carga de asistencia final para esta materia. No se puede cargar asistencia diaria.'
+            ], 422);
+        }
+
         $registros = [];
 
         foreach ($request->asistencias as $asistencia) {

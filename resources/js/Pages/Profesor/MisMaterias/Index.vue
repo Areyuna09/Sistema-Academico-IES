@@ -1,37 +1,104 @@
 <script setup>
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
 
-defineProps({
-    materias: { 
-        type: Array, 
-        default: () => [] 
+const props = defineProps({
+    materias: {
+        type: Array,
+        default: () => []
     },
-    mensaje: { 
-        type: String, 
-        default: null 
+    mensaje: {
+        type: String,
+        default: null
+    },
+    periodosDisponibles: {
+        type: Array,
+        default: () => []
+    },
+    periodoActivo: {
+        type: Object,
+        default: null
+    },
+    periodoSeleccionado: {
+        type: Number,
+        default: null
+    },
+    esArchivo: {
+        type: Boolean,
+        default: false
     }
 });
+
+const periodoLabel = computed(() => {
+    if (!props.periodoSeleccionado || !props.periodosDisponibles.length) return '';
+    const p = props.periodosDisponibles.find(p => p.id === props.periodoSeleccionado);
+    return p ? p.label : '';
+});
+
+const cambiarPeriodo = (periodoId) => {
+    router.get(route('profesor.mis-materias.index'), { periodo_id: periodoId }, {
+        preserveState: true,
+        preserveScroll: true
+    });
+};
 </script>
 
 <template>
     <Head title="Mis Materias" />
     <SidebarLayout :user="$page.props.auth.user">
         <template #header>
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between flex-wrap gap-3">
                 <div>
                     <h1 class="text-2xl font-semibold text-gray-900">Mis Materias</h1>
-                    <p class="mt-1 text-sm text-gray-600">Materias asignadas para el ciclo lectivo actual</p>
+                    <p class="mt-1 text-sm text-gray-600">Materias asignadas para el ciclo lectivo</p>
                 </div>
-                <div class="bg-blue-50 border border-blue-200 px-4 py-2 rounded-lg">
-                    <p class="text-sm font-medium text-blue-700">
-                        Total: <span class="font-bold">{{ materias.length }}</span> materia{{ materias.length !== 1 ? 's' : '' }}
-                    </p>
+                <div class="flex items-center gap-3">
+                    <!-- Selector de período -->
+                    <div v-if="periodosDisponibles.length > 0" class="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 gap-3">
+                        <div class="flex items-center gap-2 text-gray-500">
+                            <i class="bx bx-calendar text-lg"></i>
+                            <span class="text-xs font-medium hidden sm:inline">Período</span>
+                        </div>
+                        <select
+                            :value="periodoSeleccionado"
+                            @change="cambiarPeriodo(Number($event.target.value))"
+                            class="bg-white border border-gray-300 rounded-lg px-3 py-1.5 text-sm font-medium text-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer min-w-[220px] appearance-none"
+                            :style="{ backgroundImage: 'url(\'data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%236b7280%22 stroke-width=%222%22%3E%3Cpolyline points=%226 9 12 15 18 9%22/%3E%3C/svg%3E\')', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '16px', paddingRight: '32px' }"
+                        >
+                            <option v-for="p in periodosDisponibles" :key="p.id" :value="p.id">
+                                {{ p.label }}
+                            </option>
+                        </select>
+                        <span v-if="!esArchivo" class="flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 text-xs font-semibold rounded-full whitespace-nowrap">
+                            <span class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                            Activo
+                        </span>
+                        <span v-else class="flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-semibold rounded-full whitespace-nowrap">
+                            <i class="bx bx-archive-in text-xs"></i>
+                            Archivo
+                        </span>
+                    </div>
+                    <div class="bg-blue-50 border border-blue-200 px-4 py-2 rounded-lg">
+                        <p class="text-sm font-medium text-blue-700">
+                            Total: <span class="font-bold">{{ materias.length }}</span> materia{{ materias.length !== 1 ? 's' : '' }}
+                        </p>
+                    </div>
                 </div>
             </div>
         </template>
 
         <div class="p-6">
+            <!-- Banner de archivo -->
+            <div v-if="esArchivo" class="mb-6 p-4 bg-amber-50 border border-amber-300 rounded-lg flex items-center">
+                <i class="bx bx-archive text-amber-600 text-2xl mr-3"></i>
+                <div class="flex-1">
+                    <p class="text-sm font-semibold text-amber-800">Estás viendo materias archivadas del período: {{ periodoLabel }}</p>
+                    <p class="text-xs text-amber-600 mt-0.5">Los datos son de solo lectura.</p>
+                </div>
+                <span class="px-3 py-1 bg-amber-200 text-amber-800 text-xs font-semibold rounded-full">Archivo</span>
+            </div>
+
             <!-- Mensaje de error o advertencia -->
             <div v-if="mensaje" class="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
                 <i class="bx bx-info-circle text-3xl text-yellow-600 mb-2"></i>

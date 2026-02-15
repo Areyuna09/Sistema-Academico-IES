@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\PeriodoInscripcion;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
@@ -33,6 +34,7 @@ class PeriodosController extends Controller
         }
 
         $periodos = $query
+            ->withCount(['asignacionesProfesores as asignaciones_count'])
             ->orderBy('anio', 'desc')
             ->orderBy('cuatrimestre', 'desc')
             ->paginate(15)
@@ -167,7 +169,86 @@ class PeriodosController extends Controller
 
         $estado = $periodo->activo ? 'activado' : 'desactivado';
 
+        // Si se activó, verificar si tiene asignaciones
+        if ($periodo->activo) {
+            $asignaciones = DB::table('tbl_profesor_tiene_materias')
+                ->where('periodo_id', $periodo->id)
+                ->count();
+
+            if ($asignaciones === 0) {
+                return back()->with([
+                    'success' => "Período {$estado} exitosamente.",
+                    'sin_asignaciones' => true,
+                    'periodo_id' => $periodo->id,
+                ]);
+            }
+        }
+
         return back()->with('success', "Período {$estado} exitosamente.");
+    }
+
+    /**
+     * Clonar asignaciones profesor-materia de un período anterior al período destino
+     */
+    public function clonarAsignaciones(Request $request, PeriodoInscripcion $periodo)
+    {
+        // Buscar el período anterior más reciente
+        $periodoAnterior = PeriodoInscripcion::where('id', '!=', $periodo->id)
+            ->where(function ($q) use ($periodo) {
+                $q->where('anio', '<', $periodo->anio)
+                    ->orWhere(function ($q2) use ($periodo) {
+                        $q2->where('anio', $periodo->anio)
+                            ->where('cuatrimestre', '<', $periodo->cuatrimestre);
+                    });
+            })
+            ->orderByDesc('anio')
+            ->orderByDesc('cuatrimestre')
+            ->first();
+
+        if (!$periodoAnterior) {
+            return back()->withErrors(['error' => 'No se encontró un período anterior del cual clonar asignaciones.']);
+        }
+
+        $asignacionesAnteriores = DB::table('tbl_profesor_tiene_materias')
+            ->where('periodo_id', $periodoAnterior->id)
+            ->get();
+
+        if ($asignacionesAnteriores->isEmpty()) {
+            return back()->withErrors(['error' => "El período anterior ({$periodoAnterior->nombre}) no tiene asignaciones para clonar."]);
+        }
+
+        $cursado = $periodo->cuatrimestre == '1' ? '1er Cuatrimestre' : '2do Cuatrimestre';
+        $clonadas = 0;
+
+        foreach ($asignacionesAnteriores as $asignacion) {
+            // Evitar duplicados
+            $existe = DB::table('tbl_profesor_tiene_materias')
+                ->where('profesor', $asignacion->profesor)
+                ->where('materia', $asignacion->materia)
+                ->where('carrera', $asignacion->carrera)
+                ->where('periodo_id', $periodo->id)
+                ->exists();
+
+            if (!$existe) {
+                DB::table('tbl_profesor_tiene_materias')->insert([
+                    'profesor' => $asignacion->profesor,
+                    'carrera' => $asignacion->carrera,
+                    'materia' => $asignacion->materia,
+                    'division' => $asignacion->division,
+                    'cursado' => $cursado,
+                    'periodo_id' => $periodo->id,
+                    'nota_minima_promocion' => $asignacion->nota_minima_promocion,
+                    'nota_minima_regularidad' => $asignacion->nota_minima_regularidad,
+                    'permite_promocion' => $asignacion->permite_promocion,
+                    'porcentaje_asistencia_minimo' => $asignacion->porcentaje_asistencia_minimo,
+                    'criterios_evaluacion' => $asignacion->criterios_evaluacion,
+                    'configuracion_completa' => false,
+                ]);
+                $clonadas++;
+            }
+        }
+
+        return back()->with('success', "Se clonaron {$clonadas} asignaciones del período \"{$periodoAnterior->nombre}\" al período actual.");
     }
 
     /**

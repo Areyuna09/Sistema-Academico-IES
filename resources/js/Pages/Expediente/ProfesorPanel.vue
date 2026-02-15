@@ -3,6 +3,7 @@ import { Head } from '@inertiajs/vue3';
 import { ref, onMounted, computed } from 'vue';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
 import Dialog from '@/Components/Dialog.vue';
+import AsistenciaCalendario from '@/Components/AsistenciaCalendario.vue';
 import axios from 'axios';
 import { useProfesorOnboarding } from '@/Composables/useOnboarding';
 import { useDialog } from '@/Composables/useDialog';
@@ -33,6 +34,15 @@ const materiaSeleccionada = ref(null);
 const materiasData = ref(null);
 const cargandoMaterias = ref(false);
 const errorMaterias = ref('');
+
+// Variables para períodos
+const periodoActual = ref(null); // null = período activo
+const periodosDisponibles = ref([]);
+const periodoActivoInfo = ref(null);
+const esArchivo = computed(() => {
+    if (!periodoActual.value || !periodoActivoInfo.value) return false;
+    return periodoActual.value !== periodoActivoInfo.value.id;
+});
 
 // Variables para modales
 const modalAsistenciaAbierto = ref(false);
@@ -66,6 +76,13 @@ const configuracionActual = ref({
     porcentaje_asistencia_minimo: 75,
     criterios_evaluacion: ''
 });
+
+// Variables para modal de calendario de asistencias
+const modalCalendarioAbierto = ref(false);
+const calendarioData = ref({ fechas: {}, alumnos: [] });
+const cargandoCalendario = ref(false);
+const calendarioMateriaActual = ref(null);
+const mesCalendario = ref(new Date().toISOString().slice(0, 7)); // 'YYYY-MM'
 
 const opciones = [
     {
@@ -203,13 +220,33 @@ const cerrarModalExpediente = () => {
     expedienteAlumno.value = null;
 };
 
+const cargarPeriodosProfesor = async () => {
+    try {
+        const response = await axios.get(route('api.expediente.periodos-profesor'));
+        periodosDisponibles.value = response.data.periodos;
+    } catch (error) {
+        console.error('Error al cargar períodos:', error);
+    }
+};
+
 const cargarMaterias = async () => {
     cargandoMaterias.value = true;
     errorMaterias.value = '';
 
     try {
-        const response = await axios.get(route('expediente.alumnos-profesor'));
+        const params = {};
+        if (periodoActual.value) {
+            params.periodo_id = periodoActual.value;
+        }
+        const response = await axios.get(route('expediente.alumnos-profesor'), { params });
         materiasData.value = response.data.materias;
+        if (response.data.periodo_activo) {
+            periodoActivoInfo.value = response.data.periodo_activo;
+            // Si no hay período seleccionado, usar el activo
+            if (!periodoActual.value) {
+                periodoActual.value = response.data.periodo_activo.id;
+            }
+        }
     } catch (error) {
         errorMaterias.value = 'Error al cargar las materias';
         console.error(error);
@@ -223,7 +260,11 @@ const cargarAlumnos = async () => {
     errorAlumnos.value = '';
 
     try {
-        const response = await axios.get(route('expediente.alumnos-profesor'));
+        const params = {};
+        if (periodoActual.value) {
+            params.periodo_id = periodoActual.value;
+        }
+        const response = await axios.get(route('expediente.alumnos-profesor'), { params });
         alumnosData.value = response.data.materias;
 
         // Seleccionar la primera materia por defecto
@@ -237,6 +278,24 @@ const cargarAlumnos = async () => {
         cargandoAlumnos.value = false;
     }
 };
+
+const cambiarPeriodo = (periodoId) => {
+    periodoActual.value = periodoId;
+    // Recargar datos con el nuevo período
+    materiasData.value = null;
+    alumnosData.value = null;
+    if (tabActivo.value === 'materias') {
+        cargarMaterias();
+    } else if (tabActivo.value === 'alumnos') {
+        cargarAlumnos();
+    }
+};
+
+const periodoSeleccionadoLabel = computed(() => {
+    if (!periodoActual.value || !periodosDisponibles.value.length) return 'Período actual';
+    const p = periodosDisponibles.value.find(p => p.id === periodoActual.value);
+    return p ? p.label : 'Período actual';
+});
 
 // Funciones para modales de asistencia
 const abrirModalAsistencia = (materia) => {
@@ -286,7 +345,9 @@ const guardarAsistenciaDiaria = async () => {
         cerrarModalAsistencia();
     } catch (error) {
         console.error(error);
-        if (error.response && error.response.data && error.response.data.message) {
+        if (error.response && error.response.status === 422 && error.response.data && error.response.data.message) {
+            await showAlert(error.response.data.message, 'Atención');
+        } else if (error.response && error.response.data && error.response.data.message) {
             await showAlert('Error: ' + error.response.data.message, 'Error');
         } else {
             await showAlert('Error al guardar la asistencia', 'Error');
@@ -418,6 +479,36 @@ const guardarConfiguracionAcademica = async () => {
     }
 };
 
+// Funciones para modal de calendario de asistencias
+const verCalendarioAsistencia = async (materia) => {
+    calendarioMateriaActual.value = materia;
+    mesCalendario.value = new Date().toISOString().slice(0, 7);
+    modalCalendarioAbierto.value = true;
+    cargandoCalendario.value = true;
+
+    try {
+        const response = await axios.get(route('api.expediente.asistencias-diarias', materia.materia_id));
+        calendarioData.value = response.data;
+    } catch (error) {
+        await showAlert('Error al cargar las asistencias', 'Error');
+        modalCalendarioAbierto.value = false;
+    } finally {
+        cargandoCalendario.value = false;
+    }
+};
+
+const cerrarModalCalendario = () => {
+    modalCalendarioAbierto.value = false;
+    calendarioMateriaActual.value = null;
+    calendarioData.value = { fechas: {}, alumnos: [] };
+};
+
+const cambiarMesCalendario = (direccion) => {
+    const [anio, mes] = mesCalendario.value.split('-').map(Number);
+    const fecha = new Date(anio, mes - 1 + direccion, 1);
+    mesCalendario.value = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
+};
+
 // Función para mostrar el tour de ayuda
 const mostrarAyuda = () => {
     startTour();
@@ -426,6 +517,7 @@ const mostrarAyuda = () => {
 // Cargar materias al montar el componente (ya que materias es el tab por defecto)
 onMounted(() => {
     cargarMaterias();
+    cargarPeriodosProfesor();
     // Iniciar tour si es la primera vez
     startTourIfFirstTime();
 });
@@ -492,6 +584,43 @@ onMounted(() => {
                                 <p class="text-sm text-gray-600">Gestiona tus materias, asistencias y notas</p>
                             </div>
                         </div>
+                        <!-- Selector de período -->
+                        <div v-if="periodosDisponibles.length > 0" class="flex items-center gap-3">
+                            <div class="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 gap-3">
+                                <div class="flex items-center gap-2 text-gray-500">
+                                    <i class="bx bx-calendar text-lg"></i>
+                                    <span class="text-xs font-medium hidden sm:inline">Período</span>
+                                </div>
+                                <select
+                                    :value="periodoActual"
+                                    @change="cambiarPeriodo(Number($event.target.value))"
+                                    class="bg-white border border-gray-300 rounded-lg px-3 py-1.5 text-sm font-medium text-gray-800 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 cursor-pointer min-w-[220px] appearance-none"
+                                    :style="{ backgroundImage: 'url(\'data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%236b7280%22 stroke-width=%222%22%3E%3Cpolyline points=%226 9 12 15 18 9%22/%3E%3C/svg%3E\')', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '16px', paddingRight: '32px' }"
+                                >
+                                    <option v-for="p in periodosDisponibles" :key="p.id" :value="p.id">
+                                        {{ p.label }}
+                                    </option>
+                                </select>
+                                <span v-if="!esArchivo" class="flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 text-xs font-semibold rounded-full whitespace-nowrap">
+                                    <span class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                                    Activo
+                                </span>
+                                <span v-else class="flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-semibold rounded-full whitespace-nowrap">
+                                    <i class="bx bx-archive-in text-xs"></i>
+                                    Archivo
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Banner de archivo -->
+                    <div v-if="esArchivo" class="mb-4 p-3 bg-amber-50 border border-amber-300 rounded-lg flex items-center">
+                        <i class="bx bx-archive text-amber-600 text-xl mr-3"></i>
+                        <div class="flex-1">
+                            <p class="text-sm font-semibold text-amber-800">Estás viendo materias archivadas del período: {{ periodoSeleccionadoLabel }}</p>
+                            <p class="text-xs text-amber-600">Los datos son de solo lectura. Las acciones de gestión están deshabilitadas.</p>
+                        </div>
+                        <span class="px-2 py-1 bg-amber-200 text-amber-800 text-xs font-semibold rounded-full">Archivo</span>
                     </div>
 
                     <!-- Estado de carga -->
@@ -560,7 +689,11 @@ onMounted(() => {
                             <div class="flex gap-2 pt-3 border-t border-gray-200">
                                 <button
                                     @click="abrirModalConfiguracion(materia)"
-                                    class="px-3 py-2 text-sm bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors flex items-center justify-center"
+                                    :disabled="esArchivo"
+                                    :class="[
+                                        'px-3 py-2 text-sm text-white rounded-lg transition-colors flex items-center justify-center',
+                                        esArchivo ? 'bg-gray-300 cursor-not-allowed' : 'bg-amber-600 hover:bg-amber-700'
+                                    ]"
                                     title="Configurar parámetros académicos"
                                 >
                                     <i class="bx bx-cog mr-1"></i>
@@ -594,6 +727,43 @@ onMounted(() => {
                                 <p class="text-sm text-gray-600">Estudiantes inscriptos en tus materias</p>
                             </div>
                         </div>
+                        <!-- Selector de período -->
+                        <div v-if="periodosDisponibles.length > 0" class="flex items-center gap-3">
+                            <div class="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 gap-3">
+                                <div class="flex items-center gap-2 text-gray-500">
+                                    <i class="bx bx-calendar text-lg"></i>
+                                    <span class="text-xs font-medium hidden sm:inline">Período</span>
+                                </div>
+                                <select
+                                    :value="periodoActual"
+                                    @change="cambiarPeriodo(Number($event.target.value))"
+                                    class="bg-white border border-gray-300 rounded-lg px-3 py-1.5 text-sm font-medium text-gray-800 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 cursor-pointer min-w-[220px] appearance-none"
+                                    :style="{ backgroundImage: 'url(\'data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%236b7280%22 stroke-width=%222%22%3E%3Cpolyline points=%226 9 12 15 18 9%22/%3E%3C/svg%3E\')', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '16px', paddingRight: '32px' }"
+                                >
+                                    <option v-for="p in periodosDisponibles" :key="p.id" :value="p.id">
+                                        {{ p.label }}
+                                    </option>
+                                </select>
+                                <span v-if="!esArchivo" class="flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 text-xs font-semibold rounded-full whitespace-nowrap">
+                                    <span class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                                    Activo
+                                </span>
+                                <span v-else class="flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-semibold rounded-full whitespace-nowrap">
+                                    <i class="bx bx-archive-in text-xs"></i>
+                                    Archivo
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Banner de archivo -->
+                    <div v-if="esArchivo" class="mb-4 p-3 bg-amber-50 border border-amber-300 rounded-lg flex items-center">
+                        <i class="bx bx-archive text-amber-600 text-xl mr-3"></i>
+                        <div class="flex-1">
+                            <p class="text-sm font-semibold text-amber-800">Estás viendo alumnos de un período archivado: {{ periodoSeleccionadoLabel }}</p>
+                            <p class="text-xs text-amber-600">Solo puedes consultar datos. Las acciones de gestión están deshabilitadas.</p>
+                        </div>
+                        <span class="px-2 py-1 bg-amber-200 text-amber-800 text-xs font-semibold rounded-full">Archivo</span>
                     </div>
 
                     <!-- Estado de carga -->
@@ -634,19 +804,35 @@ onMounted(() => {
                                         <h3 class="text-lg font-semibold text-gray-900">{{ materia.materia }}</h3>
                                         <p class="text-sm text-gray-600">{{ materia.carrera }} - Cursado {{ materia.cursado }} - División {{ materia.division }}</p>
                                     </div>
-                                    <div class="flex gap-2">
+                                    <div class="flex gap-2 flex-wrap">
                                         <button
                                             @click="abrirModalAsistencia(materia)"
-                                            class="onboarding-btn-asistencia px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-                                            title="Registrar asistencia del día"
+                                            :disabled="materia.tiene_asistencia_final || esArchivo"
+                                            :title="esArchivo ? 'No disponible en modo archivo' : (materia.tiene_asistencia_final ? 'Ya existe carga final de asistencia' : 'Registrar asistencia del día')"
+                                            :class="[
+                                                'onboarding-btn-asistencia px-4 py-2 text-white rounded-lg transition-colors flex items-center',
+                                                (materia.tiene_asistencia_final || esArchivo) ? 'bg-gray-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+                                            ]"
                                         >
                                             <i class="bx bx-calendar-check mr-2"></i>
                                             Asistencia Diaria
                                         </button>
                                         <button
+                                            @click="verCalendarioAsistencia(materia)"
+                                            class="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors flex items-center"
+                                            title="Ver historial de asistencias"
+                                        >
+                                            <i class="bx bx-calendar mr-2"></i>
+                                            Ver Asistencias
+                                        </button>
+                                        <button
                                             @click="abrirModalNotas(materia)"
-                                            class="onboarding-btn-notas px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center"
-                                            title="Cargar notas temporales"
+                                            :disabled="esArchivo"
+                                            :class="[
+                                                'onboarding-btn-notas px-4 py-2 text-white rounded-lg transition-colors flex items-center',
+                                                esArchivo ? 'bg-gray-300 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700'
+                                            ]"
+                                            :title="esArchivo ? 'No disponible en modo archivo' : 'Cargar notas temporales'"
                                         >
                                             <i class="bx bx-edit mr-2"></i>
                                             Cargar Notas
@@ -1334,6 +1520,49 @@ onMounted(() => {
                 <!-- Footer -->
                 <div class="bg-gray-100 px-6 py-3 flex justify-end">
                     <button @click="cerrarModalExpediente" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                        Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Calendario de Asistencias -->
+        <div v-if="modalCalendarioAbierto" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-[95vw] w-full max-h-[90vh] overflow-hidden flex flex-col">
+                <!-- Header -->
+                <div class="bg-teal-600 text-white px-6 py-4 flex items-center justify-between">
+                    <div>
+                        <h3 class="text-xl font-semibold">Calendario de Asistencias</h3>
+                        <p class="text-sm text-teal-100 mt-1" v-if="calendarioMateriaActual">
+                            {{ calendarioMateriaActual.materia }} - {{ calendarioMateriaActual.carrera }}
+                        </p>
+                    </div>
+                    <button @click="cerrarModalCalendario" class="text-white hover:text-gray-200">
+                        <i class="bx bx-x text-3xl"></i>
+                    </button>
+                </div>
+
+                <!-- Contenido -->
+                <div class="flex-1 overflow-y-auto p-6">
+                    <!-- Loading -->
+                    <div v-if="cargandoCalendario" class="text-center py-12">
+                        <i class="bx bx-loader-alt animate-spin text-4xl text-teal-600"></i>
+                        <p class="text-gray-600 mt-2">Cargando asistencias...</p>
+                    </div>
+
+                    <!-- Calendario -->
+                    <AsistenciaCalendario
+                        v-else
+                        :asistencias="calendarioData.fechas"
+                        :alumnos="calendarioData.alumnos"
+                        :mes="mesCalendario"
+                        @cambiar-mes="cambiarMesCalendario"
+                    />
+                </div>
+
+                <!-- Footer -->
+                <div class="bg-gray-100 px-6 py-3 flex justify-end">
+                    <button @click="cerrarModalCalendario" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
                         Cerrar
                     </button>
                 </div>

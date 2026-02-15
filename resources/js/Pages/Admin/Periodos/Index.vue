@@ -1,6 +1,6 @@
 <script setup>
-import { ref, computed } from 'vue';
-import { Head, useForm, Link, router } from '@inertiajs/vue3';
+import { ref, computed, watch } from 'vue';
+import { Head, useForm, Link, router, usePage } from '@inertiajs/vue3';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
 import Dialog from '@/Components/Dialog.vue';
 import { useDialog } from '@/Composables/useDialog';
@@ -31,7 +31,12 @@ const limpiarFiltros = () => {
     form.get(route('admin.periodos.index'));
 };
 
-const { confirm: showConfirm } = useDialog();
+const { confirm: showConfirm, alert: showAlert } = useDialog();
+
+// Variables para clonar asignaciones
+const mostrarDialogoClonar = ref(false);
+const periodoParaClonar = ref(null);
+const clonando = ref(false);
 
 const toggleActivo = async (periodo) => {
     const action = periodo.activo ? 'desactivar' : 'activar';
@@ -41,8 +46,39 @@ const toggleActivo = async (periodo) => {
     );
 
     if (confirmed) {
-        router.post(route('admin.periodos.toggle', periodo.id));
+        router.post(route('admin.periodos.toggle', periodo.id), {}, {
+            preserveScroll: true,
+            onSuccess: () => {
+                // Verificar si el período activado no tiene asignaciones
+                const page = usePage();
+                const flash = page.props.flash || {};
+                if (flash.sin_asignaciones && flash.periodo_id) {
+                    periodoParaClonar.value = flash.periodo_id;
+                    mostrarDialogoClonar.value = true;
+                }
+            }
+        });
     }
+};
+
+const clonarAsignaciones = () => {
+    if (!periodoParaClonar.value) return;
+    clonando.value = true;
+    router.post(route('admin.periodos.clonar-asignaciones', periodoParaClonar.value), {}, {
+        preserveScroll: true,
+        onSuccess: () => {
+            mostrarDialogoClonar.value = false;
+            periodoParaClonar.value = null;
+        },
+        onFinish: () => {
+            clonando.value = false;
+        }
+    });
+};
+
+const cerrarDialogoClonar = () => {
+    mostrarDialogoClonar.value = false;
+    periodoParaClonar.value = null;
 };
 
 const eliminarPeriodo = async (periodo) => {
@@ -212,6 +248,14 @@ const estaEnInscripcion = (periodo) => {
                                             <i class="bx bx-time-five mr-1"></i> Inscripción abierta
                                         </span>
                                     </div>
+                                    <div v-if="periodo.asignaciones_count !== undefined" class="mt-1">
+                                        <span :class="[
+                                            'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium',
+                                            periodo.asignaciones_count > 0 ? 'bg-indigo-100 text-indigo-800' : 'bg-orange-100 text-orange-800'
+                                        ]">
+                                            <i class="bx bx-user mr-1"></i> {{ periodo.asignaciones_count }} asignaciones
+                                        </span>
+                                    </div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     <div class="flex items-center justify-end gap-2">
@@ -272,6 +316,42 @@ const estaEnInscripcion = (periodo) => {
                             ]"
                             v-html="link.label"
                         />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de clonar asignaciones -->
+        <div v-if="mostrarDialogoClonar" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+                <div class="bg-indigo-600 text-white px-6 py-4 rounded-t-lg">
+                    <h3 class="text-lg font-semibold">Asignaciones de profesores</h3>
+                </div>
+                <div class="p-6">
+                    <div class="flex items-start mb-4">
+                        <i class="bx bx-info-circle text-indigo-600 text-2xl mr-3 flex-shrink-0"></i>
+                        <p class="text-sm text-gray-700">
+                            Este período no tiene asignaciones de profesores a materias. ¿Desea clonar las asignaciones del período anterior?
+                        </p>
+                    </div>
+                    <p class="text-xs text-gray-500 mb-6">
+                        Se copiarán todas las asignaciones profesor-materia del último período previo. Luego podrá editar individualmente si hay cambios.
+                    </p>
+                    <div class="flex justify-end gap-3">
+                        <button
+                            @click="cerrarDialogoClonar"
+                            class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm"
+                        >
+                            No, asignar manualmente
+                        </button>
+                        <button
+                            @click="clonarAsignaciones"
+                            :disabled="clonando"
+                            class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm disabled:opacity-50 flex items-center"
+                        >
+                            <i :class="['bx mr-1', clonando ? 'bx-loader-alt animate-spin' : 'bx-copy']"></i>
+                            {{ clonando ? 'Clonando...' : 'Clonar asignaciones' }}
+                        </button>
                     </div>
                 </div>
             </div>

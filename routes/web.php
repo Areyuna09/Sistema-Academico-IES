@@ -67,8 +67,12 @@ Route::middleware('auth')->group(function () {
         Route::post('/expediente/aprobar-nota/{id}', [ExpedienteController::class, 'aprobarNota'])->name('expediente.aprobar-nota');
         Route::post('/expediente/rechazar-nota/{id}', [ExpedienteController::class, 'rechazarNota'])->name('expediente.rechazar-nota');
         Route::post('/expediente/configurar-parametros/{profesorMateriaId}', [ExpedienteController::class, 'configurarParametrosAcademicos'])->name('expediente.configurar-parametros');
+        // API para períodos del profesor
+        Route::get('/api/expediente/periodos-profesor', [ExpedienteController::class, 'obtenerPeriodosProfesor'])->name('api.expediente.periodos-profesor');
         // API para modal de expediente
         Route::get('/api/expediente/alumno/{alumnoId}', [ExpedienteController::class, 'obtenerExpedienteAlumno'])->name('api.expediente.alumno');
+        // API para calendario de asistencias diarias
+        Route::get('/api/expediente/asistencias-diarias/{profesorMateriaId}', [ExpedienteController::class, 'obtenerAsistenciasDiarias'])->name('api.expediente.asistencias-diarias');
         // Ruta genérica al final
         Route::get('/expediente/{id}', [ExpedienteController::class, 'show'])->name('expediente.show');
     });
@@ -184,6 +188,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/periodos/{periodo}/editar', [PeriodosController::class, 'edit'])->name('periodos.edit');
     Route::put('/periodos/{periodo}', [PeriodosController::class, 'update'])->name('periodos.update');
     Route::post('/periodos/{periodo}/toggle', [PeriodosController::class, 'toggle'])->name('periodos.toggle');
+    Route::post('/periodos/{periodo}/clonar-asignaciones', [PeriodosController::class, 'clonarAsignaciones'])->name('periodos.clonar-asignaciones');
     Route::delete('/periodos/{periodo}', [PeriodosController::class, 'destroy'])->name('periodos.destroy');
 
     // Gestión de Mesas de Examen

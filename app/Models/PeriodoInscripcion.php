@@ -30,6 +30,11 @@ class PeriodoInscripcion extends Model
         'anio' => 'integer',
     ];
 
+    public function asignacionesProfesores()
+    {
+        return $this->hasMany(ProfesorMateria::class, 'periodo_id');
+    }
+
     /**
      * Obtener el período activo actualmente
      */

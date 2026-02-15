@@ -49,6 +49,10 @@ const props = defineProps({
         type: Object,
         default: () => ({})
     },
+    periodoActivo: {
+        type: Object,
+        default: null
+    },
 });
 
 // Debug: ver qué datos llegan
@@ -1959,6 +1963,7 @@ const getEstadoBadge = (estado) => {
             :show="mostrarModalProfesor"
             :profesor="profesorEditando"
             :carreras="carreras"
+            :periodo-activo="periodoActivo"
             @close="cerrarModalProfesor"
             @saved="profesorGuardado"
         />

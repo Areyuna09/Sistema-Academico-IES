@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Profesor;
 use App\Models\Carrera;
+use App\Models\PeriodoInscripcion;
 use App\Traits\HandlesErrors;
 use App\Traits\ChecksPermissions;
 use Illuminate\Http\Request;
@@ -82,13 +83,19 @@ class ProfesorController extends Controller
             ]);
 
             if (!empty($validated['materias'])) {
+                $periodoActivo = PeriodoInscripcion::activo();
+                $cursado = $periodoActivo
+                    ? ($periodoActivo->cuatrimestre == '1' ? '1er Cuatrimestre' : '2do Cuatrimestre')
+                    : '1er Cuatrimestre';
+
                 foreach ($validated['materias'] as $materiaId) {
                     \DB::table('tbl_profesor_tiene_materias')->insert([
                         'profesor' => $profesor->id,
                         'carrera' => $validated['carrera'],
                         'materia' => $materiaId,
                         'division' => $validated['division'],
-                        'cursado' => '1er Cuatrimestre',
+                        'cursado' => $cursado,
+                        'periodo_id' => $periodoActivo?->id,
                         'nota_minima_promocion' => 7.00,
                         'nota_minima_regularidad' => 4.00,
                         'permite_promocion' => true,
@@ -136,10 +143,14 @@ class ProfesorController extends Controller
 
         $carreras = Carrera::all();
 
-        $materias = \DB::table('tbl_profesor_tiene_materias')
-            ->where('profesor', $profesor->id)
-            ->pluck('materia')
-            ->toArray();
+        // Solo cargar materias del período activo para edición
+        $periodoActivo = PeriodoInscripcion::activo();
+        $materiasQuery = \DB::table('tbl_profesor_tiene_materias')
+            ->where('profesor', $profesor->id);
+        if ($periodoActivo) {
+            $materiasQuery->where('periodo_id', $periodoActivo->id);
+        }
+        $materias = $materiasQuery->pluck('materia')->toArray();
 
         $profesorData = $profesor->toArray();
         $profesorData['materias'] = $materias;
@@ -203,9 +214,20 @@ class ProfesorController extends Controller
                 'division' => $validated['division'],
             ]);
 
-            \DB::table('tbl_profesor_tiene_materias')
-                ->where('profesor', $profesor->id)
-                ->delete();
+            $periodoActivo = PeriodoInscripcion::activo();
+            $cursado = $periodoActivo
+                ? ($periodoActivo->cuatrimestre == '1' ? '1er Cuatrimestre' : '2do Cuatrimestre')
+                : '1er Cuatrimestre';
+
+            // Solo borrar asignaciones del período activo (preservar archivadas)
+            $deleteQuery = \DB::table('tbl_profesor_tiene_materias')
+                ->where('profesor', $profesor->id);
+            if ($periodoActivo) {
+                $deleteQuery->where('periodo_id', $periodoActivo->id);
+            } else {
+                $deleteQuery->whereNull('periodo_id');
+            }
+            $deleteQuery->delete();
 
             if (!empty($validated['materias'])) {
                 foreach ($validated['materias'] as $materiaId) {
@@ -214,7 +236,8 @@ class ProfesorController extends Controller
                         'carrera' => $validated['carrera'],
                         'materia' => $materiaId,
                         'division' => $validated['division'],
-                        'cursado' => '1er Cuatrimestre',
+                        'cursado' => $cursado,
+                        'periodo_id' => $periodoActivo?->id,
                         'nota_minima_promocion' => 7.00,
                         'nota_minima_regularidad' => 4.00,
                         'permite_promocion' => true,

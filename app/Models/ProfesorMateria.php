@@ -8,13 +8,14 @@ class ProfesorMateria extends Model
 {
     protected $table = 'tbl_profesor_tiene_materias';
     public $timestamps = false;
-    
+
     protected $fillable = [
         'profesor',
         'carrera',
         'materia',
         'cursado',
         'division',
+        'periodo_id',
         'nota_minima_promocion',
         'nota_minima_regularidad',
         'permite_promocion',
@@ -44,6 +45,32 @@ class ProfesorMateria extends Model
     public function carreraRelacion()
     {
         return $this->belongsTo(Carrera::class, 'carrera', 'Id');
+    }
+
+    public function periodoRelacion()
+    {
+        return $this->belongsTo(PeriodoInscripcion::class, 'periodo_id');
+    }
+
+    public function scopeDelPeriodoActivo($query)
+    {
+        $periodoActivo = PeriodoInscripcion::activo();
+        if ($periodoActivo) {
+            return $query->where('periodo_id', $periodoActivo->id);
+        }
+        return $query;
+    }
+
+    public function scopeDelPeriodo($query, $periodoId)
+    {
+        return $query->where('periodo_id', $periodoId);
+    }
+
+    public function scopeDelCuatrimestre($query, $cuatrimestre)
+    {
+        return $query->whereHas('materiaRelacion', function ($q) use ($cuatrimestre) {
+            $q->where('semestre', $cuatrimestre);
+        });
     }
 
     public function asistencias()

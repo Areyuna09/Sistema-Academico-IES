@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Profesor;
 
 use App\Http\Controllers\Controller;
 use App\Models\ProfesorMateria;
+use App\Models\PeriodoInscripcion;
 use App\Models\Inscripcion;
 use App\Models\Asistencia;
 use App\Models\NotaTemporal;
@@ -29,29 +30,85 @@ class MisMateriasController extends Controller
             ]);
         }
 
-        // Obtener materias asignadas al profesor
-        $materias = ProfesorMateria::with(['materiaRelacion', 'carreraRelacion'])
-            ->where('profesor', $profesorId)
-            ->get()
-            ->map(function ($profesorMateria) {
-                // Contar alumnos inscritos en esta materia
-                $cantidadAlumnos = Inscripcion::where('materia_id', $profesorMateria->materia)
-                    ->where('carrera_id', $profesorMateria->carrera)
-                    ->where('estado', 'confirmada')
-                    ->count();
+        // Filtrar por período
+        $periodoActivo = PeriodoInscripcion::activo();
 
+        $query = ProfesorMateria::with(['materiaRelacion', 'carreraRelacion', 'periodoRelacion'])
+            ->where('profesor', $profesorId);
+
+        if ($request->filled('periodo_id')) {
+            $query->delPeriodo($request->periodo_id);
+        } elseif ($periodoActivo) {
+            $query->delPeriodoActivo();
+        }
+
+        // Filtrar por cuatrimestre: solo mostrar materias cuyo semestre coincide con el del período
+        $periodoFiltro = $request->filled('periodo_id')
+            ? PeriodoInscripcion::find($request->periodo_id)
+            : $periodoActivo;
+        if ($periodoFiltro && $periodoFiltro->cuatrimestre) {
+            $query->delCuatrimestre($periodoFiltro->cuatrimestre);
+        }
+
+        $materias = $query->get()->map(function ($profesorMateria) {
+            // Contar alumnos inscritos en esta materia (del mismo período)
+            $queryAlumnos = Inscripcion::where('materia_id', $profesorMateria->materia)
+                ->where('carrera_id', $profesorMateria->carrera)
+                ->where('estado', 'confirmada');
+            if ($profesorMateria->periodo_id) {
+                $queryAlumnos->where('periodo_id', $profesorMateria->periodo_id);
+            }
+            $cantidadAlumnos = $queryAlumnos->count();
+
+            return [
+                'id' => $profesorMateria->id,
+                'materia_nombre' => $profesorMateria->materiaRelacion->nombre,
+                'carrera_nombre' => $profesorMateria->carreraRelacion->nombre,
+                'cursado' => $profesorMateria->cursado,
+                'division' => $profesorMateria->division,
+                'cantidad_alumnos' => $cantidadAlumnos,
+                'periodo' => $profesorMateria->periodoRelacion ? [
+                    'id' => $profesorMateria->periodoRelacion->id,
+                    'nombre' => $profesorMateria->periodoRelacion->nombre,
+                    'activo' => $profesorMateria->periodoRelacion->activo,
+                ] : null,
+            ];
+        });
+
+        // Períodos disponibles para el selector
+        $periodosIds = ProfesorMateria::where('profesor', $profesorId)
+            ->whereNotNull('periodo_id')
+            ->distinct()
+            ->pluck('periodo_id');
+
+        $periodosDisponibles = PeriodoInscripcion::whereIn('id', $periodosIds)
+            ->orderByDesc('anio')
+            ->orderByDesc('cuatrimestre')
+            ->get()
+            ->map(function ($p) {
                 return [
-                    'id' => $profesorMateria->id,
-                    'materia_nombre' => $profesorMateria->materiaRelacion->nombre,
-                    'carrera_nombre' => $profesorMateria->carreraRelacion->nombre,
-                    'cursado' => $profesorMateria->cursado,
-                    'division' => $profesorMateria->division,
-                    'cantidad_alumnos' => $cantidadAlumnos,
+                    'id' => $p->id,
+                    'nombre' => $p->nombre,
+                    'anio' => $p->anio,
+                    'cuatrimestre' => $p->cuatrimestre,
+                    'activo' => $p->activo,
+                    'label' => ($p->cuatrimestre == '1' ? '1er' : '2do') . " Cuatrimestre {$p->anio}" . ($p->activo ? ' (activo)' : ''),
                 ];
             });
 
+        // Determinar si estamos viendo un período archivado
+        $periodoSeleccionado = $request->filled('periodo_id') ? (int)$request->periodo_id : ($periodoActivo?->id);
+        $esArchivo = $periodoSeleccionado && $periodoActivo && $periodoSeleccionado !== $periodoActivo->id;
+
         return Inertia::render('Profesor/MisMaterias/Index', [
-            'materias' => $materias
+            'materias' => $materias,
+            'periodosDisponibles' => $periodosDisponibles,
+            'periodoActivo' => $periodoActivo ? [
+                'id' => $periodoActivo->id,
+                'nombre' => $periodoActivo->nombre,
+            ] : null,
+            'periodoSeleccionado' => $periodoSeleccionado,
+            'esArchivo' => $esArchivo,
         ]);
     }
 
@@ -69,12 +126,15 @@ class MisMateriasController extends Controller
             ->where('profesor', $profesorId)
             ->firstOrFail();
 
-        // Obtener alumnos inscritos
-        $alumnos = Inscripcion::with(['alumno'])
+        // Obtener alumnos inscritos (del mismo período)
+        $queryAlumnosShow = Inscripcion::with(['alumno'])
             ->where('materia_id', $profesorMateria->materia)
             ->where('carrera_id', $profesorMateria->carrera)
-            ->where('estado', 'confirmada')
-            ->get()
+            ->where('estado', 'confirmada');
+        if ($profesorMateria->periodo_id) {
+            $queryAlumnosShow->where('periodo_id', $profesorMateria->periodo_id);
+        }
+        $alumnos = $queryAlumnosShow->get()
             ->map(function ($inscripcion) {
                 $alumno = $inscripcion->alumno;
                 return [
@@ -179,6 +239,10 @@ class MisMateriasController extends Controller
         $promedioAsistencia = $totalClases > 0 ? round($asistencias->avg('porcentaje'), 2) : 0;
         $totalNotasCargadas = $notasTemporales->count();
 
+        // Determinar si es read-only (período no activo)
+        $periodoActivo = PeriodoInscripcion::activo();
+        $esArchivo = $periodoActivo && $profesorMateria->periodo_id && $profesorMateria->periodo_id !== $periodoActivo->id;
+
         return Inertia::render('Profesor/MisMaterias/Show', [
             'profesorMateria' => [
                 'id' => $profesorMateria->id,
@@ -194,6 +258,7 @@ class MisMateriasController extends Controller
             'alumnos' => $alumnos,
             'asistencias' => $asistencias,
             'notasTemporales' => $notasTemporales,
+            'esArchivo' => $esArchivo,
             'estadisticas' => [
                 'total_alumnos' => $alumnos->count(),
                 'promedio_asistencia' => $promedioAsistencia,
