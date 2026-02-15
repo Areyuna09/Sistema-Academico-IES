@@ -2,198 +2,204 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Listado de Inscriptos - Cursado</title>
     <style>
         @page {
-            margin: 15mm;
+            margin: 12mm 12mm 20mm 12mm;
         }
         body {
             font-family: 'Helvetica', 'Arial', sans-serif;
-            line-height: 1.3;
+            line-height: 1.4;
             color: #1a1a1a;
             margin: 0;
             padding: 0;
-            background: #ffffff;
-            font-size: 10px;
+            font-size: 11px;
         }
 
-        /* Header con logo */
-        .header {
+        /* --- Cabecera institucional --- */
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid #333;
+        }
+        .header-table td {
+            border: 1px solid #333;
+            vertical-align: middle;
+        }
+        .header-logo {
+            width: 80px;
+            padding: 8px;
             text-align: center;
-            border-bottom: 2px solid #2563eb;
-            padding-bottom: 10px;
-            margin-bottom: 15px;
         }
-        .logo {
-            max-width: 60px;
-            height: auto;
-            margin-bottom: 6px;
+        .header-logo img {
+            max-width: 65px;
+            max-height: 65px;
         }
-        .institution-name {
-            font-size: 14px;
+        .header-info {
+            padding: 8px 12px;
+        }
+        .header-info .inst-name {
+            font-size: 15px;
             font-weight: bold;
-            color: #1e293b;
-            margin: 6px 0 4px;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            color: #1a1a1a;
+            margin-bottom: 3px;
         }
-        .document-title {
-            font-size: 13px;
-            color: #2563eb;
-            font-weight: bold;
-            margin: 8px 0 4px;
-            text-transform: uppercase;
-        }
-        .document-subtitle {
-            font-size: 10px;
-            color: #64748b;
-        }
-
-        /* Filtros aplicados */
-        .filtros-info {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 4px;
-            padding: 8px 10px;
-            margin-bottom: 15px;
+        .header-info .inst-detail {
             font-size: 9px;
+            color: #555;
+            line-height: 1.4;
         }
-        .filtros-info span {
-            margin-right: 15px;
+        .header-title-row td {
+            padding: 6px 12px;
+            border: 1px solid #333;
         }
-        .filtros-label {
+        .header-doc-title {
+            font-size: 13px;
             font-weight: bold;
-            color: #475569;
+            text-transform: uppercase;
+            color: #1a1a1a;
+        }
+        .header-doc-subtitle {
+            font-size: 10px;
+            color: #555;
+        }
+        .header-meta {
+            text-align: right;
+            font-size: 10px;
+            color: #333;
         }
 
-        /* Tabla de inscriptos */
+        /* --- Filtros aplicados --- */
+        .filtros-bar {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+        .filtros-bar td {
+            padding: 4px 8px;
+            border: 1px solid #ccc;
+            font-size: 10px;
+            background-color: #f5f5f5;
+        }
+        .filtros-bar .flbl {
+            font-weight: bold;
+            color: #333;
+        }
+
+        /* --- Tabla de inscriptos --- */
         .inscriptos-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
         }
-        .inscriptos-table th {
-            background: #2563eb;
-            color: white;
-            padding: 6px 4px;
+        .inscriptos-table thead th {
+            background-color: #1e3a5f;
+            color: #fff;
+            padding: 6px 6px;
             text-align: left;
-            font-size: 8px;
+            font-size: 10px;
             font-weight: bold;
             text-transform: uppercase;
+            border: 1px solid #1e3a5f;
         }
-        .inscriptos-table td {
-            padding: 5px 4px;
-            border-bottom: 1px solid #e2e8f0;
-            font-size: 8px;
+        .inscriptos-table tbody td {
+            padding: 4px 6px;
+            border: 1px solid #ddd;
+            font-size: 10px;
         }
-        .inscriptos-table tr:nth-child(even) {
-            background: #f8fafc;
+        .inscriptos-table tbody tr:nth-child(even) {
+            background-color: #f9f9f9;
         }
         .text-center {
             text-align: center;
         }
 
-        /* Estado badge */
-        .estado {
-            padding: 2px 4px;
-            border-radius: 3px;
-            font-size: 7px;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-        .estado-confirmada { background: #dcfce7; color: #16a34a; }
-        .estado-pendiente { background: #fef3c7; color: #d97706; }
-        .estado-cancelada { background: #fee2e2; color: #dc2626; }
-
-        /* Resumen */
-        .resumen {
-            background: #f0f9ff;
-            border: 1px solid #bae6fd;
-            border-radius: 4px;
-            padding: 10px;
-            margin-top: 15px;
-        }
-        .resumen-title {
-            font-weight: bold;
-            color: #0369a1;
-            margin-bottom: 6px;
-        }
-        .resumen-grid {
-            display: table;
+        /* --- Resumen compacto --- */
+        .resumen-table {
             width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
         }
-        .resumen-item {
-            display: table-cell;
+        .resumen-table td {
+            border: 1px solid #ccc;
+            padding: 6px 10px;
             text-align: center;
-            padding: 4px;
         }
-        .resumen-numero {
+        .resumen-table .num {
             font-size: 16px;
             font-weight: bold;
-            color: #0369a1;
+            color: #1e3a5f;
         }
-        .resumen-label {
-            font-size: 8px;
-            color: #64748b;
+        .resumen-table .rlbl {
+            font-size: 9px;
+            color: #666;
         }
 
-        /* Footer - Fijo abajo */
+        /* --- Pie de página --- */
         .footer {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
-            padding: 10px 15mm;
-            border-top: 1px solid #e2e8f0;
+            padding: 6px 12mm;
+            border-top: 1px solid #999;
             text-align: center;
-            background: white;
-        }
-        .footer-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 6px;
-            font-size: 7px;
-            color: #64748b;
-        }
-        .footer-col {
-            flex: 1;
-        }
-        .footer-note {
-            margin-top: 6px;
-            font-size: 6px;
-            color: #94a3b8;
-            font-style: italic;
+            font-size: 8px;
+            color: #666;
+            background: #fff;
         }
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <div class="header">
-        @if($configuracion && $configuracion->logo_url)
-            <img src="{{ public_path('storage/' . str_replace('/storage/', '', $configuracion->logo_url)) }}" alt="Logo" class="logo">
-        @else
-            <img src="{{ public_path('images/logo-ies-original.png') }}" alt="Logo" class="logo">
-        @endif
-        <div class="institution-name">
-            {{ $configuracion->nombre_institucion ?? 'IES Gral. Manuel Belgrano' }}
-        </div>
-        <div class="document-title">Listado de Inscriptos a Cursado</div>
-        <div class="document-subtitle">Generado el {{ now()->format('d/m/Y H:i') }}</div>
-    </div>
+    @php
+        $logoPath = null;
+        if ($configuracion && $configuracion->logo_path) {
+            $storagePath = storage_path('app/public/' . $configuracion->logo_path);
+            if (file_exists($storagePath)) {
+                $logoPath = $storagePath;
+            }
+        }
+        if (!$logoPath && $configuracion && $configuracion->logo_url) {
+            $altPath = public_path('storage/' . str_replace('/storage/', '', $configuracion->logo_url));
+            if (file_exists($altPath)) {
+                $logoPath = $altPath;
+            }
+        }
+        if (!$logoPath && file_exists(public_path('images/logo-letras-oscuras.png'))) {
+            $logoPath = public_path('images/logo-letras-oscuras.png');
+        }
+    @endphp
 
-    <!-- Filtros aplicados -->
-    @if($periodo || !empty($filtros['carrera_id']) || !empty($filtros['estado']))
-        <div class="filtros-info">
-            <strong>Filtros aplicados:</strong>
-            @if($periodo)
-                <span><span class="filtros-label">Período:</span> {{ $periodo->nombre }}</span>
-            @endif
-            @if(!empty($filtros['estado']))
-                <span><span class="filtros-label">Estado:</span> {{ ucfirst($filtros['estado']) }}</span>
-            @endif
-        </div>
-    @endif
+    <!-- Cabecera institucional -->
+    <table class="header-table">
+        <tr>
+            <td class="header-logo" rowspan="2">
+                @if($logoPath)
+                    <img src="{{ $logoPath }}" alt="Logo">
+                @endif
+            </td>
+            <td class="header-info" colspan="2">
+                <div class="inst-name">{{ $configuracion->nombre_institucion ?? 'IES Gral. Manuel Belgrano' }}</div>
+                <div class="inst-detail">
+                    @if($configuracion && $configuracion->direccion){{ $configuracion->direccion }}@endif
+                    @if($configuracion && $configuracion->telefono) &middot; Tel: {{ $configuracion->telefono }}@endif
+                    @if($configuracion && $configuracion->email) &middot; {{ $configuracion->email }}@endif
+                </div>
+            </td>
+        </tr>
+        <tr class="header-title-row">
+            <td>
+                <div class="header-doc-title">Listado de Inscriptos a Cursado</div>
+                <div class="header-doc-subtitle">
+                    @if($periodo){{ $periodo->nombre }}@endif
+                </div>
+            </td>
+            <td class="header-meta">
+                Fecha: {{ now()->format('d/m/Y H:i') }}hs
+            </td>
+        </tr>
+    </table>
 
     <!-- Tabla de inscriptos -->
     @if($inscripciones->count() > 0)
@@ -233,58 +239,19 @@
             </tbody>
         </table>
 
-        <!-- Resumen -->
-        <div class="resumen">
-            <div class="resumen-title">Resumen de Inscripciones</div>
-            <div class="resumen-grid">
-                <div class="resumen-item">
-                    <div class="resumen-numero">{{ $inscripciones->count() }}</div>
-                    <div class="resumen-label">Total Inscriptos</div>
-                </div>
-                <div class="resumen-item">
-                    <div class="resumen-numero">{{ $inscripciones->unique('alumno_id')->count() }}</div>
-                    <div class="resumen-label">Alumnos</div>
-                </div>
-                <div class="resumen-item">
-                    <div class="resumen-numero">{{ $inscripciones->unique('materia_id')->count() }}</div>
-                    <div class="resumen-label">Materias</div>
-                </div>
-            </div>
-        </div>
     @else
-        <div style="text-align: center; padding: 30px; color: #64748b;">
+        <div style="text-align: center; padding: 30px; color: #666;">
             <p>No se encontraron inscripciones con los filtros aplicados.</p>
         </div>
     @endif
 
-    <!-- Footer -->
+    <!-- Pie de página -->
     <div class="footer">
-        <div class="footer-row">
-            <div class="footer-col">
-                <strong>Secretaría Académica</strong><br>
-                {{ $configuracion->nombre_institucion ?? 'IES Gral. Manuel Belgrano' }}<br>
-                @if($configuracion && $configuracion->direccion)
-                    {{ $configuracion->direccion }}
-                @endif
-            </div>
-            <div class="footer-col">
-                <strong>Contacto</strong><br>
-                @if($configuracion && $configuracion->email)
-                    {{ $configuracion->email }}<br>
-                @endif
-                @if($configuracion && $configuracion->telefono)
-                    Tel: {{ $configuracion->telefono }}
-                @endif
-            </div>
-        </div>
-
-        <div class="footer-note">
-            @if($configuracion && $configuracion->footer_documentos)
-                {!! nl2br(e($configuracion->footer_documentos)) !!}<br>
-            @endif
-            Documento generado automáticamente el {{ now()->format('d/m/Y') }} a las {{ now()->format('H:i') }}hs.<br>
-            © {{ date('Y') }} {{ $configuracion->nombre_institucion ?? 'IES Gral. Manuel Belgrano' }} - Todos los derechos reservados
-        </div>
+        Documento generado el {{ now()->format('d/m/Y H:i') }}hs
+        | {{ $configuracion->nombre_institucion ?? 'IES Gral. Manuel Belgrano' }}
+        @if($configuracion && $configuracion->footer_documentos)
+            | {{ $configuracion->footer_documentos }}
+        @endif
     </div>
 </body>
 </html>
