@@ -55,6 +55,11 @@ class InscripcionesController extends Controller
         $carreraId = $alumno->carrera;
         $carrera = Carrera::find($carreraId);
 
+        if (!$carrera) {
+            return redirect()->route('dashboard')
+                ->with('error', 'Tu perfil no tiene una carrera asignada. Contactá a Secretaría Académica.');
+        }
+
         // Obtener período de inscripción activo
         $periodoActivo = PeriodoInscripcion::activo();
 
@@ -79,9 +84,8 @@ class InscripcionesController extends Controller
         // Obtener materias del cuatrimestre activo con profesores
         // Filtrar por: año del alumno, cuatrimestre activo, y excluir materias aprobadas
         // Optimización: Eager loading de profesores para evitar N+1
-        $materias = Materia::with(['profesores:id,dni,apellido,nombre'])
+        $materias = Materia::with(['profesores:id,dni,apellido,nombre', 'carrera'])
             ->deCarrera($carreraId)
-            ->where('anno', $anioAlumno) // Solo materias del año que cursa
             ->where('semestre', $periodoActivo->cuatrimestre)
             ->whereNotIn('id', $historialAlumno) // Excluir materias aprobadas
             ->get();
@@ -236,10 +240,11 @@ class InscripcionesController extends Controller
                 // Validar que la materia pertenezca a la carrera del alumno
                 $materia = Materia::where('id', $materiaId)
                     ->where('carrera', $carreraId)
+                    ->where('semestre', $periodoActivo->cuatrimestre)
                     ->first();
 
                 if (!$materia) {
-                    $errores[] = "La materia ID {$materiaId} no pertenece a tu carrera";
+                    $errores[] = "La materia ID {$materiaId} no corresponde a tu carrera o al cuatrimestre activo";
                     continue;
                 }
 

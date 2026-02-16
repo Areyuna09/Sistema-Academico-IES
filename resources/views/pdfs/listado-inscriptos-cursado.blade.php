@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <title>Listado de Inscriptos - Cursado</title>
+    <link rel="icon" type="image/png" href="{{ asset('images/logo-ies-original.png') }}">
     <style>
         @page {
-            margin: 12mm 12mm 20mm 12mm;
+            margin: 12mm 12mm 12mm 12mm;
         }
         body {
             font-family: 'Helvetica', 'Arial', sans-serif;
@@ -20,10 +21,10 @@
         .header-table {
             width: 100%;
             border-collapse: collapse;
-            border: 1px solid #333;
+            border: 1px solid #bbb;
         }
         .header-table td {
-            border: 1px solid #333;
+            border: 1px solid #bbb;
             vertical-align: middle;
         }
         .header-logo {
@@ -52,7 +53,7 @@
         }
         .header-title-row td {
             padding: 6px 12px;
-            border: 1px solid #333;
+            border: 1px solid #bbb;
         }
         .header-doc-title {
             font-size: 13px;
@@ -143,7 +144,7 @@
             left: 0;
             right: 0;
             padding: 6px 12mm;
-            border-top: 1px solid #999;
+            border-top: 1px solid #bbb;
             text-align: center;
             font-size: 8px;
             color: #666;
