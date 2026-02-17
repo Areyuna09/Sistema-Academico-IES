@@ -23,6 +23,8 @@ class MesaExamen extends Model
         'observaciones',
         'fecha_inicio_inscripcion',
         'fecha_fin_inscripcion',
+        'creado_por',
+        'modificado_por',
     ];
 
     protected $casts = [

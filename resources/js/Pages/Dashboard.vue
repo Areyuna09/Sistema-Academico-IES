@@ -248,15 +248,15 @@ const accesosRapidos = computed(() => {
                 modulo: 'gestion_usuarios'
             },
             {
-                titulo: 'Configuración',
-                descripcion: 'Ajustes del sistema',
-                icono: 'bx-cog',
+                titulo: 'Períodos',
+                descripcion: 'Gestionar períodos académicos',
+                icono: 'bx-calendar',
                 color: 'purple',
                 bgColor: 'bg-purple-100',
                 textColor: 'text-purple-600',
                 hoverBorder: 'hover:border-purple-400',
-                route: 'profile.edit',
-                modulo: null // Siempre visible
+                route: 'admin.periodos.index',
+                modulo: null
             }
         ];
     }

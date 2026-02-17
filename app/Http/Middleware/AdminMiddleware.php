@@ -12,7 +12,7 @@ class AdminMiddleware
     /**
      * Handle an incoming request.
      *
-     * Permite acceso solo a usuarios con tipo ADMIN (1) o PROFESOR (3)
+     * Permite acceso solo a roles administrativos: Admin (1), Bedel (7), Preceptor (8)
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
@@ -25,8 +25,8 @@ class AdminMiddleware
             return redirect()->route('login');
         }
 
-        // Permitir acceso solo a ADMIN (1) o PROFESOR (3)
-        if (!in_array($user->tipo, [TipoUsuario::ADMIN, TipoUsuario::PROFESOR])) {
+        // Permitir acceso solo a roles administrativos
+        if (!in_array($user->tipo, TipoUsuario::rolesAdministrativos())) {
             abort(403, 'No tienes permiso para acceder a esta sección.');
         }
 

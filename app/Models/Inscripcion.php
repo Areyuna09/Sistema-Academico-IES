@@ -23,6 +23,8 @@ class Inscripcion extends Model
         'observaciones',
         'fecha_inscripcion',
         'fecha_cancelacion',
+        'creado_por',
+        'cancelado_por',
     ];
 
     /**

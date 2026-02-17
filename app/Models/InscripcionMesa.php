@@ -17,6 +17,7 @@ class InscripcionMesa extends Model
         'nota',
         'observaciones',
         'nota_transferida',
+        'creado_por',
     ];
 
     protected $casts = [

@@ -47,6 +47,9 @@ class AlumnoMateria extends Model
         'revisado_por_supervisor',
         'fecha_revision_supervisor',
         'observaciones_supervisor',
+        // Campos de auditoría
+        'nota_aprobada_por',
+        'fecha_transferencia',
     ];
 
     /**
@@ -58,6 +61,7 @@ class AlumnoMateria extends Model
         'libre' => 'integer',
         'fecha_revision_directivo' => 'datetime',
         'fecha_revision_supervisor' => 'datetime',
+        'fecha_transferencia' => 'datetime',
     ];
 
     /**

@@ -101,6 +101,9 @@ class ProfesorController extends Controller
                         'permite_promocion' => true,
                         'porcentaje_asistencia_minimo' => 75,
                         'configuracion_completa' => false,
+                        'asignado_por' => auth()->id(),
+                        'created_at' => now(),
+                        'updated_at' => now(),
                     ]);
                 }
             }
@@ -219,15 +222,26 @@ class ProfesorController extends Controller
                 ? ($periodoActivo->cuatrimestre == '1' ? '1er Cuatrimestre' : '2do Cuatrimestre')
                 : '1er Cuatrimestre';
 
-            // Solo borrar asignaciones del período activo (preservar archivadas)
-            $deleteQuery = \DB::table('tbl_profesor_tiene_materias')
+            // Borrar asignaciones del período activo que NO tengan notas temporales asociadas
+            $asignacionesABorrar = \DB::table('tbl_profesor_tiene_materias')
                 ->where('profesor', $profesor->id);
             if ($periodoActivo) {
-                $deleteQuery->where('periodo_id', $periodoActivo->id);
+                $asignacionesABorrar->where('periodo_id', $periodoActivo->id);
             } else {
-                $deleteQuery->whereNull('periodo_id');
+                $asignacionesABorrar->whereNull('periodo_id');
             }
-            $deleteQuery->delete();
+
+            // Excluir asignaciones que tengan notas temporales pendientes
+            $idsConNotas = \DB::table('tbl_notas_temporales')
+                ->where('estado', 'pendiente')
+                ->pluck('profesor_materia_id')
+                ->toArray();
+
+            if (!empty($idsConNotas)) {
+                $asignacionesABorrar->whereNotIn('id', $idsConNotas);
+            }
+
+            $asignacionesABorrar->delete();
 
             if (!empty($validated['materias'])) {
                 foreach ($validated['materias'] as $materiaId) {
@@ -243,6 +257,9 @@ class ProfesorController extends Controller
                         'permite_promocion' => true,
                         'porcentaje_asistencia_minimo' => 75,
                         'configuracion_completa' => false,
+                        'asignado_por' => auth()->id(),
+                        'created_at' => now(),
+                        'updated_at' => now(),
                     ]);
                 }
             }

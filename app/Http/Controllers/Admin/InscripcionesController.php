@@ -173,11 +173,19 @@ class InscripcionesController extends Controller
         $carreras = Carrera::orderBy('nombre')
             ->get(['Id', 'nombre']);
 
-        // Obtener mesas disponibles para el filtro (últimos 6 meses)
-        $mesas = MesaExamen::with(['materia'])
-            ->where('fecha_examen', '>=', now()->subMonths(6))
-            ->orderBy('fecha_examen', 'desc')
-            ->get()
+        // Obtener mesas disponibles para el filtro
+        $mesasQuery = MesaExamen::with(['materia', 'periodo'])
+            ->orderBy('fecha_examen', 'desc');
+
+        // Filtrar por período si se seleccionó
+        if ($request->filled('periodo_id')) {
+            $mesasQuery->where('periodo_id', $request->periodo_id);
+        } else {
+            // Por defecto mostrar últimos 6 meses
+            $mesasQuery->where('fecha_examen', '>=', now()->subMonths(6));
+        }
+
+        $mesas = $mesasQuery->get()
             ->map(function ($mesa) {
                 $carreraId = $mesa->materia->carrera;
                 $carreraObj = Carrera::find($carreraId);
@@ -186,7 +194,8 @@ class InscripcionesController extends Controller
                     'nombre' => $mesa->materia->nombre . ' - ' . \Carbon\Carbon::parse($mesa->fecha_examen)->format('d/m/Y'),
                     'carrera_id' => $carreraId,
                     'carrera_nombre' => $carreraObj->nombre ?? 'Sin carrera',
-                    'materia_anio' => $mesa->materia->anno ?? null,
+                    'periodo_id' => $mesa->periodo_id,
+                    'periodo_nombre' => $mesa->periodo->nombre ?? null,
                     'inscriptos_count' => $mesa->inscripciones()->count(),
                 ];
             });
@@ -202,7 +211,7 @@ class InscripcionesController extends Controller
             'carreras' => $carreras,
             'mesas' => $mesas,
             'periodos' => $periodos,
-            'filtros' => $request->only(['carrera_id', 'buscar', 'tipo', 'mesa_id']),
+            'filtros' => $request->only(['carrera_id', 'buscar', 'tipo', 'mesa_id', 'periodo_id']),
         ]);
     }
 
@@ -312,9 +321,11 @@ class InscripcionesController extends Controller
             $inscripcion = Inscripcion::findOrFail($id);
             $estadoAnterior = $inscripcion->estado;
 
-            $inscripcion->update([
-                'estado' => $request->estado,
-            ]);
+            $updateData = ['estado' => $request->estado];
+            if ($request->estado === 'cancelada') {
+                $updateData['cancelado_por'] = auth()->id();
+            }
+            $inscripcion->update($updateData);
 
             // Si se cancela, también actualizar legacy
             if ($request->estado === 'cancelada') {
@@ -437,6 +448,7 @@ class InscripcionesController extends Controller
                 'carrera_id' => $request->carrera_id,
                 'estado' => 'confirmada',
                 'fecha_inscripcion' => now(),
+                'creado_por' => auth()->id(),
             ]);
 
             // También crear en tabla legacy

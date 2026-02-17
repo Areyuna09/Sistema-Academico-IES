@@ -19,6 +19,8 @@ class PeriodoInscripcion extends Model
         'fecha_inicio_cursada',
         'fecha_fin_cursada',
         'activo',
+        'creado_por',
+        'modificado_por',
     ];
 
     protected $casts = [

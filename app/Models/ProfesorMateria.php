@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class ProfesorMateria extends Model
 {
     protected $table = 'tbl_profesor_tiene_materias';
-    public $timestamps = false;
+    public $timestamps = true;
 
     protected $fillable = [
         'profesor',
@@ -21,7 +21,8 @@ class ProfesorMateria extends Model
         'permite_promocion',
         'porcentaje_asistencia_minimo',
         'criterios_evaluacion',
-        'configuracion_completa'
+        'configuracion_completa',
+        'asignado_por',
     ];
 
     protected $casts = [

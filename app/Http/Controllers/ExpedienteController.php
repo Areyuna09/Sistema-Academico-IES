@@ -158,18 +158,12 @@ class ExpedienteController extends Controller
                 'alumno',
                 'profesorMateria.materiaRelacion',
                 'profesorMateria.carreraRelacion',
+                'profesorMateria.periodoRelacion',
                 'registradoPor'
             ])
             ->where('estado', 'pendiente')
-            ->where(function($query) {
-                $query->where('tipo_evaluacion', 'like', '%final%')
-                      ->orWhere('tipo_evaluacion', 'like', '%Final%')
-                      ->orWhere('tipo_evaluacion', 'like', '%FINAL%')
-                      ->orWhere('tipo_evaluacion', 'like', '%mesa%')
-                      ->orWhere('tipo_evaluacion', 'like', '%Mesa%')
-                      ->orWhere('tipo_evaluacion', 'like', '%examen%')
-                      ->orWhere('tipo_evaluacion', 'like', '%Examen%');
-            });
+            ->whereHas('profesorMateria') // Solo notas con asignación existente
+            ->whereRaw('LOWER(tipo_evaluacion) REGEXP ?', ['final|mesa|examen']);
 
             // Ordenar por fecha si la columna existe, sino solo por created_at
             if (\Schema::hasColumn('tbl_notas_temporales', 'fecha')) {
@@ -211,6 +205,9 @@ class ExpedienteController extends Controller
                 'estado' => $nota->estado,
                 'observaciones' => $nota->observaciones,
                 'profesor_materia_id' => $nota->profesor_materia_id,
+                'periodo' => $nota->profesorMateria && $nota->profesorMateria->periodoRelacion
+                    ? $nota->profesorMateria->periodoRelacion->nombre
+                    : 'N/A',
             ];
         });
         } catch (\Exception $e) {
@@ -935,17 +932,21 @@ class ExpedienteController extends Controller
             ], 400);
         }
 
-        // Verificar que sea una nota FINAL (solo las finales deben aprobarse y transferirse al legajo)
+        // Verificar que la asignación profesor-materia exista
+        $profesorMateria = $nota->profesorMateria;
+        if (!$profesorMateria) {
+            return response()->json([
+                'error' => 'La asignación profesor-materia fue eliminada. No se puede aprobar esta nota.'
+            ], 400);
+        }
+
+        // Verificar que sea una nota FINAL
         $tipoEvaluacion = strtolower($nota->tipo_evaluacion);
-        $esNotaFinal = (
-            str_contains($tipoEvaluacion, 'final') ||
-            str_contains($tipoEvaluacion, 'mesa') ||
-            str_contains($tipoEvaluacion, 'examen')
-        );
+        $esNotaFinal = preg_match('/final|mesa|examen/', $tipoEvaluacion);
 
         if (!$esNotaFinal) {
             return response()->json([
-                'error' => 'Solo las notas finales requieren aprobación. Las notas parciales/prácticas se guardan automáticamente.'
+                'error' => 'Solo las notas finales requieren aprobación.'
             ], 400);
         }
 
@@ -958,13 +959,6 @@ class ExpedienteController extends Controller
                 'aprobado_por' => $user->id,
                 'fecha_aprobacion' => now()
             ]);
-
-            // 2. Transferir nota al legajo oficial (tbl_alumnos_materias)
-            $profesorMateria = $nota->profesorMateria;
-
-            if (!$profesorMateria) {
-                throw new \Exception('No se encontró la relación profesor-materia');
-            }
 
             // Verificar si ya existe un registro en el legajo para este alumno y materia
             $alumnoMateria = AlumnoMateria::where('alumno', $nota->alumno_id)
@@ -989,6 +983,8 @@ class ExpedienteController extends Controller
                         'calificacion_rendida' => $nota->nota,
                         'rendida' => $aprobado ? '1' : '0',
                         'fecha' => $nota->fecha,
+                        'nota_aprobada_por' => $user->id,
+                        'fecha_transferencia' => now(),
                         // NO tocar cursada ni libre - se mantiene el estado anterior
                     ]);
                 } else {
@@ -997,6 +993,8 @@ class ExpedienteController extends Controller
                     $alumnoMateria->update([
                         'calificacion-cursada' => $nota->nota,
                         'cursada' => $regularizado ? '1' : '0',
+                        'nota_aprobada_por' => $user->id,
+                        'fecha_transferencia' => now(),
                         // NO marcar rendida - solo es regular
                     ]);
                 }
@@ -1017,6 +1015,8 @@ class ExpedienteController extends Controller
                         'fecha' => $nota->fecha,
                         'equivalencia' => 0,
                         'libre' => 1, // Por defecto LIBRE si no cursó antes
+                        'nota_aprobada_por' => $user->id,
+                        'fecha_transferencia' => now(),
                     ]);
                 } else {
                     // Nota de cursada: crear como regular si cumple mínimo
@@ -1033,6 +1033,8 @@ class ExpedienteController extends Controller
                         'fecha' => $nota->fecha,
                         'equivalencia' => 0,
                         'libre' => $regularizado ? 0 : 1, // Libre si no cumple mínimo
+                        'nota_aprobada_por' => $user->id,
+                        'fecha_transferencia' => now(),
                     ]);
                 }
             }
@@ -1150,17 +1152,20 @@ class ExpedienteController extends Controller
             ], 400);
         }
 
-        // Verificar que sea una nota FINAL (solo las finales requieren aprobación)
+        // Verificar que la asignación profesor-materia exista
+        if (!$nota->profesorMateria) {
+            return response()->json([
+                'error' => 'La asignación profesor-materia fue eliminada. No se puede rechazar esta nota.'
+            ], 400);
+        }
+
+        // Verificar que sea una nota FINAL
         $tipoEvaluacion = strtolower($nota->tipo_evaluacion);
-        $esNotaFinal = (
-            str_contains($tipoEvaluacion, 'final') ||
-            str_contains($tipoEvaluacion, 'mesa') ||
-            str_contains($tipoEvaluacion, 'examen')
-        );
+        $esNotaFinal = preg_match('/final|mesa|examen/', $tipoEvaluacion);
 
         if (!$esNotaFinal) {
             return response()->json([
-                'error' => 'Solo las notas finales requieren aprobación/rechazo. Las notas parciales/prácticas se guardan automáticamente.'
+                'error' => 'Solo las notas finales requieren aprobación/rechazo.'
             ], 400);
         }
 

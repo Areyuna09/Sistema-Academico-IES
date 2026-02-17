@@ -45,10 +45,23 @@ class PeriodosController extends Controller
             ->orderBy('anio', 'desc')
             ->pluck('anio');
 
+        // Períodos que tienen asignaciones (para el dropdown de clonar)
+        $periodosConAsignaciones = PeriodoInscripcion::whereHas('asignacionesProfesores')
+            ->withCount('asignacionesProfesores as asignaciones_count')
+            ->orderByDesc('anio')
+            ->orderByDesc('cuatrimestre')
+            ->get()
+            ->map(fn($p) => [
+                'id' => $p->id,
+                'nombre' => $p->nombre,
+                'asignaciones_count' => $p->asignaciones_count,
+            ]);
+
         return Inertia::render('Admin/Periodos/Index', [
             'periodos' => $periodos,
             'anios' => $anios,
             'filtros' => $request->only(['anio', 'cuatrimestre', 'activo']),
+            'periodosConAsignaciones' => $periodosConAsignaciones,
         ]);
     }
 
@@ -90,7 +103,9 @@ class PeriodosController extends Controller
             PeriodoInscripcion::where('activo', true)->update(['activo' => false]);
         }
 
-        PeriodoInscripcion::create($validated);
+        PeriodoInscripcion::create(array_merge($validated, [
+            'creado_por' => auth()->id(),
+        ]));
 
         return redirect()->route('admin.periodos.index')
             ->with('success', 'Período creado exitosamente.');
@@ -149,7 +164,9 @@ class PeriodosController extends Controller
                 ->update(['activo' => false]);
         }
 
-        $periodo->update($validated);
+        $periodo->update(array_merge($validated, [
+            'modificado_por' => auth()->id(),
+        ]));
 
         return redirect()->route('admin.periodos.index')
             ->with('success', 'Período actualizado exitosamente.');
@@ -192,29 +209,22 @@ class PeriodosController extends Controller
      */
     public function clonarAsignaciones(Request $request, PeriodoInscripcion $periodo)
     {
-        // Buscar el período anterior más reciente
-        $periodoAnterior = PeriodoInscripcion::where('id', '!=', $periodo->id)
-            ->where(function ($q) use ($periodo) {
-                $q->where('anio', '<', $periodo->anio)
-                    ->orWhere(function ($q2) use ($periodo) {
-                        $q2->where('anio', $periodo->anio)
-                            ->where('cuatrimestre', '<', $periodo->cuatrimestre);
-                    });
-            })
-            ->orderByDesc('anio')
-            ->orderByDesc('cuatrimestre')
-            ->first();
+        $request->validate([
+            'periodo_origen_id' => 'required|exists:tbl_periodos_inscripcion,id',
+        ]);
 
-        if (!$periodoAnterior) {
-            return back()->withErrors(['error' => 'No se encontró un período anterior del cual clonar asignaciones.']);
+        $periodoOrigen = PeriodoInscripcion::findOrFail($request->periodo_origen_id);
+
+        if ($periodoOrigen->id === $periodo->id) {
+            return back()->withErrors(['error' => 'No se puede clonar un período sobre sí mismo.']);
         }
 
         $asignacionesAnteriores = DB::table('tbl_profesor_tiene_materias')
-            ->where('periodo_id', $periodoAnterior->id)
+            ->where('periodo_id', $periodoOrigen->id)
             ->get();
 
         if ($asignacionesAnteriores->isEmpty()) {
-            return back()->withErrors(['error' => "El período anterior ({$periodoAnterior->nombre}) no tiene asignaciones para clonar."]);
+            return back()->withErrors(['error' => "El período \"{$periodoOrigen->nombre}\" no tiene asignaciones para clonar."]);
         }
 
         $cursado = $periodo->cuatrimestre == '1' ? '1er Cuatrimestre' : '2do Cuatrimestre';
@@ -243,12 +253,15 @@ class PeriodosController extends Controller
                     'porcentaje_asistencia_minimo' => $asignacion->porcentaje_asistencia_minimo,
                     'criterios_evaluacion' => $asignacion->criterios_evaluacion,
                     'configuracion_completa' => false,
+                    'asignado_por' => auth()->id(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ]);
                 $clonadas++;
             }
         }
 
-        return back()->with('success', "Se clonaron {$clonadas} asignaciones del período \"{$periodoAnterior->nombre}\" al período actual.");
+        return back()->with('success', "Se clonaron {$clonadas} asignaciones del período \"{$periodoOrigen->nombre}\" al período actual.");
     }
 
     /**
@@ -259,6 +272,28 @@ class PeriodosController extends Controller
         // Validar que no sea el período activo
         if ($periodo->activo) {
             return back()->withErrors(['error' => 'No se puede eliminar el período activo.']);
+        }
+
+        // Verificar datos dependientes
+        $dependencias = [];
+
+        $inscripciones = DB::table('tbl_inscripciones')->where('periodo_id', $periodo->id)->count();
+        if ($inscripciones > 0) {
+            $dependencias[] = "{$inscripciones} inscripción(es) a cursado";
+        }
+
+        $mesas = DB::table('tbl_mesas_examen')->where('periodo_id', $periodo->id)->count();
+        if ($mesas > 0) {
+            $dependencias[] = "{$mesas} mesa(s) de examen";
+        }
+
+        $asignaciones = DB::table('tbl_profesor_tiene_materias')->where('periodo_id', $periodo->id)->count();
+        if ($asignaciones > 0) {
+            $dependencias[] = "{$asignaciones} asignación(es) de profesores";
+        }
+
+        if (!empty($dependencias)) {
+            return back()->withErrors(['error' => 'No se puede eliminar el período porque tiene: ' . implode(', ', $dependencias) . '.']);
         }
 
         $periodo->delete();

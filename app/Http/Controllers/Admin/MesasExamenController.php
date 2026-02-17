@@ -121,7 +121,9 @@ class MesasExamenController extends Controller
             ]);
         }
 
-        MesaExamen::create($validated);
+        MesaExamen::create(array_merge($validated, [
+            'creado_por' => auth()->id(),
+        ]));
 
         return redirect()->route('admin.mesas.index')
             ->with('success', 'Mesa de examen creada exitosamente.');
@@ -183,7 +185,9 @@ class MesasExamenController extends Controller
             ]);
         }
 
-        $mesa->update($validated);
+        $mesa->update(array_merge($validated, [
+            'modificado_por' => auth()->id(),
+        ]));
 
         return redirect()->route('admin.mesas.index')
             ->with('success', 'Mesa de examen actualizada exitosamente.');
