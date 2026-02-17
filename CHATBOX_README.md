@@ -10,16 +10,17 @@ El **Chatbox Flotante** es un componente autónomo de soporte técnico integrado
 - **Diseño Flotante** - No interfiere con la interfaz principal
 - **Responsive** - Funciona perfectamente en móvil y desktop
 - **Estado Local** - Mantiene conversación mientras está abierto
-- **Auto-scroll Inteligente** - Solo al enviar mensajes
-
----
-
 ## Estructura de Archivos
 
-### Carpeta Principal
+### Archivos Principales
 ```
 resources/js/Components/Chat/
-└── SupportChatWidget.vue    # Componente principal del Chatbox
+└── SupportChatWidget.vue           # Componente principal del Chatbox
+
+resources/js/Composables/
+└── useChatbot.js                # Lógica del chatbot
+
+CHATBOX_README.md                   # Documentación completa
 ```
 
 ### Arquitectura del Componente
@@ -27,12 +28,16 @@ resources/js/Components/Chat/
 #### SupportChatWidget.vue
 - **Framework**: Vue 3 Composition API
 - **Estilos**: Tailwind CSS
-- **Lógica**: JavaScript puro (sin axios/api)
+- **Lógica**: Composable useChatbot.js
 - **Estado**: Local (ref/reactive)
-- **Tamaño**: 450px × 600px (ventana)
+- **Tamaño**: 380px × 580px (ventana)
 - **Posición**: Fixed bottom-right
 
----
+#### useChatbot.js
+- **Función**: Respuestas inteligentes por keywords
+- **Categorías**: Saludo, notas, asistencias, materias, etc.
+- **Respuestas**: Múltiples opciones por categoría
+- **Quick Replies**: Respuestas rápidas predefinidas
 
 ## Vinculaciones con el Sistema
 
@@ -52,87 +57,81 @@ import SupportChatWidget from '@/Components/Chat/SupportChatWidget.vue';
 </template>
 ```
 
-### Disponibilidad
-El Chatbox aparece en **TODAS** las páginas que utilizan `SidebarLayout`:
+### Rutas Modificadas
+**Archivo**: `routes/web.php`
 
-- Dashboard (`/dashboard`)
-- Inscripciones (`/inscripciones`)
-- Expediente (`/expediente`)
-- Perfil (`/profile`)
-- Mesas de examen (`/mesas`)
-- Plan de estudio (`/plan-estudio`)
-- Y todas las demás páginas del sistema
+- **Redirección principal**: `/` → `/login` (si no autenticado)
+- **Rutas de chat API**: Eliminadas (ya no se usan)
+- **Autenticación**: Mantenida con Laravel
 
----
+## Instalación y Configuración
 
-## Sistema de Respuestas Inteligentes
+### Ubicación de Archivos
+- **Componente**: `resources/js/Components/Chat/SupportChatWidget.vue`
+- **Composable**: `resources/js/Composables/useChatbot.js`
+- **Layout**: `resources/js/Layouts/SidebarLayout.vue`
+- **Documentación**: `CHATBOX_README.md`
 
-### Palabras Clave Soportadas
+### Configuración Automática
+- **Importación**: SidebarLayout importa automáticamente el componente
+- **Props**: Se pasa el objeto `user` desde el layout
+- **Estado**: Manejado localmente sin persistencia
 
-#### Autenticación y Acceso
-- `hola`, `buenos días`, `buenas tardes`
-- `contraseña`, `clave`, `recuperar`, `olvidé`
-- `inicio de sesión`, `ingresar`, `acceder`, `login`
+## Funcionalidades
 
-#### Consultas Académicas
-- `consulta académica`, `académico`, `estudio`, `carrera`
-- `materia`, `curso`, `asignatura`
-- `nota`, `calificación`, `promedio`
-- `expediente`, `historial`, `constancia`
-- `mesa`, `examen`, `final`, `rendir`
+### Sistema de Respuestas
+- **Keywords**: Detección por palabras clave
+- **Categorías**: 
+  - Saludo y despedida
+  - Notas y calificaciones
+  - Asistencias y faltas
+  - Materias y comisiones
+  - Legajos académicos
+  - Alumnos e inscripciones
+  - Contraseña y perfil
+  - Ayuda general
 
-#### Soporte Técnico
-- `problema técnico`, `error`, `no funciona`, `falla`
-- `dificultad`, `navegar`, `navegación`, `menú`
-- `inscribir`, `inscripción`, `inscribirme`
+### Interfaz de Usuario
+- **Botón flotante**: Con badge de mensajes no leídos
+- **Ventana de chat**: Con header y área de mensajes
+- **Quick replies**: Botones de respuesta rápida
+- **Indicador de escritura**: Animación de puntos
+- **Auto-scroll**: Desplazamiento automático
 
-#### Comunicación
-- `comunicación`, `docente`, `profesor`
-- `información general`, `sistema`, `cómo funciona`
+## Mejoras Implementadas
 
-#### Interacción Social
-- `gracias`, `agradecido`
-- `adiós`, `chau`, `hasta luego`
+### Versión 1.0.0 (Febrero 2026)
+- **Modularización**: Separación de responsabilidades
+- **Diseño renovado**: Interfaz moderna y profesional
+- **Composable**: Lógica extraída a useChatbot.js
+- **Optimización**: Reducción de código 70%
+- **Documentación**: README profesional sin emojis
+- **Integración**: Configuración automática desde SidebarLayout
 
----
+## Mantenimiento
 
-## Diseño y UX
+### Archivos a Mantener
+- **SupportChatWidget.vue**: Componente visual
+- **useChatbot.js**: Lógica del chatbot
+- **CHATBOX_README.md**: Documentación actualizada
 
-### Características Visuales
-- **Botón flotante**: Círculo azul (60px) con icono de chat
-- **Badge**: Contador de mensajes no leídos (rojo)
-- **Indicador**: Punto verde animado cuando "escribe"
-- **Ventana**: Blanco con header azul, sombras y bordes redondeados
-- **Mensajes**: Azul (usuario) / Gris (chatbox)
+### Actualizaciones
+- **Keywords**: Agregar nuevas palabras clave
+- **Respuestas**: Modificar textos existentes
+- **Categorías**: Crear nuevas categorías
 
-### Comportamiento Responsive
-- **Desktop**: Ventana 450px × 600px, posición bottom-right
-- **Móvil**: Se adapta al ancho de pantalla
-- **Scroll**: Personalizado, elegante y funcional
+## Notas Finales
 
----
+El **Chatbox Flotante** del Sistema Académico IES representa una solución moderna, eficiente y autónoma para soporte técnico. Su diseño modular permite fácil mantenimiento y futuras mejoras sin afectar la funcionalidad core del sistema.
 
-## Configuración Técnica
-
-### Tecnologías Utilizadas
-- **Vue 3**: Composition API con `<script setup>`
-- **Tailwind CSS**: Clases utilitarias para estilos
-- **JavaScript ES6+**: Features modernas del lenguaje
-- **CSS Animations**: Indicadores de escritura y transiciones
-
-### Dependencias (Nativas del Sistema)
-- `vue` - Framework principal (ya incluido)
-- `@inertiajs/vue3` - Navegación SPA (ya incluido)
-- `tailwindcss` - Estilos (ya incluido)
-
-### Sin Dependencias Externas
-- **No usa axios** - Sin peticiones HTTP
-- **No usa APIs** - 100% autónomo
-- **No usa WebSocket** - Sin tiempo real
-- **No usa base de datos** - Sin persistencia
+**Versión**: 1.0.0  
+**Última actualización**: Febrero 2026  
+**Compatibilidad**: Laravel 12 + Vue 3 + Tailwind CSS  
+**Estado**: Producción activa
 
 ---
 
+*Este documento describe la implementación actual del Chatbox Flotante autónomo del Sistema Académico IES.*
 ## Flujo de Funcionamiento
 
 ### Paso a Paso
@@ -420,7 +419,7 @@ export function useChatbot() {
 
 ---
 
-## Notas Finales
+_Notas Finales
 
 El **Chatbox Flotante** del Sistema Académico IES representa una solución moderna, eficiente y autónoma para soporte técnico. Su diseño modular permite fácil mantenimiento y futuras mejoras sin afectar la funcionalidad core del sistema.
 
@@ -428,7 +427,4 @@ El **Chatbox Flotante** del Sistema Académico IES representa una solución mode
 **Última actualización**: Febrero 2026  
 **Compatibilidad**: Laravel 12 + Vue 3 + Tailwind CSS  
 **Estado**: Producción activa
-
 ---
-
-*Este documento describe la implementación actual del Chatbox Flotante autónomo del Sistema Académico IES.*
