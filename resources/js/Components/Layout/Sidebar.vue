@@ -212,12 +212,12 @@ const parametrosItems = computed(() => {
             icon: "bx-envelope-open",
             path: "/admin/solicitudes-email",
         },
-        {
-            name: "Configuración",
-            route: "admin.configuracion.index",
-            icon: "bx-cog",
-            path: "/admin/configuracion",
-        },
+        // {
+        //     name: "Configuración",
+        //     route: "admin.configuracion.index",
+        //     icon: "bx-cog",
+        //     path: "/admin/configuracion",
+        // },
         {
             name: "Módulos del Sistema",
             route: "admin.configuracion-modulos.index",

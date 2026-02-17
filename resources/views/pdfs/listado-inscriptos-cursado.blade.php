@@ -92,6 +92,7 @@
         .inscriptos-table {
             width: 100%;
             border-collapse: collapse;
+            margin-top: 12px;
             margin-bottom: 12px;
         }
         .inscriptos-table thead th {

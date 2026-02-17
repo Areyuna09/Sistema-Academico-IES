@@ -1479,6 +1479,7 @@ const getEstadoBadge = (estado) => {
                                 <tr>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alumno</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Materia</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Período</th>
                                     <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Nota</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
@@ -1496,6 +1497,9 @@ const getEstadoBadge = (estado) => {
                                     <td class="px-6 py-4">
                                         <div class="text-sm text-gray-900">{{ nota.materia }}</div>
                                         <div class="text-xs text-gray-500">{{ nota.carrera }}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        {{ nota.periodo }}
                                     </td>
                                     <td class="px-6 py-4 text-center">
                                         <div class="flex flex-col items-center">
@@ -1554,7 +1558,7 @@ const getEstadoBadge = (estado) => {
                                     </td>
                                 </tr>
                                 <tr v-if="notasPendientes.length === 0">
-                                    <td colspan="8" class="px-6 py-8 text-center text-gray-500">
+                                    <td colspan="9" class="px-6 py-8 text-center text-gray-500">
                                         <i class="bx bx-check-shield text-5xl mb-2"></i>
                                         <p class="text-lg">No hay notas pendientes de aprobación</p>
                                         <p class="text-sm mt-1">Todas las notas han sido procesadas</p>

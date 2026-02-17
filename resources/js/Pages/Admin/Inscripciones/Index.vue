@@ -27,9 +27,9 @@ const filtrosLocales = ref({
     anio_cursado: props.filtros?.anio_cursado || '',
 });
 
-// Filtros para mesas (carrera y año)
+// Filtros para mesas (carrera y período)
 const filtroMesaCarrera = ref('');
-const filtroMesaAnio = ref('');
+const filtroMesaPeriodo = ref(props.filtros?.periodo_id || '');
 
 // Cambiar tipo de inscripción
 const cambiarTipo = (nuevoTipo) => {
@@ -40,6 +40,8 @@ const cambiarTipo = (nuevoTipo) => {
     filtrosLocales.value.carrera_id = '';
     filtrosLocales.value.materia_id = '';
     filtrosLocales.value.anio_cursado = '';
+    filtroMesaCarrera.value = '';
+    filtroMesaPeriodo.value = '';
     filtrar();
 };
 
@@ -153,7 +155,7 @@ const carrerasDisponibles = computed(() => {
     return Array.from(carreras, ([id, nombre]) => ({ id, nombre })).sort((a, b) => a.nombre.localeCompare(b.nombre));
 });
 
-// Filtrar mesas según filtros seleccionados
+// Filtrar mesas según filtros seleccionados (carrera es client-side, período es server-side)
 const mesasFiltradas = computed(() => {
     if (!props.mesas) return [];
 
@@ -163,14 +165,16 @@ const mesasFiltradas = computed(() => {
             return false;
         }
 
-        // Filtrar por año de la materia (1°, 2°, 3°, 4°)
-        if (filtroMesaAnio.value && mesa.materia_anio != filtroMesaAnio.value) {
-            return false;
-        }
-
         return true;
     });
 });
+
+// Filtrar mesas por período (server-side)
+const filtrarMesasPorPeriodo = () => {
+    filtrosLocales.value.periodo_id = filtroMesaPeriodo.value;
+    filtrosLocales.value.mesa_id = '';
+    filtrar();
+};
 
 // Seleccionar mesa
 const seleccionarMesa = (mesaId) => {
@@ -260,16 +264,17 @@ watch(() => filtrosLocales.value.carrera_id, () => {
                             </select>
                         </div>
 
-                        <!-- Filtro por Año de la materia -->
+                        <!-- Filtro por Período -->
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Año de cursado</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Período</label>
                             <select
-                                v-model="filtroMesaAnio"
+                                v-model="filtroMesaPeriodo"
                                 class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
+                                @change="filtrarMesasPorPeriodo"
                             >
-                                <option value="">Todos los años</option>
-                                <option v-for="anio in aniosDisponibles" :key="anio" :value="anio">
-                                    {{ anio }}° año
+                                <option value="">Todos los períodos</option>
+                                <option v-for="periodo in periodos" :key="periodo.id" :value="periodo.id">
+                                    {{ periodo.nombre }}
                                 </option>
                             </select>
                         </div>
