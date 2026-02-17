@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ConfiguracionModulo;
+use App\Models\PermisoRol;
+use App\Models\TipoUsuario;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -106,5 +108,50 @@ class ConfiguracionModulosController extends Controller
         ]);
 
         return back()->with('success', 'Configuración restablecida a valores por defecto');
+    }
+
+    /**
+     * Obtener matriz de permisos por rol
+     */
+    public function permisos()
+    {
+        return response()->json(PermisoRol::obtenerMatriz());
+    }
+
+    /**
+     * Actualizar permisos por rol
+     */
+    public function updatePermisos(Request $request)
+    {
+        $validated = $request->validate([
+            'cambios' => 'required|array',
+            'cambios.*.permiso' => 'required|string',
+            'cambios.*.tipo_usuario' => 'required|integer|between:1,8',
+            'cambios.*.activo' => 'required|boolean',
+        ]);
+
+        foreach ($validated['cambios'] as $cambio) {
+            // Admin (tipo 1) siempre activo, no se puede desactivar
+            if ((int) $cambio['tipo_usuario'] === TipoUsuario::ADMIN) {
+                continue;
+            }
+
+            PermisoRol::updateOrCreate(
+                [
+                    'permiso' => $cambio['permiso'],
+                    'tipo_usuario' => $cambio['tipo_usuario'],
+                ],
+                ['activo' => $cambio['activo']]
+            );
+        }
+
+        PermisoRol::limpiarCache();
+
+        \Log::info('Permisos por rol actualizados', [
+            'cantidad_cambios' => count($validated['cambios']),
+            'usuario' => auth()->user()->nombre,
+        ]);
+
+        return back()->with('success', 'Permisos actualizados correctamente');
     }
 }

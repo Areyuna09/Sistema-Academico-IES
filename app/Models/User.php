@@ -155,39 +155,19 @@ class User extends Authenticatable implements CanResetPassword
     // MÉTODOS DE PERMISOS GRANULARES
     // ========================================
 
-    /**
-     * Verifica si el usuario puede crear registros
-     */
     public function puedeCrear(): bool
     {
-        return in_array($this->tipo, [
-            TipoUsuario::ADMIN,
-            TipoUsuario::BEDEL,
-            TipoUsuario::PRECEPTOR,
-        ]);
+        return PermisoRol::tienePermiso('puedeCrear', $this->tipo);
     }
 
-    /**
-     * Verifica si el usuario puede modificar registros
-     */
     public function puedeModificar(): bool
     {
-        return in_array($this->tipo, [
-            TipoUsuario::ADMIN,
-            TipoUsuario::BEDEL,
-            TipoUsuario::PRECEPTOR,
-        ]);
+        return PermisoRol::tienePermiso('puedeModificar', $this->tipo);
     }
 
-    /**
-     * Verifica si el usuario puede eliminar registros
-     */
     public function puedeEliminar(): bool
     {
-        return in_array($this->tipo, [
-            TipoUsuario::ADMIN,
-            TipoUsuario::BEDEL,
-        ]);
+        return PermisoRol::tienePermiso('puedeEliminar', $this->tipo);
     }
 
     /**
@@ -222,89 +202,44 @@ class User extends Authenticatable implements CanResetPassword
         return $this->esAdministrativo() || $this->tipo === TipoUsuario::PROFESOR;
     }
 
-    /**
-     * Verifica si puede gestionar usuarios
-     */
     public function puedeGestionarUsuarios(): bool
     {
-        return in_array($this->tipo, [
-            TipoUsuario::ADMIN,
-            TipoUsuario::BEDEL,
-        ]);
+        return PermisoRol::tienePermiso('puedeGestionarUsuarios', $this->tipo);
     }
 
-    /**
-     * Verifica si puede gestionar inscripciones
-     */
     public function puedeGestionarInscripciones(): bool
     {
-        return in_array($this->tipo, [
-            TipoUsuario::ADMIN,
-            TipoUsuario::BEDEL,
-            TipoUsuario::PRECEPTOR,
-        ]);
+        return PermisoRol::tienePermiso('puedeGestionarInscripciones', $this->tipo);
     }
 
-    /**
-     * Verifica si puede revisar legajos (primer nivel)
-     */
     public function puedeRevisarLegajos(): bool
     {
-        return $this->tipo === TipoUsuario::DIRECTIVO || $this->isAdmin();
+        return PermisoRol::tienePermiso('puedeRevisarLegajos', $this->tipo);
     }
 
-    /**
-     * Verifica si puede supervisar (segundo nivel)
-     */
     public function puedeSupervisar(): bool
     {
-        return $this->tipo === TipoUsuario::SUPERVISOR || $this->isAdmin();
+        return PermisoRol::tienePermiso('puedeSupervisar', $this->tipo);
     }
 
-    /**
-     * Verifica si puede gestionar mesas de examen
-     */
     public function puedeGestionarMesas(): bool
     {
-        return in_array($this->tipo, [
-            TipoUsuario::ADMIN,
-            TipoUsuario::BEDEL,
-            TipoUsuario::PRECEPTOR,
-        ]);
+        return PermisoRol::tienePermiso('puedeGestionarMesas', $this->tipo);
     }
 
-    /**
-     * Verifica si puede tomar asistencias
-     */
     public function puedeTomarAsistencias(): bool
     {
-        return in_array($this->tipo, [
-            TipoUsuario::ADMIN,
-            TipoUsuario::PROFESOR,
-            TipoUsuario::PRECEPTOR,
-        ]);
+        return PermisoRol::tienePermiso('puedeTomarAsistencias', $this->tipo);
     }
 
-    /**
-     * Verifica si puede cargar notas
-     */
     public function puedeCargarNotas(): bool
     {
-        return in_array($this->tipo, [
-            TipoUsuario::ADMIN,
-            TipoUsuario::PROFESOR,
-        ]);
+        return PermisoRol::tienePermiso('puedeCargarNotas', $this->tipo);
     }
 
-    /**
-     * Verifica si puede aprobar notas finales
-     */
     public function puedeAprobarNotas(): bool
     {
-        return in_array($this->tipo, [
-            TipoUsuario::ADMIN,
-            TipoUsuario::BEDEL,
-        ]);
+        return PermisoRol::tienePermiso('puedeAprobarNotas', $this->tipo);
     }
 
     // ========================================

@@ -26,22 +26,13 @@ class ExpedienteController extends Controller
     {
         $user = $request->user();
 
-        // Debug temporal
-        \Log::info('Expediente Index', [
-            'user_tipo' => $user->tipo,
-            'user_id' => $user->id,
-            'user_name' => $user->nombre
-        ]);
-
         // Profesor: mostrar panel de opciones (sin métricas, están en Dashboard)
         if ($user->tipo == 3) {
-            \Log::info('Renderizando ProfesorPanel');
             return Inertia::render('Expediente/ProfesorPanel');
         }
 
         // Admin: mostrar panel administrativo completo
         if ($user->tipo == 1) {
-            \Log::info('Renderizando AdminPanel');
             return $this->mostrarPanelAdmin($request);
         }
 
@@ -223,15 +214,6 @@ class ExpedienteController extends Controller
             $duracionCarreras[$carrera->Id] = $duracion;
             $carrera->duracion = $duracion; // Agregar duración al objeto carrera
         }
-
-        // Debug temporal
-        \Log::info('AdminPanel Data', [
-            'materias_count' => $materias->total(),
-            'profesores_count' => $profesores->total(),
-            'alumnos_count' => $alumnos->total(),
-            'carreras_count' => $carreras->count(),
-            'notas_pendientes_count' => $notasPendientes->count()
-        ]);
 
         // Obtener período activo para info en modal de profesor
         $periodoActivo = PeriodoInscripcion::activo();

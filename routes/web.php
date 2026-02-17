@@ -247,6 +247,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/configuracion-modulos/{modulo}/toggle', [ConfiguracionModulosController::class, 'toggle'])->name('configuracion-modulos.toggle');
     Route::post('/configuracion-modulos/update-batch', [ConfiguracionModulosController::class, 'updateBatch'])->name('configuracion-modulos.update-batch');
     Route::post('/configuracion-modulos/reset', [ConfiguracionModulosController::class, 'resetDefaults'])->name('configuracion-modulos.reset');
+    Route::get('/configuracion-modulos/permisos', [ConfiguracionModulosController::class, 'permisos'])->name('configuracion-modulos.permisos');
+    Route::post('/configuracion-modulos/permisos', [ConfiguracionModulosController::class, 'updatePermisos'])->name('configuracion-modulos.update-permisos');
 
     // Gestión de Solicitudes de Cambio de Email
     Route::get('/solicitudes-email', [SolicitudesCambioEmailController::class, 'index'])->name('solicitudes-email.index');

@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { Head, useForm, router } from '@inertiajs/vue3';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
+import axios from 'axios';
 
 const props = defineProps({
     modulos: Object,
@@ -99,6 +100,101 @@ const contarActivosPorCategoria = (categoria) => {
 
 const contarTotalPorCategoria = (categoria) => {
     return modulosLocal.value[categoria]?.length || 0;
+};
+
+// ========================================
+// PERMISOS POR ROL
+// ========================================
+const mostrarModalPermisos = ref(false);
+const cargandoPermisos = ref(false);
+const guardandoPermisos = ref(false);
+const permisosMatriz = ref({});
+const permisosNombres = ref({});
+const tiposUsuario = ref({});
+const permisosOriginal = ref({});
+
+// Tipos que se muestran en la grilla (excluir Admin=1 y Alumno=4)
+const tiposMostrados = computed(() => {
+    const excluir = [1, 4]; // Admin siempre tiene todo, Alumno no gestiona
+    const resultado = {};
+    for (const [tipo, nombre] of Object.entries(tiposUsuario.value)) {
+        if (!excluir.includes(Number(tipo))) {
+            resultado[tipo] = nombre;
+        }
+    }
+    return resultado;
+});
+
+const abrirModalPermisos = async () => {
+    cargandoPermisos.value = true;
+    mostrarModalPermisos.value = true;
+    try {
+        const { data } = await axios.get(route('admin.configuracion-modulos.permisos'));
+        permisosMatriz.value = JSON.parse(JSON.stringify(data.matriz));
+        permisosOriginal.value = JSON.parse(JSON.stringify(data.matriz));
+        permisosNombres.value = data.nombres;
+        tiposUsuario.value = data.tiposUsuario;
+    } catch (e) {
+        console.error('Error cargando permisos:', e);
+        mostrarModalPermisos.value = false;
+    } finally {
+        cargandoPermisos.value = false;
+    }
+};
+
+const togglePermiso = (permiso, tipo) => {
+    if (!permisosMatriz.value[permiso]) {
+        permisosMatriz.value[permiso] = {};
+    }
+    permisosMatriz.value[permiso][tipo] = !permisosMatriz.value[permiso][tipo];
+};
+
+const hayCambiosPermisos = computed(() => {
+    for (const permiso in permisosMatriz.value) {
+        for (const tipo in permisosMatriz.value[permiso]) {
+            if (Number(tipo) === 1 || Number(tipo) === 4) continue;
+            const actual = !!permisosMatriz.value[permiso][tipo];
+            const original = !!permisosOriginal.value[permiso]?.[tipo];
+            if (actual !== original) return true;
+        }
+    }
+    return false;
+});
+
+const guardarPermisos = () => {
+    const cambios = [];
+
+    for (const permiso in permisosMatriz.value) {
+        for (const tipo in permisosMatriz.value[permiso]) {
+            const tipoNum = Number(tipo);
+            if (tipoNum === 1) continue; // Admin no se toca
+            const actual = !!permisosMatriz.value[permiso][tipo];
+            const original = !!permisosOriginal.value[permiso]?.[tipo];
+            if (actual !== original) {
+                cambios.push({
+                    permiso,
+                    tipo_usuario: tipoNum,
+                    activo: actual,
+                });
+            }
+        }
+    }
+
+    if (cambios.length === 0) return;
+
+    guardandoPermisos.value = true;
+    router.post(route('admin.configuracion-modulos.update-permisos'), {
+        cambios
+    }, {
+        preserveScroll: true,
+        onSuccess: () => {
+            permisosOriginal.value = JSON.parse(JSON.stringify(permisosMatriz.value));
+            mostrarModalPermisos.value = false;
+        },
+        onFinish: () => {
+            guardandoPermisos.value = false;
+        }
+    });
 };
 </script>
 
@@ -274,6 +370,30 @@ const contarTotalPorCategoria = (categoria) => {
                 </div>
             </div>
 
+            <!-- Sección Permisos por Rol -->
+            <div class="bg-white rounded-lg shadow mt-6">
+                <div class="p-6">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-4">
+                            <div class="bg-indigo-100 p-3 rounded-lg">
+                                <i class="bx bx-shield-quarter text-2xl text-indigo-600"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-lg font-semibold text-gray-900">Permisos por Rol</h2>
+                                <p class="text-sm text-gray-600 mt-1">Configura qué acciones puede realizar cada tipo de usuario</p>
+                            </div>
+                        </div>
+                        <button
+                            @click="abrirModalPermisos"
+                            class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg transition-colors"
+                        >
+                            <i class="bx bx-cog mr-1"></i>
+                            Configurar Permisos
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Botón fijo para guardar -->
             <div
                 v-if="hayCambios"
@@ -288,5 +408,108 @@ const contarTotalPorCategoria = (categoria) => {
                 </button>
             </div>
         </div>
+
+        <!-- Modal de Permisos por Rol -->
+        <Teleport to="body">
+            <div
+                v-if="mostrarModalPermisos"
+                class="fixed inset-0 z-[60] flex items-center justify-center"
+            >
+                <!-- Overlay -->
+                <div
+                    class="absolute inset-0 bg-black bg-opacity-50"
+                    @click="mostrarModalPermisos = false"
+                ></div>
+
+                <!-- Modal -->
+                <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-4xl mx-4 max-h-[90vh] flex flex-col">
+                    <!-- Header -->
+                    <div class="flex items-center justify-between p-6 border-b border-gray-200">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900">Permisos por Rol</h3>
+                            <p class="text-sm text-gray-500 mt-1">El Administrador siempre tiene todos los permisos</p>
+                        </div>
+                        <button
+                            @click="mostrarModalPermisos = false"
+                            class="text-gray-400 hover:text-gray-600 transition-colors"
+                        >
+                            <i class="bx bx-x text-2xl"></i>
+                        </button>
+                    </div>
+
+                    <!-- Body -->
+                    <div class="p-6 overflow-auto flex-1">
+                        <div v-if="cargandoPermisos" class="flex items-center justify-center py-12">
+                            <i class="bx bx-loader-alt bx-spin text-3xl text-indigo-600 mr-3"></i>
+                            <span class="text-gray-600">Cargando permisos...</span>
+                        </div>
+
+                        <div v-else class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead>
+                                    <tr class="border-b border-gray-200">
+                                        <th class="text-left py-3 px-4 font-semibold text-gray-700 bg-gray-50 rounded-tl-lg">
+                                            Permiso
+                                        </th>
+                                        <th
+                                            v-for="(nombre, tipo) in tiposMostrados"
+                                            :key="tipo"
+                                            class="text-center py-3 px-3 font-semibold text-gray-700 bg-gray-50 whitespace-nowrap"
+                                        >
+                                            {{ nombre }}
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr
+                                        v-for="(nombreLegible, permiso) in permisosNombres"
+                                        :key="permiso"
+                                        class="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                                    >
+                                        <td class="py-3 px-4 text-gray-800 font-medium">
+                                            {{ nombreLegible }}
+                                        </td>
+                                        <td
+                                            v-for="(nombre, tipo) in tiposMostrados"
+                                            :key="tipo"
+                                            class="text-center py-3 px-3"
+                                        >
+                                            <label class="relative inline-flex items-center cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    :checked="!!permisosMatriz[permiso]?.[tipo]"
+                                                    @change="togglePermiso(permiso, tipo)"
+                                                    class="sr-only peer"
+                                                />
+                                                <div class="w-9 h-5 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-500"></div>
+                                            </label>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div class="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
+                        <button
+                            @click="mostrarModalPermisos = false"
+                            class="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm transition-colors"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            @click="guardarPermisos"
+                            :disabled="!hayCambiosPermisos || guardandoPermisos"
+                            class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 disabled:cursor-not-allowed text-white rounded-lg text-sm transition-colors"
+                        >
+                            <i v-if="guardandoPermisos" class="bx bx-loader-alt bx-spin mr-1"></i>
+                            <i v-else class="bx bx-save mr-1"></i>
+                            Guardar Permisos
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
     </SidebarLayout>
 </template>
