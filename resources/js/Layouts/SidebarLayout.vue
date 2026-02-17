@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import Sidebar from '@/Components/Layout/Sidebar.vue';
 import Navbar from '@/Components/Layout/Navbar.vue';
+import SupportChatWidget from '@/Components/Chat/SupportChatWidget.vue';
 import { useProfileSaver } from '@/Composables/useProfileSaver';
 
 // Activar guardado de perfil automático
@@ -100,5 +101,8 @@ onUnmounted(() => {
                 <slot />
             </main>
         </div>
+        
+        <!-- Widget de Soporte Técnico -->
+        <SupportChatWidget :user="user" />
     </div>
 </template>

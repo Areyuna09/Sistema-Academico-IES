@@ -63,7 +63,7 @@ class User extends Authenticatable implements CanResetPassword
 
     public function getNameAttribute()
     {
-        return $this->attributes['nombre'] ?? '';
+        return $this->attributes['nombre'] ?? $this->attributes['usuario'] ?? $this->email ?? 'Usuario';
     }
 
     public function setNameAttribute($value)

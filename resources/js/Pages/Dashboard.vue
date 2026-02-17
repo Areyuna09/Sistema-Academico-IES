@@ -16,6 +16,14 @@ const props = defineProps({
     mensaje: {
         type: String,
         default: null
+    },
+    chats: {
+        type: Array,
+        default: () => []
+    },
+    user: {
+        type: Object,
+        default: null
     }
 });
 

@@ -32,6 +32,13 @@ Route::get('/', function () {
         : redirect()->route('login');
 });
 
+// Login como página principal
+Route::get('/login', function () {
+    return auth()->check()
+        ? redirect()->route('dashboard')
+        : Inertia::render('Auth/Login');
+})->name('login');
+
 // Dashboard después de iniciar sesión
 Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])

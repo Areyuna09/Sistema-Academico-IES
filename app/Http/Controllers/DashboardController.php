@@ -56,7 +56,8 @@ class DashboardController extends Controller
 
         // Dashboard por defecto
         return Inertia::render('Dashboard', [
-            'tipoUsuario' => 'default'
+            'tipoUsuario' => 'default',
+            'user' => $user
         ]);
     }
 
@@ -68,7 +69,8 @@ class DashboardController extends Controller
             return Inertia::render('Dashboard', [
                 'tipoUsuario' => 'profesor',
                 'metricas' => null,
-                'mensaje' => 'No se encontró un perfil de profesor asociado'
+                'mensaje' => 'No se encontró un perfil de profesor asociado',
+                'user' => $user
             ]);
         }
 
@@ -107,7 +109,8 @@ class DashboardController extends Controller
                 'total_alumnos' => $totalAlumnos,
                 'asistencias_pendientes' => 0, // TODO: Implementar lógica de asistencias pendientes
                 'notas_pendientes' => $notasPendientes,
-            ]
+            ],
+            'user' => $user
         ]);
     }
 
@@ -120,7 +123,8 @@ class DashboardController extends Controller
             return Inertia::render('Dashboard', [
                 'tipoUsuario' => 'alumno',
                 'metricas' => null,
-                'mensaje' => 'No se encontró información del alumno'
+                'mensaje' => 'No se encontró información del alumno',
+                'user' => $user
             ]);
         }
 
@@ -178,7 +182,8 @@ class DashboardController extends Controller
                 'materias_aprobadas' => $materiasAprobadas,
                 'promedio_general' => $promedioGeneral,
                 'asistencia' => $porcentajeAsistencia,
-            ]
+            ],
+            'user' => $user
         ]);
     }
 
@@ -206,7 +211,8 @@ class DashboardController extends Controller
                 'total_materias' => $totalMaterias,
                 'inscripciones_activas' => $inscripcionesActivas,
                 'notas_pendientes' => $notasPendientes,
-            ]
+            ],
+            'user' => $user
         ]);
     }
 }
