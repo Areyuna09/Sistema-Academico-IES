@@ -4,12 +4,15 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Carrera;
+use App\Traits\ChecksPermissions;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class CarrerasController extends Controller
 {
+    use ChecksPermissions;
+
     /**
      * Mostrar listado de carreras
      */
@@ -52,6 +55,9 @@ class CarrerasController extends Controller
      */
     public function store(Request $request)
     {
+        // Verificar permisos de creación
+        $this->autorizarCrear($request);
+
         $validated = $request->validate([
             'nombre' => 'required|string|max:55|unique:tbl_carreras,nombre',
             'resolucion' => 'nullable|string|max:55',
@@ -86,6 +92,9 @@ class CarrerasController extends Controller
      */
     public function update(Request $request, Carrera $carrera)
     {
+        // Verificar permisos de modificación
+        $this->autorizarModificar($request);
+
         $validated = $request->validate([
             'nombre' => ['required', 'string', 'max:55', Rule::unique('tbl_carreras')->ignore($carrera->Id, 'Id')],
             'resolucion' => 'nullable|string|max:55',
@@ -102,6 +111,9 @@ class CarrerasController extends Controller
      */
     public function destroy(Carrera $carrera)
     {
+        // Solo Admin y Bedel pueden eliminar
+        $this->autorizarEliminar(request());
+
         // Verificar que no tenga materias o alumnos asociados
         if ($carrera->materias()->count() > 0) {
             return back()->withErrors(['error' => 'No se puede eliminar una carrera con materias asociadas.']);

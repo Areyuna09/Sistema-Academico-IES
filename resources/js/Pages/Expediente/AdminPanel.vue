@@ -8,9 +8,13 @@ import ProfesorModal from '@/Components/ProfesorModal.vue';
 import MateriaModal from '@/Components/MateriaModal.vue';
 import ExpedienteAlumnoModal from '@/Components/ExpedienteAlumnoModal.vue';
 import { useDialog } from '@/Composables/useDialog';
+import { usePermisos } from '@/Composables/usePermisos';
 import axios from 'axios';
 
 const { confirm: dialogConfirm, alert: dialogAlert, prompt: dialogPrompt } = useDialog();
+
+// Composable de permisos
+const { soloLectura, puedeCrear, puedeModificar, puedeEliminar, puedeAprobarNotas } = usePermisos();
 
 const props = defineProps({
     materias: {
@@ -1031,6 +1035,7 @@ const getEstadoBadge = (estado) => {
                             </div>
                         </div>
                         <button
+                            v-if="puedeCrear()"
                             @click="abrirModalNuevaMateria"
                             class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200"
                         >
@@ -1160,6 +1165,7 @@ const getEstadoBadge = (estado) => {
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div class="flex items-center justify-end gap-2">
                                             <button
+                                                v-if="puedeModificar()"
                                                 @click="abrirModalEditarMateria(materia)"
                                                 class="text-blue-600 hover:text-blue-900"
                                                 title="Editar"
@@ -1167,12 +1173,14 @@ const getEstadoBadge = (estado) => {
                                                 <i class="bx bx-edit text-lg"></i>
                                             </button>
                                             <button
+                                                v-if="puedeEliminar()"
                                                 @click="eliminarMateria(materia)"
                                                 class="text-red-600 hover:text-red-900"
                                                 title="Eliminar"
                                             >
                                                 <i class="bx bx-trash text-lg"></i>
                                             </button>
+                                            <span v-if="soloLectura()" class="text-gray-400 text-sm">Solo lectura</span>
                                         </div>
                                     </td>
                                 </tr>
@@ -1219,6 +1227,7 @@ const getEstadoBadge = (estado) => {
                             </div>
                         </div>
                         <button
+                            v-if="puedeCrear()"
                             @click="abrirModalNuevoProfesor"
                             class="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors duration-200"
                         >
@@ -1292,6 +1301,7 @@ const getEstadoBadge = (estado) => {
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div class="flex items-center justify-end gap-2">
                                             <button
+                                                v-if="puedeModificar()"
                                                 @click="abrirModalEditarProfesor(profesor)"
                                                 class="text-blue-600 hover:text-blue-900"
                                                 title="Editar"
@@ -1299,12 +1309,14 @@ const getEstadoBadge = (estado) => {
                                                 <i class="bx bx-edit text-lg"></i>
                                             </button>
                                             <button
+                                                v-if="puedeEliminar()"
                                                 @click="eliminarProfesor(profesor)"
                                                 class="text-red-600 hover:text-red-900"
                                                 title="Eliminar"
                                             >
                                                 <i class="bx bx-trash text-lg"></i>
                                             </button>
+                                            <span v-if="soloLectura()" class="text-gray-400 text-sm">Solo lectura</span>
                                         </div>
                                     </td>
                                 </tr>
@@ -1330,6 +1342,7 @@ const getEstadoBadge = (estado) => {
                             </div>
                         </div>
                         <button
+                            v-if="puedeCrear()"
                             @click="abrirModalNuevoAlumno"
                             class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors duration-200"
                         >
@@ -1426,6 +1439,7 @@ const getEstadoBadge = (estado) => {
                                                 <i class="bx bx-folder-open text-lg"></i>
                                             </button>
                                             <button
+                                                v-if="puedeModificar()"
                                                 @click="abrirModalEditarAlumno(alumno)"
                                                 class="text-blue-600 hover:text-blue-900"
                                                 title="Editar"
@@ -1433,12 +1447,14 @@ const getEstadoBadge = (estado) => {
                                                 <i class="bx bx-edit text-lg"></i>
                                             </button>
                                             <button
+                                                v-if="puedeEliminar()"
                                                 @click="eliminarAlumno(alumno)"
                                                 class="text-red-600 hover:text-red-900"
                                                 title="Eliminar"
                                             >
                                                 <i class="bx bx-trash text-lg"></i>
                                             </button>
+                                            <span v-if="soloLectura()" class="text-gray-400 text-sm">Solo lectura</span>
                                         </div>
                                     </td>
                                 </tr>
@@ -1515,7 +1531,7 @@ const getEstadoBadge = (estado) => {
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div class="flex items-center justify-end gap-2">
                                             <button
-                                                v-if="nota.estado === 'pendiente'"
+                                                v-if="nota.estado === 'pendiente' && puedeAprobarNotas()"
                                                 @click="aprobarNota(nota.id)"
                                                 class="text-green-600 hover:text-green-900"
                                                 title="Aprobar y transferir al legajo"
@@ -1523,13 +1539,16 @@ const getEstadoBadge = (estado) => {
                                                 <i class="bx bx-check-circle text-lg"></i>
                                             </button>
                                             <button
-                                                v-if="nota.estado === 'pendiente'"
+                                                v-if="nota.estado === 'pendiente' && puedeAprobarNotas()"
                                                 @click="rechazarNota(nota.id)"
                                                 class="text-red-600 hover:text-red-900"
                                                 title="Rechazar"
                                             >
                                                 <i class="bx bx-x-circle text-lg"></i>
                                             </button>
+                                            <span v-if="nota.estado === 'pendiente' && soloLectura()" class="text-gray-400 text-sm">
+                                                Pendiente de aprobación
+                                            </span>
                                             <span v-if="nota.estado !== 'pendiente'" class="text-gray-400">
                                                 {{ nota.estado === 'aprobada' ? 'Aprobada' : 'Rechazada' }}
                                             </span>

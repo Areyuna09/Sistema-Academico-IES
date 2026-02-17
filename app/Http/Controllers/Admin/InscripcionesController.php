@@ -12,6 +12,7 @@ use App\Models\PeriodoInscripcion;
 use App\Models\Carrera;
 use App\Models\Notificacion;
 use App\Models\Configuracion;
+use App\Traits\ChecksPermissions;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -20,6 +21,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class InscripcionesController extends Controller
 {
+    use ChecksPermissions;
+
     /**
      * Mostrar listado de inscripciones con filtros
      * Maneja TANTO inscripciones a cursado COMO a mesas
@@ -297,6 +300,9 @@ class InscripcionesController extends Controller
      */
     public function update(Request $request, $id)
     {
+        // Verificar permisos de modificación
+        $this->autorizarGestionInscripciones($request);
+
         $tipo = $request->get('tipo', 'cursado');
 
         if ($tipo === 'mesas') {
@@ -410,6 +416,9 @@ class InscripcionesController extends Controller
      */
     public function store(Request $request)
     {
+        // Verificar permisos de creación
+        $this->autorizarGestionInscripciones($request);
+
         $request->validate([
             'alumno_id' => 'required|exists:tbl_alumnos,id',
             'materia_id' => 'required|exists:tbl_materias,id',

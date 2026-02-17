@@ -8,11 +8,13 @@ use App\Models\Materia;
 use App\Models\Profesor;
 use App\Models\PeriodoInscripcion;
 use App\Models\Carrera;
+use App\Traits\ChecksPermissions;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class MesasExamenController extends Controller
 {
+    use ChecksPermissions;
     /**
      * Mostrar listado de mesas de examen
      */
@@ -92,6 +94,9 @@ class MesasExamenController extends Controller
      */
     public function store(Request $request)
     {
+        // Verificar permisos de gestión de mesas
+        $this->autorizarGestionMesas($request);
+
         $validated = $request->validate([
             'materia_id' => 'required|exists:tbl_materias,id',
             'fecha_examen' => 'required|date|after_or_equal:today',
@@ -153,6 +158,9 @@ class MesasExamenController extends Controller
      */
     public function update(Request $request, MesaExamen $mesa)
     {
+        // Verificar permisos de gestión de mesas
+        $this->autorizarGestionMesas($request);
+
         $validated = $request->validate([
             'materia_id' => 'required|exists:tbl_materias,id',
             'fecha_examen' => 'required|date',
@@ -194,6 +202,9 @@ class MesasExamenController extends Controller
      */
     public function destroy(MesaExamen $mesa)
     {
+        // Verificar permisos de eliminación
+        $this->autorizarEliminar(request());
+
         // Verificar si hay inscripciones
         if ($mesa->inscripciones()->count() > 0) {
             return back()->withErrors([

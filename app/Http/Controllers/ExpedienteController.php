@@ -16,10 +16,11 @@ use App\Models\User;
 use App\Models\Notificacion;
 use App\Services\EstadoAcademicoService;
 use App\Traits\HandlesErrors;
+use App\Traits\ChecksPermissions;
 
 class ExpedienteController extends Controller
 {
-    use HandlesErrors;
+    use HandlesErrors, ChecksPermissions;
 
     public function index(Request $request)
     {
@@ -38,15 +39,21 @@ class ExpedienteController extends Controller
             return Inertia::render('Expediente/ProfesorPanel');
         }
 
-        // Admin: mostrar panel administrativo completo
-        if ($user->tipo == 1) {
-            \Log::info('Renderizando AdminPanel');
+        // Admin, Bedel (7), Usuario legacy (2), Preceptor (8): mostrar panel administrativo completo
+        if (in_array($user->tipo, [1, 2, 7, 8])) {
+            \Log::info('Renderizando AdminPanel para tipo: ' . $user->tipo);
             return $this->mostrarPanelAdmin($request);
         }
 
         // Alumno: mostrar su expediente personal
         if ($user->tipo == 4) {
             return $this->mostrarExpedienteAlumno($user);
+        }
+
+        // Directivo y Supervisor: también pueden ver el panel admin (solo lectura)
+        if (in_array($user->tipo, [5, 6])) {
+            \Log::info('Renderizando AdminPanel (solo lectura) para tipo: ' . $user->tipo);
+            return $this->mostrarPanelAdmin($request);
         }
 
         \Log::warning('Usuario sin acceso a expediente', ['tipo' => $user->tipo]);
@@ -482,6 +489,9 @@ class ExpedienteController extends Controller
 
     public function guardarAsistencia(Request $request)
     {
+        // Verificar permisos para tomar asistencias
+        $this->autorizarTomarAsistencias($request);
+
         $request->validate([
             'profesor_materia_id' => 'required|exists:tbl_profesor_tiene_materias,id',
             'fecha' => 'required|date',
@@ -529,6 +539,9 @@ class ExpedienteController extends Controller
 
     public function guardarNotas(Request $request)
     {
+        // Verificar permisos para cargar notas
+        $this->autorizarCargarNotas($request);
+
         $request->validate([
             'profesor_materia_id' => 'required|exists:tbl_profesor_tiene_materias,id',
             'tipo_evaluacion' => 'required|string|max:100',
@@ -623,6 +636,9 @@ class ExpedienteController extends Controller
 
     public function guardarAsistenciaFinal(Request $request)
     {
+        // Verificar permisos para tomar asistencias
+        $this->autorizarTomarAsistencias($request);
+
         $request->validate([
             'profesor_materia_id' => 'required|exists:tbl_profesor_tiene_materias,id',
             'total_clases' => 'required|integer|min:1',
@@ -681,6 +697,9 @@ class ExpedienteController extends Controller
 
     public function guardarNotasFinales(Request $request)
     {
+        // Verificar permisos para cargar notas
+        $this->autorizarCargarNotas($request);
+
         $request->validate([
             'profesor_materia_id' => 'required|exists:tbl_profesor_tiene_materias,id',
             'fecha' => 'required|date',
@@ -732,14 +751,10 @@ class ExpedienteController extends Controller
 
     public function aprobarNota(Request $request, $id)
     {
-        $user = $request->user();
+        // Verificar permisos para aprobar notas
+        $this->autorizarAprobarNotas($request);
 
-        // Verificar que el usuario sea admin o bedel
-        if (!in_array($user->tipo, [1, 2])) {
-            return response()->json([
-                'error' => 'No tiene permisos para aprobar notas'
-            ], 403);
-        }
+        $user = $request->user();
 
         $nota = NotaTemporal::with(['alumno', 'profesorMateria.materiaRelacion', 'profesorMateria.profesorRelacion.user'])->findOrFail($id);
 
@@ -943,14 +958,10 @@ class ExpedienteController extends Controller
 
     public function rechazarNota(Request $request, $id)
     {
-        $user = $request->user();
+        // Verificar permisos para aprobar notas
+        $this->autorizarAprobarNotas($request);
 
-        // Verificar que el usuario sea admin o bedel
-        if (!in_array($user->tipo, [1, 2])) {
-            return response()->json([
-                'error' => 'No tiene permisos para rechazar notas'
-            ], 403);
-        }
+        $user = $request->user();
 
         $request->validate([
             'observaciones' => 'required|string|max:500'
@@ -1130,14 +1141,10 @@ class ExpedienteController extends Controller
 
     public function actualizarEstadoMateria(Request $request, $alumnoMateriaId)
     {
-        $user = $request->user();
+        // Verificar permisos para modificar
+        $this->autorizarModificar($request);
 
-        // Verificar que el usuario sea admin o bedel
-        if (!in_array($user->tipo, [1, 2])) {
-            return response()->json([
-                'error' => 'No tiene permisos para editar legajos'
-            ], 403);
-        }
+        $user = $request->user();
 
         $request->validate([
             'cursada' => 'nullable|in:0,1',
@@ -1291,14 +1298,10 @@ class ExpedienteController extends Controller
 
     public function agregarMateria(Request $request)
     {
-        $user = $request->user();
+        // Verificar permisos para modificar
+        $this->autorizarModificar($request);
 
-        // Verificar que el usuario sea admin o bedel
-        if (!in_array($user->tipo, [1, 2])) {
-            return response()->json([
-                'error' => 'No tiene permisos para agregar materias al legajo'
-            ], 403);
-        }
+        $user = $request->user();
 
         $request->validate([
             'alumno_id' => 'required|exists:tbl_alumnos,id',

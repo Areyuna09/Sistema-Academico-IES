@@ -8,12 +8,13 @@ use App\Models\Carrera;
 use App\Models\PlanEstudio;
 use App\Models\PlanEstudioMateria;
 use App\Traits\HandlesErrors;
+use App\Traits\ChecksPermissions;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class MateriasController extends Controller
 {
-    use HandlesErrors;
+    use HandlesErrors, ChecksPermissions;
     /**
      * Mostrar listado de materias
      */
@@ -93,6 +94,9 @@ class MateriasController extends Controller
      */
     public function store(Request $request)
     {
+        // Verificar permisos de creación
+        $this->autorizarCrear($request);
+
         $validated = $request->validate([
             'nombre' => 'required|string|max:100|regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\d\-\(\)\.]+$/',
             'carrera' => 'required|exists:tbl_carreras,Id',
@@ -202,6 +206,9 @@ class MateriasController extends Controller
      */
     public function update(Request $request, Materia $materia)
     {
+        // Verificar permisos de modificación
+        $this->autorizarModificar($request);
+
         $validated = $request->validate([
             'nombre' => 'required|string|max:100|regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\d\-\(\)\.]+$/',
             'carrera' => 'required|exists:tbl_carreras,Id',
@@ -297,6 +304,9 @@ class MateriasController extends Controller
      */
     public function destroy(Materia $materia)
     {
+        // Solo Admin y Bedel pueden eliminar
+        $this->autorizarEliminar(request());
+
         // Verificar que no tenga correlativas configuradas
         if ($materia->reglasCorrelativas()->count() > 0) {
             return back()->withErrors(['error' => 'No se puede eliminar una materia con reglas de correlativas configuradas.']);
