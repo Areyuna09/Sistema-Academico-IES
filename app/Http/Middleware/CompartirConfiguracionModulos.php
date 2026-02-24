@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Inertia\Inertia;
 use App\Models\ConfiguracionModulo;
+use App\Models\PermisoRol;
 
 class CompartirConfiguracionModulos
 {
@@ -23,6 +24,11 @@ class CompartirConfiguracionModulos
                 return \Cache::remember('modulos_config', 3600, function () {
                     return ConfiguracionModulo::all()->pluck('activo', 'clave')->toArray();
                 });
+            },
+            'permisosAcceso' => function () use ($request) {
+                $user = $request->user();
+                if (!$user) return [];
+                return PermisoRol::obtenerAccesosModulo($user->tipo);
             },
         ]);
 

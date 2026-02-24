@@ -113,6 +113,17 @@ const permisosNombres = ref({});
 const tiposUsuario = ref({});
 const permisosOriginal = ref({});
 
+// Solo mostrar permisos de acceso a módulos (prefijo acceso:)
+const nombresAcceso = computed(() => {
+    const result = {};
+    for (const [clave, nombre] of Object.entries(permisosNombres.value)) {
+        if (clave.startsWith('acceso:')) {
+            result[clave] = nombre;
+        }
+    }
+    return result;
+});
+
 // Tipos que se muestran en la grilla (excluir Admin=1 y Alumno=4)
 const tiposMostrados = computed(() => {
     const excluir = [1, 4]; // Admin siempre tiene todo, Alumno no gestiona
@@ -370,17 +381,17 @@ const guardarPermisos = () => {
                 </div>
             </div>
 
-            <!-- Sección Permisos por Rol -->
+            <!-- Sección Acceso a Módulos por Rol -->
             <div class="bg-white rounded-lg shadow mt-6">
                 <div class="p-6">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center space-x-4">
                             <div class="bg-indigo-100 p-3 rounded-lg">
-                                <i class="bx bx-shield-quarter text-2xl text-indigo-600"></i>
+                                <i class="bx bx-layout text-2xl text-indigo-600"></i>
                             </div>
                             <div>
-                                <h2 class="text-lg font-semibold text-gray-900">Permisos por Rol</h2>
-                                <p class="text-sm text-gray-600 mt-1">Configura qué acciones puede realizar cada tipo de usuario</p>
+                                <h2 class="text-lg font-semibold text-gray-900">Acceso a Módulos por Rol</h2>
+                                <p class="text-sm text-gray-600 mt-1">Configura qué secciones del panel de Parámetros puede ver cada rol</p>
                             </div>
                         </div>
                         <button
@@ -388,7 +399,7 @@ const guardarPermisos = () => {
                             class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg transition-colors"
                         >
                             <i class="bx bx-cog mr-1"></i>
-                            Configurar Permisos
+                            Configurar Accesos
                         </button>
                     </div>
                 </div>
@@ -426,8 +437,8 @@ const guardarPermisos = () => {
                     <!-- Header -->
                     <div class="flex items-center justify-between p-6 border-b border-gray-200">
                         <div>
-                            <h3 class="text-lg font-semibold text-gray-900">Permisos por Rol</h3>
-                            <p class="text-sm text-gray-500 mt-1">El Administrador siempre tiene todos los permisos</p>
+                            <h3 class="text-lg font-semibold text-gray-900">Acceso a Módulos por Rol</h3>
+                            <p class="text-sm text-gray-500 mt-1">El Administrador siempre tiene acceso a todos los módulos</p>
                         </div>
                         <button
                             @click="mostrarModalPermisos = false"
@@ -449,7 +460,7 @@ const guardarPermisos = () => {
                                 <thead>
                                     <tr class="border-b border-gray-200">
                                         <th class="text-left py-3 px-4 font-semibold text-gray-700 bg-gray-50 rounded-tl-lg">
-                                            Permiso
+                                            Módulo
                                         </th>
                                         <th
                                             v-for="(nombre, tipo) in tiposMostrados"
@@ -462,7 +473,7 @@ const guardarPermisos = () => {
                                 </thead>
                                 <tbody>
                                     <tr
-                                        v-for="(nombreLegible, permiso) in permisosNombres"
+                                        v-for="(nombreLegible, permiso) in nombresAcceso"
                                         :key="permiso"
                                         class="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                                     >

@@ -152,85 +152,100 @@ const menuItems = computed(() => {
     });
 });
 
-// Subitems de Parámetros (solo para admin)
-const parametrosItems = computed(() => {
-    // Solo mostrar para admin (tipo 1 y 2), no para profesores
-    if (![1, 2].includes(page.props.auth.user?.tipo)) return [];
+// Obtener permisos de acceso a módulos admin
+const permisosAcceso = computed(() => page.props.permisosAcceso || {});
 
-    return [
+// Verificar si el usuario tiene acceso a al menos un módulo admin
+const tieneAlgunAccesoAdmin = computed(() => {
+    return Object.values(permisosAcceso.value).some((v) => v);
+});
+
+// Subitems de Parámetros (filtrados por acceso)
+const parametrosItems = computed(() => {
+    if (!tieneAlgunAccesoAdmin.value) return [];
+
+    const items = [
         {
             name: "Usuarios",
             route: "admin.usuarios.index",
             icon: "bx-user-circle",
             path: "/admin/usuarios",
+            acceso: "admin_usuarios",
         },
         {
             name: "Carreras",
             route: "admin.carreras.index",
             icon: "bx-briefcase",
             path: "/admin/carreras",
+            acceso: "admin_carreras",
         },
         {
             name: "Planes de Estudio",
             route: "admin.planes-estudio.index",
             icon: "bx-book-content",
             path: "/admin/planes-estudio",
+            acceso: "admin_planes_estudio",
         },
         {
             name: "Períodos Lectivos",
             route: "admin.periodos.index",
             icon: "bx-calendar",
             path: "/admin/periodos",
+            acceso: "admin_periodos",
         },
         {
             name: "Inscripciones",
             route: "admin.inscripciones.index",
             icon: "bx-list-check",
             path: "/admin/inscripciones",
+            acceso: "admin_inscripciones",
         },
         {
             name: "Mesas de Examen",
             route: "admin.mesas.index",
             icon: "bx-calendar-event",
             path: "/admin/mesas",
+            acceso: "admin_mesas",
         },
         {
             name: "Correlativas",
             route: "admin.correlativas.index",
             icon: "bx-link",
             path: "/admin/correlativas",
+            acceso: "admin_correlativas",
         },
         {
             name: "Excepciones",
             route: "admin.excepciones.index",
             icon: "bx-error-circle",
             path: "/admin/excepciones",
+            acceso: "admin_excepciones",
         },
         {
             name: "Solicitudes de Email",
             route: "admin.solicitudes-email.index",
             icon: "bx-envelope-open",
             path: "/admin/solicitudes-email",
+            acceso: "admin_solicitudes_email",
         },
-        // {
-        //     name: "Configuración",
-        //     route: "admin.configuracion.index",
-        //     icon: "bx-cog",
-        //     path: "/admin/configuracion",
-        // },
         {
             name: "Módulos del Sistema",
             route: "admin.configuracion-modulos.index",
             icon: "bx-package",
             path: "/admin/configuracion-modulos",
+            acceso: "admin_modulos",
         },
         {
             name: "Importación Masiva",
             route: "admin.importacion.index",
             icon: "bx-import",
             path: "/admin/importacion",
+            acceso: "admin_importacion",
         },
     ];
+
+    // Filtrar por permisos de acceso
+    return items.filter((item) => permisosAcceso.value[item.acceso]);
 });
 </script>
 
@@ -324,8 +339,8 @@ const parametrosItems = computed(() => {
                 </transition>
             </component>
 
-            <!-- Dropdown de Parámetros (solo para admin) -->
-            <div v-if="[1, 2].includes(page.props.auth.user?.tipo)" class="space-y-1">
+            <!-- Dropdown de Parámetros (visible si tiene al menos un acceso admin) -->
+            <div v-if="tieneAlgunAccesoAdmin" class="space-y-1">
                 <!-- Botón principal de Parámetros -->
                 <button
                     @click="showParametrosMenu = !showParametrosMenu"

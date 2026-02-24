@@ -39,31 +39,72 @@ class PermisoRol extends Model
     }
 
     /**
-     * Obtiene la matriz completa de permisos (para el frontend).
+     * Verifica si un tipo de usuario tiene acceso a un módulo admin.
      */
-    public static function obtenerMatriz(): array
+    public static function tieneAccesoModulo(string $moduloClave, int $tipoUsuario): bool
+    {
+        return static::tienePermiso('acceso:' . $moduloClave, $tipoUsuario);
+    }
+
+    /**
+     * Obtiene todos los accesos a módulos para un tipo de usuario.
+     * Retorna array ['admin_usuarios' => true, 'admin_carreras' => false, ...]
+     */
+    public static function obtenerAccesosModulo(int $tipoUsuario): array
+    {
+        $matriz = static::obtenerMatrizCache();
+        $accesos = [];
+
+        foreach ($matriz as $permiso => $tipos) {
+            if (str_starts_with($permiso, 'acceso:')) {
+                $clave = substr($permiso, 7); // quitar 'acceso:'
+                if ($tipoUsuario === TipoUsuario::ADMIN) {
+                    $accesos[$clave] = true;
+                } else {
+                    $accesos[$clave] = !empty($tipos[$tipoUsuario]);
+                }
+            }
+        }
+
+        return $accesos;
+    }
+
+    /**
+     * Verifica si un tipo de usuario tiene al menos un acceso admin activo.
+     */
+    public static function tieneAlgunAccesoAdmin(int $tipoUsuario): bool
+    {
+        if ($tipoUsuario === TipoUsuario::ADMIN) {
+            return true;
+        }
+
+        $accesos = static::obtenerAccesosModulo($tipoUsuario);
+
+        foreach ($accesos as $activo) {
+            if ($activo) return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Obtiene la matriz completa de permisos (para el frontend).
+     * Se puede filtrar por categoría: 'accion', 'acceso', o null para todas.
+     */
+    public static function obtenerMatriz(?string $categoria = null): array
     {
         $permisos = static::all();
-
-        $nombres = [
-            'puedeCrear'                  => 'Crear registros',
-            'puedeModificar'              => 'Modificar registros',
-            'puedeEliminar'               => 'Eliminar registros',
-            'puedeGestionarUsuarios'      => 'Gestionar usuarios',
-            'puedeGestionarInscripciones' => 'Gestionar inscripciones',
-            'puedeGestionarMesas'         => 'Gestionar mesas de examen',
-            'puedeTomarAsistencias'       => 'Tomar asistencias',
-            'puedeCargarNotas'            => 'Cargar notas',
-            'puedeAprobarNotas'           => 'Aprobar notas finales',
-            'puedeRevisarLegajos'         => 'Revisar legajos',
-            'puedeSupervisar'             => 'Supervisar',
-        ];
-
         $tiposUsuario = TipoUsuario::getNombres();
 
+        // Obtener nombres legibles desde permisos_definicion
+        $nombres = PermisoDefinicion::obtenerNombres($categoria);
+
+        // Filtrar permisos según las claves que existan en definiciones
         $matriz = [];
         foreach ($permisos as $p) {
-            $matriz[$p->permiso][$p->tipo_usuario] = $p->activo;
+            if ($categoria === null || array_key_exists($p->permiso, $nombres)) {
+                $matriz[$p->permiso][$p->tipo_usuario] = $p->activo;
+            }
         }
 
         return [

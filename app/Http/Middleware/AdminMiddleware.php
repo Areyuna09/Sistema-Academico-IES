@@ -6,6 +6,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Models\TipoUsuario;
+use App\Models\PermisoRol;
 
 class AdminMiddleware
 {
@@ -25,8 +26,9 @@ class AdminMiddleware
             return redirect()->route('login');
         }
 
-        // Permitir acceso solo a roles administrativos
-        if (!in_array($user->tipo, TipoUsuario::rolesAdministrativos())) {
+        // Permitir acceso a roles administrativos o a cualquier rol con al menos un acceso admin asignado
+        if (!in_array($user->tipo, TipoUsuario::rolesAdministrativos()) &&
+            !PermisoRol::tieneAlgunAccesoAdmin($user->tipo)) {
             abort(403, 'No tienes permiso para acceder a esta sección.');
         }
 
