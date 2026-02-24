@@ -54,14 +54,15 @@ const submit = () => {
 const mostrarVinculacionAlumno = computed(() => form.tipo == 4);
 const mostrarVinculacionProfesor = computed(() => form.tipo == 3);
 
-const getTipoBadge = (tipo) => {
-    const badges = {
-        1: { text: 'Admin', class: 'bg-purple-100 text-purple-800', icon: 'bx-shield' },
-        3: { text: 'Profesor', class: 'bg-blue-100 text-blue-800', icon: 'bx-chalkboard' },
-        4: { text: 'Alumno', class: 'bg-green-100 text-green-800', icon: 'bx-user' },
-    };
-    return badges[tipo] || { text: 'Usuario', class: 'bg-gray-100 text-gray-800', icon: 'bx-user' };
-};
+const tiposDisponibles = [
+    { value: 1, label: 'Admin', icon: 'bx-shield', iconColor: 'text-purple-600', borderActive: 'border-purple-500', bgActive: 'bg-purple-50', borderHover: 'border-purple-300' },
+    { value: 3, label: 'Profesor', icon: 'bx-chalkboard', iconColor: 'text-blue-600', borderActive: 'border-blue-500', bgActive: 'bg-blue-50', borderHover: 'border-blue-300' },
+    { value: 4, label: 'Alumno', icon: 'bx-user', iconColor: 'text-green-600', borderActive: 'border-green-500', bgActive: 'bg-green-50', borderHover: 'border-green-300' },
+    { value: 5, label: 'Directivo', icon: 'bx-building', iconColor: 'text-amber-600', borderActive: 'border-amber-500', bgActive: 'bg-amber-50', borderHover: 'border-amber-300' },
+    { value: 6, label: 'Supervisor', icon: 'bx-search-alt', iconColor: 'text-cyan-600', borderActive: 'border-cyan-500', bgActive: 'bg-cyan-50', borderHover: 'border-cyan-300' },
+    { value: 7, label: 'Bedel', icon: 'bx-id-card', iconColor: 'text-orange-600', borderActive: 'border-orange-500', bgActive: 'bg-orange-50', borderHover: 'border-orange-300' },
+    { value: 8, label: 'Preceptor', icon: 'bx-clipboard', iconColor: 'text-teal-600', borderActive: 'border-teal-500', bgActive: 'bg-teal-50', borderHover: 'border-teal-300' },
+];
 </script>
 
 <template>
@@ -81,46 +82,14 @@ const getTipoBadge = (tipo) => {
                     <!-- Tipo de Usuario -->
                     <div class="mb-6">
                         <h3 class="text-lg font-semibold text-gray-800 mb-4">Tipo de Usuario</h3>
-                        <div class="grid grid-cols-3 gap-4">
-                            <label class="relative flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all"
-                                :class="form.tipo === 1 ? 'border-purple-500 bg-purple-50' : 'border-gray-200 hover:border-purple-300'">
-                                <input
-                                    type="radio"
-                                    v-model="form.tipo"
-                                    :value="1"
-                                    class="sr-only"
-                                />
-                                <div class="flex items-center gap-3">
-                                    <i class="bx bx-shield text-2xl text-purple-600"></i>
-                                    <span class="font-semibold text-gray-700">Admin</span>
-                                </div>
-                            </label>
-
-                            <label class="relative flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all"
-                                :class="form.tipo === 3 ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'">
-                                <input
-                                    type="radio"
-                                    v-model="form.tipo"
-                                    :value="3"
-                                    class="sr-only"
-                                />
-                                <div class="flex items-center gap-3">
-                                    <i class="bx bx-chalkboard text-2xl text-blue-600"></i>
-                                    <span class="font-semibold text-gray-700">Profesor</span>
-                                </div>
-                            </label>
-
-                            <label class="relative flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all"
-                                :class="form.tipo === 4 ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-green-300'">
-                                <input
-                                    type="radio"
-                                    v-model="form.tipo"
-                                    :value="4"
-                                    class="sr-only"
-                                />
-                                <div class="flex items-center gap-3">
-                                    <i class="bx bx-user text-2xl text-green-600"></i>
-                                    <span class="font-semibold text-gray-700">Alumno</span>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <label v-for="rol in tiposDisponibles" :key="rol.value"
+                                class="relative flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all"
+                                :class="form.tipo === rol.value ? `${rol.borderActive} ${rol.bgActive}` : `border-gray-200 hover:${rol.borderHover}`">
+                                <input type="radio" v-model="form.tipo" :value="rol.value" class="sr-only" />
+                                <div class="flex items-center gap-2">
+                                    <i :class="`bx ${rol.icon} text-xl ${rol.iconColor}`"></i>
+                                    <span class="font-semibold text-sm text-gray-700">{{ rol.label }}</span>
                                 </div>
                             </label>
                         </div>

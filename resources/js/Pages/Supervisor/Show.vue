@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
+import SidebarLayout from '@/Layouts/SidebarLayout.vue';
 
 const props = defineProps({
     legajo: Object,
@@ -57,9 +57,16 @@ const puedeRechazar = computed(() => {
 <template>
     <Head title="Supervisar Legajo" />
 
-    <AuthenticatedLayout>
-        <div class="py-12">
-            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+    <SidebarLayout :user="$page.props.auth.user">
+        <template #header>
+            <div>
+                <h1 class="text-xl font-semibold text-white">Supervisión de Legajo</h1>
+                <p class="text-xs text-gray-400 mt-0.5">Panel de Supervisor</p>
+            </div>
+        </template>
+
+        <div class="p-4 md:p-8">
+            <div class="max-w-7xl mx-auto">
                 <!-- Header -->
                 <div class="mb-6 flex items-center justify-between">
                     <div>
@@ -416,5 +423,5 @@ const puedeRechazar = computed(() => {
                 </form>
             </div>
         </div>
-    </AuthenticatedLayout>
+    </SidebarLayout>
 </template>

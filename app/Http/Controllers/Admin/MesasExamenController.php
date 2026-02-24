@@ -13,6 +13,8 @@ use Inertia\Inertia;
 
 class MesasExamenController extends Controller
 {
+    use \App\Traits\ChecksPermissions;
+
     /**
      * Mostrar listado de mesas de examen
      */
@@ -92,6 +94,8 @@ class MesasExamenController extends Controller
      */
     public function store(Request $request)
     {
+        $this->autorizarCrear($request);
+
         $validated = $request->validate([
             'materia_id' => 'required|exists:tbl_materias,id',
             'fecha_examen' => 'required|date|after_or_equal:today',
@@ -155,6 +159,8 @@ class MesasExamenController extends Controller
      */
     public function update(Request $request, MesaExamen $mesa)
     {
+        $this->autorizarModificar($request);
+
         $validated = $request->validate([
             'materia_id' => 'required|exists:tbl_materias,id',
             'fecha_examen' => 'required|date',
@@ -196,8 +202,10 @@ class MesasExamenController extends Controller
     /**
      * Eliminar mesa
      */
-    public function destroy(MesaExamen $mesa)
+    public function destroy(Request $request, MesaExamen $mesa)
     {
+        $this->autorizarEliminar($request);
+
         // Verificar si hay inscripciones
         if ($mesa->inscripciones()->count() > 0) {
             return back()->withErrors([

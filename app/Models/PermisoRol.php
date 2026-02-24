@@ -70,6 +70,28 @@ class PermisoRol extends Model
     }
 
     /**
+     * Obtiene todos los permisos de acción para un tipo de usuario.
+     * Retorna array ['puedeCrear' => true, 'puedeModificar' => false, ...]
+     */
+    public static function obtenerPermisosAccion(int $tipoUsuario): array
+    {
+        $matriz = static::obtenerMatrizCache();
+        $acciones = [];
+
+        foreach ($matriz as $permiso => $tipos) {
+            if (!str_starts_with($permiso, 'acceso:')) {
+                if ($tipoUsuario === TipoUsuario::ADMIN) {
+                    $acciones[$permiso] = true;
+                } else {
+                    $acciones[$permiso] = !empty($tipos[$tipoUsuario]);
+                }
+            }
+        }
+
+        return $acciones;
+    }
+
+    /**
      * Verifica si un tipo de usuario tiene al menos un acceso admin activo.
      */
     public static function tieneAlgunAccesoAdmin(int $tipoUsuario): bool

@@ -135,6 +135,7 @@ const asignarFechasMasivo = async () => {
             <!-- Botones de acción -->
             <div class="flex justify-end gap-3 mb-6">
                 <button
+                    v-if="$page.props.permisos?.puedeModificar"
                     @click="abrirModalFechas"
                     class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors duration-200"
                 >
@@ -142,6 +143,7 @@ const asignarFechasMasivo = async () => {
                     Asignar Fechas de Inscripción
                 </button>
                 <Link
+                    v-if="$page.props.permisos?.puedeCrear"
                     :href="route('admin.mesas.create')"
                     class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200"
                 >
@@ -320,6 +322,7 @@ const asignarFechasMasivo = async () => {
                                         <i class="bx bx-show text-lg"></i>
                                     </Link>
                                     <Link
+                                        v-if="$page.props.permisos?.puedeModificar"
                                         :href="route('admin.mesas.edit', mesa.id)"
                                         class="text-yellow-600 hover:text-yellow-900"
                                         title="Editar"
@@ -327,6 +330,7 @@ const asignarFechasMasivo = async () => {
                                         <i class="bx bx-edit text-lg"></i>
                                     </Link>
                                     <button
+                                        v-if="$page.props.permisos?.puedeEliminar"
                                         @click="eliminarMesa(mesa)"
                                         class="text-red-600 hover:text-red-900"
                                         title="Eliminar"

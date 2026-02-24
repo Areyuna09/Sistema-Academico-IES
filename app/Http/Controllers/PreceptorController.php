@@ -5,11 +5,10 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Models\Inscripcion;
-use App\Models\Alumno;
 use App\Models\PeriodoInscripcion;
-use App\Models\NotaTemporal;
+use App\Models\Asistencia;
 
-class BedelController extends Controller
+class PreceptorController extends Controller
 {
     public function index(Request $request)
     {
@@ -22,18 +21,11 @@ class BedelController extends Controller
         }
         $inscripcionesActivas = $queryInsc->count();
 
-        $totalAlumnos = Alumno::count();
-
-        $notasPendientes = NotaTemporal::where('estado', 'pendiente')
-            ->where(function($query) {
-                $query->where('tipo_evaluacion', 'like', '%final%')
-                      ->orWhere('tipo_evaluacion', 'like', '%Final%')
-                      ->orWhere('tipo_evaluacion', 'like', '%mesa%')
-                      ->orWhere('tipo_evaluacion', 'like', '%examen%');
-            })
+        $asistenciasHoy = Asistencia::whereDate('fecha', today())
+            ->where('tipo_carga', 'diaria')
             ->count();
 
-        return Inertia::render('Bedel/Index', [
+        return Inertia::render('Preceptor/Index', [
             'user' => [
                 'id' => $user->id,
                 'nombre' => $user->nombre,
@@ -42,8 +34,7 @@ class BedelController extends Controller
             ],
             'metricas' => [
                 'inscripciones_activas' => $inscripcionesActivas,
-                'total_alumnos' => $totalAlumnos,
-                'notas_pendientes' => $notasPendientes,
+                'asistencias_hoy' => $asistenciasHoy,
                 'periodo_activo' => $periodoActivo ? $periodoActivo->nombre : 'Sin período activo',
             ],
         ]);

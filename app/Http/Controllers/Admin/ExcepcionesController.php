@@ -14,6 +14,8 @@ use Inertia\Inertia;
 
 class ExcepcionesController extends Controller
 {
+    use \App\Traits\ChecksPermissions;
+
     /**
      * Display a listing of the resource.
      */
@@ -71,6 +73,8 @@ class ExcepcionesController extends Controller
      */
     public function store(StoreExcepcionRequest $request)
     {
+        $this->autorizarCrear($request);
+
         $excepcion = Excepcion::create($request->validated());
 
         // Notificar al alumno
@@ -96,6 +100,8 @@ class ExcepcionesController extends Controller
      */
     public function update(UpdateExcepcionRequest $request, Excepcion $excepcion)
     {
+        $this->autorizarModificar($request);
+
         $excepcion->update($request->validated());
 
         // Notificar al alumno sobre la resolución
@@ -126,8 +132,10 @@ class ExcepcionesController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Excepcion $excepcion)
+    public function destroy(Request $request, Excepcion $excepcion)
     {
+        $this->autorizarEliminar($request);
+
         $excepcion->delete();
 
         return redirect()->back()->with('success', 'Excepción eliminada correctamente.');

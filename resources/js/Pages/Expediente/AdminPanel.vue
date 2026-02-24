@@ -1,5 +1,5 @@
 <script setup>
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { ref, onMounted, computed } from 'vue';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
 import Dialog from '@/Components/Dialog.vue';
@@ -11,6 +11,9 @@ import { useDialog } from '@/Composables/useDialog';
 import axios from 'axios';
 
 const { confirm: dialogConfirm, alert: dialogAlert, prompt: dialogPrompt } = useDialog();
+
+const page = usePage();
+const permisos = computed(() => page.props.permisos || {});
 
 const props = defineProps({
     materias: {
@@ -1037,6 +1040,7 @@ const getEstadoBadge = (estado) => {
                             </div>
                         </div>
                         <button
+                            v-if="permisos.puedeCrear"
                             @click="abrirModalNuevaMateria"
                             class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200"
                         >
@@ -1135,7 +1139,7 @@ const getEstadoBadge = (estado) => {
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Resolución
                                     </th>
-                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th v-if="permisos.puedeModificar || permisos.puedeEliminar" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Acciones
                                     </th>
                                 </tr>
@@ -1161,9 +1165,10 @@ const getEstadoBadge = (estado) => {
                                     <td class="px-6 py-4">
                                         <div class="text-sm text-gray-600">{{ materia.resolucion || '-' }}</div>
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <td v-if="permisos.puedeModificar || permisos.puedeEliminar" class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div class="flex items-center justify-end gap-2">
                                             <button
+                                                v-if="permisos.puedeModificar"
                                                 @click="abrirModalEditarMateria(materia)"
                                                 class="text-blue-600 hover:text-blue-900"
                                                 title="Editar"
@@ -1171,6 +1176,7 @@ const getEstadoBadge = (estado) => {
                                                 <i class="bx bx-edit text-lg"></i>
                                             </button>
                                             <button
+                                                v-if="permisos.puedeEliminar"
                                                 @click="eliminarMateria(materia)"
                                                 class="text-red-600 hover:text-red-900"
                                                 title="Eliminar"
@@ -1223,6 +1229,7 @@ const getEstadoBadge = (estado) => {
                             </div>
                         </div>
                         <button
+                            v-if="permisos.puedeCrear"
                             @click="abrirModalNuevoProfesor"
                             class="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors duration-200"
                         >
@@ -1271,7 +1278,7 @@ const getEstadoBadge = (estado) => {
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Materias</th>
-                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                                    <th v-if="permisos.puedeModificar || permisos.puedeEliminar" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
@@ -1293,9 +1300,10 @@ const getEstadoBadge = (estado) => {
                                         </span>
                                         <span v-else class="text-gray-400">Sin materias</span>
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <td v-if="permisos.puedeModificar || permisos.puedeEliminar" class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div class="flex items-center justify-end gap-2">
                                             <button
+                                                v-if="permisos.puedeModificar"
                                                 @click="abrirModalEditarProfesor(profesor)"
                                                 class="text-blue-600 hover:text-blue-900"
                                                 title="Editar"
@@ -1303,6 +1311,7 @@ const getEstadoBadge = (estado) => {
                                                 <i class="bx bx-edit text-lg"></i>
                                             </button>
                                             <button
+                                                v-if="permisos.puedeEliminar"
                                                 @click="eliminarProfesor(profesor)"
                                                 class="text-red-600 hover:text-red-900"
                                                 title="Eliminar"
@@ -1334,6 +1343,7 @@ const getEstadoBadge = (estado) => {
                             </div>
                         </div>
                         <button
+                            v-if="permisos.puedeCrear"
                             @click="abrirModalNuevoAlumno"
                             class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors duration-200"
                         >
@@ -1430,6 +1440,7 @@ const getEstadoBadge = (estado) => {
                                                 <i class="bx bx-folder-open text-lg"></i>
                                             </button>
                                             <button
+                                                v-if="permisos.puedeModificar"
                                                 @click="abrirModalEditarAlumno(alumno)"
                                                 class="text-blue-600 hover:text-blue-900"
                                                 title="Editar"
@@ -1437,6 +1448,7 @@ const getEstadoBadge = (estado) => {
                                                 <i class="bx bx-edit text-lg"></i>
                                             </button>
                                             <button
+                                                v-if="permisos.puedeEliminar"
                                                 @click="eliminarAlumno(alumno)"
                                                 class="text-red-600 hover:text-red-900"
                                                 title="Eliminar"
@@ -1485,7 +1497,7 @@ const getEstadoBadge = (estado) => {
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Registrado por</th>
                                     <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                                    <th v-if="permisos.puedeAprobarNotas" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
@@ -1533,7 +1545,7 @@ const getEstadoBadge = (estado) => {
                                             {{ getEstadoBadge(nota.estado).text }}
                                         </span>
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <td v-if="permisos.puedeAprobarNotas" class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div class="flex items-center justify-end gap-2">
                                             <button
                                                 v-if="nota.estado === 'pendiente'"
@@ -1606,12 +1618,21 @@ const getEstadoBadge = (estado) => {
                     </div>
 
                     <!-- Info de uso -->
-                    <div class="mb-6 bg-orange-50 border border-orange-200 rounded-lg p-4">
+                    <div v-if="permisos.puedeModificar" class="mb-6 bg-orange-50 border border-orange-200 rounded-lg p-4">
                         <div class="flex items-start">
                             <i class="bx bx-info-circle text-orange-600 text-xl mr-3 mt-0.5"></i>
                             <div class="text-sm text-orange-800">
                                 <p class="font-semibold mb-1">Edición de legajos</p>
                                 <p>Los checkboxes <strong>R</strong> (Regular), <strong>P</strong> (Promocional), <strong>E</strong> (Equivalencia) y <strong>L</strong> (Libre) son editables. Haga clic en ellos para modificar el estado de cada materia en el legajo del alumno.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-else class="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div class="flex items-start">
+                            <i class="bx bx-info-circle text-blue-600 text-xl mr-3 mt-0.5"></i>
+                            <div class="text-sm text-blue-800">
+                                <p class="font-semibold mb-1">Modo consulta</p>
+                                <p>Estás visualizando los legajos en modo de solo lectura. No tienes permisos para modificar los datos.</p>
                             </div>
                         </div>
                     </div>
@@ -1650,8 +1671,8 @@ const getEstadoBadge = (estado) => {
 
                     <!-- Resultados de la búsqueda -->
                     <div v-if="alumnoEncontrado">
-                        <!-- Botones de guardar/descartar (solo si hay cambios) -->
-                        <div v-if="hayCambiosPendientes" class="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <!-- Botones de guardar/descartar (solo si hay cambios y tiene permisos) -->
+                        <div v-if="hayCambiosPendientes && permisos.puedeModificar" class="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center">
                                     <i class="bx bx-info-circle text-yellow-600 text-2xl mr-3"></i>
@@ -1716,6 +1737,7 @@ const getEstadoBadge = (estado) => {
                             <div class="bg-gray-800 text-white px-4 py-2 rounded-t-lg flex justify-between items-center">
                                 <h3 class="font-semibold">{{ anno }}</h3>
                                 <button
+                                    v-if="permisos.puedeModificar"
                                     @click="agregarFilaNuevaEnAnno(anno)"
                                     class="inline-flex items-center px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded transition-colors duration-200"
                                     title="Agregar nota en este año"
@@ -1748,7 +1770,8 @@ const getEstadoBadge = (estado) => {
                                                     type="checkbox"
                                                     :checked="materia.cursada_value && !materia.rendida_value"
                                                     @click="toggleCheckbox(materia.id, 'cursada')"
-                                                    class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                                                    :disabled="!permisos.puedeModificar"
+                                                    :class="['w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500', permisos.puedeModificar ? 'cursor-pointer' : 'cursor-not-allowed opacity-60']"
                                                     :title="'Regular: ' + (materia.cursada_value && !materia.rendida_value ? 'Sí' : 'No')"
                                                 />
                                             </td>
@@ -1758,7 +1781,8 @@ const getEstadoBadge = (estado) => {
                                                     type="checkbox"
                                                     :checked="materia.cursada_value && materia.rendida_value"
                                                     @click="toggleCheckbox(materia.id, 'rendida')"
-                                                    class="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 cursor-pointer"
+                                                    :disabled="!permisos.puedeModificar"
+                                                    :class="['w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500', permisos.puedeModificar ? 'cursor-pointer' : 'cursor-not-allowed opacity-60']"
                                                     :title="'Promocional: ' + (materia.cursada_value && materia.rendida_value ? 'Sí' : 'No')"
                                                 />
                                             </td>
@@ -1768,7 +1792,8 @@ const getEstadoBadge = (estado) => {
                                                     type="checkbox"
                                                     :checked="materia.equivalencia_value"
                                                     @click="toggleCheckbox(materia.id, 'equivalencia')"
-                                                    class="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 rounded focus:ring-purple-500 cursor-pointer"
+                                                    :disabled="!permisos.puedeModificar"
+                                                    :class="['w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 rounded focus:ring-purple-500', permisos.puedeModificar ? 'cursor-pointer' : 'cursor-not-allowed opacity-60']"
                                                     :title="'Equivalencia: ' + (materia.equivalencia_value ? 'Sí' : 'No')"
                                                 />
                                             </td>
@@ -1778,7 +1803,8 @@ const getEstadoBadge = (estado) => {
                                                     type="checkbox"
                                                     :checked="materia.libre_value"
                                                     @click="toggleCheckbox(materia.id, 'libre')"
-                                                    class="w-4 h-4 text-orange-600 bg-gray-100 border-gray-300 rounded focus:ring-orange-500 cursor-pointer"
+                                                    :disabled="!permisos.puedeModificar"
+                                                    :class="['w-4 h-4 text-orange-600 bg-gray-100 border-gray-300 rounded focus:ring-orange-500', permisos.puedeModificar ? 'cursor-pointer' : 'cursor-not-allowed opacity-60']"
                                                     :title="'Libre: ' + (materia.libre_value ? 'Sí' : 'No')"
                                                 />
                                             </td>
@@ -1791,7 +1817,8 @@ const getEstadoBadge = (estado) => {
                                                     max="10"
                                                     step="0.1"
                                                     placeholder="-"
-                                                    class="w-16 px-2 py-1 text-center border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                    :disabled="!permisos.puedeModificar"
+                                                    :class="['w-16 px-2 py-1 text-center border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500', !permisos.puedeModificar ? 'bg-gray-100 cursor-not-allowed' : '']"
                                                 />
                                             </td>
                                             <!-- Fecha editable -->
@@ -1799,7 +1826,8 @@ const getEstadoBadge = (estado) => {
                                                 <input
                                                     v-model="materia.fecha"
                                                     type="date"
-                                                    class="w-32 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                    :disabled="!permisos.puedeModificar"
+                                                    :class="['w-32 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500', !permisos.puedeModificar ? 'bg-gray-100 cursor-not-allowed' : '']"
                                                 />
                                             </td>
                                             <!-- Libro editable -->
@@ -1808,7 +1836,8 @@ const getEstadoBadge = (estado) => {
                                                     v-model="materia.libro"
                                                     type="text"
                                                     placeholder="Libro"
-                                                    class="w-20 px-2 py-1 text-center border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                    :disabled="!permisos.puedeModificar"
+                                                    :class="['w-20 px-2 py-1 text-center border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500', !permisos.puedeModificar ? 'bg-gray-100 cursor-not-allowed' : '']"
                                                 />
                                             </td>
                                             <!-- Folio editable -->
@@ -1817,7 +1846,8 @@ const getEstadoBadge = (estado) => {
                                                     v-model="materia.folio"
                                                     type="text"
                                                     placeholder="Folio"
-                                                    class="w-20 px-2 py-1 text-center border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                    :disabled="!permisos.puedeModificar"
+                                                    :class="['w-20 px-2 py-1 text-center border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500', !permisos.puedeModificar ? 'bg-gray-100 cursor-not-allowed' : '']"
                                                 />
                                             </td>
                                         </tr>

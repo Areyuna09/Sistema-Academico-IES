@@ -15,6 +15,8 @@ use Inertia\Response;
 
 class SolicitudesCambioEmailController extends Controller
 {
+    use \App\Traits\ChecksPermissions;
+
     /**
      * Mostrar listado de solicitudes
      */
@@ -54,6 +56,8 @@ class SolicitudesCambioEmailController extends Controller
      */
     public function aprobar(Request $request, SolicitudCambioEmail $solicitud): RedirectResponse
     {
+        $this->autorizarModificar($request);
+
         $request->validate([
             'comentario' => 'nullable|string|max:500',
         ]);
@@ -122,6 +126,8 @@ class SolicitudesCambioEmailController extends Controller
      */
     public function rechazar(Request $request, SolicitudCambioEmail $solicitud): RedirectResponse
     {
+        $this->autorizarModificar($request);
+
         $request->validate([
             'comentario' => 'required|string|max:500',
         ], [
@@ -179,8 +185,10 @@ class SolicitudesCambioEmailController extends Controller
     /**
      * Eliminar solicitud
      */
-    public function destroy(SolicitudCambioEmail $solicitud): RedirectResponse
+    public function destroy(Request $request, SolicitudCambioEmail $solicitud): RedirectResponse
     {
+        $this->autorizarEliminar($request);
+
         try {
             $solicitudId = $solicitud->id;
             $solicitud->delete();

@@ -54,6 +54,7 @@ const getEstadoBadgeClass = (estado) => {
                         <p class="text-gray-600">{{ mesa.materia.carrera.nombre }}</p>
                     </div>
                     <Link
+                        v-if="$page.props.permisos?.puedeModificar"
                         :href="route('admin.mesas.edit', mesa.id)"
                         class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
                     >

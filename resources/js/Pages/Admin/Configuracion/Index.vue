@@ -22,6 +22,7 @@ const props = defineProps({
             <!-- Botón Editar -->
             <div class="flex justify-end mb-6">
                 <Link
+                    v-if="$page.props.permisos?.puedeModificar"
                     :href="route('admin.configuracion.edit')"
                     class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200"
                 >

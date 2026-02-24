@@ -113,6 +113,9 @@ const permisosNombres = ref({});
 const tiposUsuario = ref({});
 const permisosOriginal = ref({});
 
+// Pestaña activa del modal de permisos
+const tabPermisos = ref('acceso');
+
 // Solo mostrar permisos de acceso a módulos (prefijo acceso:)
 const nombresAcceso = computed(() => {
     const result = {};
@@ -122,6 +125,22 @@ const nombresAcceso = computed(() => {
         }
     }
     return result;
+});
+
+// Permisos de acción (sin prefijo acceso:)
+const nombresAccion = computed(() => {
+    const result = {};
+    for (const [clave, nombre] of Object.entries(permisosNombres.value)) {
+        if (!clave.startsWith('acceso:')) {
+            result[clave] = nombre;
+        }
+    }
+    return result;
+});
+
+// Nombres según la pestaña activa
+const nombresActivos = computed(() => {
+    return tabPermisos.value === 'acceso' ? nombresAcceso.value : nombresAccion.value;
 });
 
 // Tipos que se muestran en la grilla (excluir Admin=1 y Alumno=4)
@@ -387,11 +406,11 @@ const guardarPermisos = () => {
                     <div class="flex items-center justify-between">
                         <div class="flex items-center space-x-4">
                             <div class="bg-indigo-100 p-3 rounded-lg">
-                                <i class="bx bx-layout text-2xl text-indigo-600"></i>
+                                <i class="bx bx-shield-quarter text-2xl text-indigo-600"></i>
                             </div>
                             <div>
-                                <h2 class="text-lg font-semibold text-gray-900">Acceso a Módulos por Rol</h2>
-                                <p class="text-sm text-gray-600 mt-1">Configura qué secciones del panel de Parámetros puede ver cada rol</p>
+                                <h2 class="text-lg font-semibold text-gray-900">Permisos por Rol</h2>
+                                <p class="text-sm text-gray-600 mt-1">Configura acceso a módulos y permisos de acción para cada rol</p>
                             </div>
                         </div>
                         <button
@@ -399,7 +418,7 @@ const guardarPermisos = () => {
                             class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg transition-colors"
                         >
                             <i class="bx bx-cog mr-1"></i>
-                            Configurar Accesos
+                            Configurar Permisos
                         </button>
                     </div>
                 </div>
@@ -437,14 +456,42 @@ const guardarPermisos = () => {
                     <!-- Header -->
                     <div class="flex items-center justify-between p-6 border-b border-gray-200">
                         <div>
-                            <h3 class="text-lg font-semibold text-gray-900">Acceso a Módulos por Rol</h3>
-                            <p class="text-sm text-gray-500 mt-1">El Administrador siempre tiene acceso a todos los módulos</p>
+                            <h3 class="text-lg font-semibold text-gray-900">Permisos por Rol</h3>
+                            <p class="text-sm text-gray-500 mt-1">El Administrador siempre tiene todos los permisos</p>
                         </div>
                         <button
                             @click="mostrarModalPermisos = false"
                             class="text-gray-400 hover:text-gray-600 transition-colors"
                         >
                             <i class="bx bx-x text-2xl"></i>
+                        </button>
+                    </div>
+
+                    <!-- Tabs -->
+                    <div class="flex border-b border-gray-200 px-6">
+                        <button
+                            @click="tabPermisos = 'acceso'"
+                            :class="[
+                                'px-4 py-3 text-sm font-medium border-b-2 transition-colors',
+                                tabPermisos === 'acceso'
+                                    ? 'border-indigo-500 text-indigo-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            ]"
+                        >
+                            <i class="bx bx-layout mr-1"></i>
+                            Acceso a Módulos
+                        </button>
+                        <button
+                            @click="tabPermisos = 'accion'"
+                            :class="[
+                                'px-4 py-3 text-sm font-medium border-b-2 transition-colors',
+                                tabPermisos === 'accion'
+                                    ? 'border-indigo-500 text-indigo-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            ]"
+                        >
+                            <i class="bx bx-shield-quarter mr-1"></i>
+                            Permisos de Acción
                         </button>
                     </div>
 
@@ -455,49 +502,61 @@ const guardarPermisos = () => {
                             <span class="text-gray-600">Cargando permisos...</span>
                         </div>
 
-                        <div v-else class="overflow-x-auto">
-                            <table class="w-full text-sm">
-                                <thead>
-                                    <tr class="border-b border-gray-200">
-                                        <th class="text-left py-3 px-4 font-semibold text-gray-700 bg-gray-50 rounded-tl-lg">
-                                            Módulo
-                                        </th>
-                                        <th
-                                            v-for="(nombre, tipo) in tiposMostrados"
-                                            :key="tipo"
-                                            class="text-center py-3 px-3 font-semibold text-gray-700 bg-gray-50 whitespace-nowrap"
+                        <div v-else>
+                            <!-- Descripción de la pestaña -->
+                            <p class="text-sm text-gray-500 mb-4">
+                                <template v-if="tabPermisos === 'acceso'">
+                                    Controla qué secciones del panel de Parámetros puede ver cada rol.
+                                </template>
+                                <template v-else>
+                                    Controla qué acciones puede realizar cada rol en el expediente (crear, modificar, eliminar, etc.).
+                                </template>
+                            </p>
+
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm">
+                                    <thead>
+                                        <tr class="border-b border-gray-200">
+                                            <th class="text-left py-3 px-4 font-semibold text-gray-700 bg-gray-50 rounded-tl-lg">
+                                                {{ tabPermisos === 'acceso' ? 'Módulo' : 'Permiso' }}
+                                            </th>
+                                            <th
+                                                v-for="(nombre, tipo) in tiposMostrados"
+                                                :key="tipo"
+                                                class="text-center py-3 px-3 font-semibold text-gray-700 bg-gray-50 whitespace-nowrap"
+                                            >
+                                                {{ nombre }}
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr
+                                            v-for="(nombreLegible, permiso) in nombresActivos"
+                                            :key="permiso"
+                                            class="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                                         >
-                                            {{ nombre }}
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr
-                                        v-for="(nombreLegible, permiso) in nombresAcceso"
-                                        :key="permiso"
-                                        class="border-b border-gray-100 hover:bg-gray-50 transition-colors"
-                                    >
-                                        <td class="py-3 px-4 text-gray-800 font-medium">
-                                            {{ nombreLegible }}
-                                        </td>
-                                        <td
-                                            v-for="(nombre, tipo) in tiposMostrados"
-                                            :key="tipo"
-                                            class="text-center py-3 px-3"
-                                        >
-                                            <label class="relative inline-flex items-center cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    :checked="!!permisosMatriz[permiso]?.[tipo]"
-                                                    @change="togglePermiso(permiso, tipo)"
-                                                    class="sr-only peer"
-                                                />
-                                                <div class="w-9 h-5 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-500"></div>
-                                            </label>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                                            <td class="py-3 px-4 text-gray-800 font-medium">
+                                                {{ nombreLegible }}
+                                            </td>
+                                            <td
+                                                v-for="(nombre, tipo) in tiposMostrados"
+                                                :key="tipo"
+                                                class="text-center py-3 px-3"
+                                            >
+                                                <label class="relative inline-flex items-center cursor-pointer">
+                                                    <input
+                                                        type="checkbox"
+                                                        :checked="!!permisosMatriz[permiso]?.[tipo]"
+                                                        @change="togglePermiso(permiso, tipo)"
+                                                        class="sr-only peer"
+                                                    />
+                                                    <div class="w-9 h-5 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-500"></div>
+                                                </label>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
 

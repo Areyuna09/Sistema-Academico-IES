@@ -10,6 +10,8 @@ use Inertia\Inertia;
 
 class ConfiguracionController extends Controller
 {
+    use \App\Traits\ChecksPermissions;
+
     /**
      * Mostrar vista de configuración
      */

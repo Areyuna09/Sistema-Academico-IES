@@ -15,6 +15,7 @@ use App\Models\Materia;
 use App\Models\User;
 use App\Models\Notificacion;
 use App\Models\PeriodoInscripcion;
+use App\Models\PermisoRol;
 use App\Services\EstadoAcademicoService;
 use App\Traits\HandlesErrors;
 
@@ -31,8 +32,8 @@ class ExpedienteController extends Controller
             return Inertia::render('Expediente/ProfesorPanel');
         }
 
-        // Admin: mostrar panel administrativo completo
-        if ($user->tipo == 1) {
+        // Admin, Directivo, Supervisor, Bedel, Preceptor: panel administrativo
+        if (in_array($user->tipo, [1, 2, 5, 6, 7, 8])) {
             return $this->mostrarPanelAdmin($request);
         }
 
@@ -898,8 +899,7 @@ class ExpedienteController extends Controller
     {
         $user = $request->user();
 
-        // Verificar que el usuario sea admin o bedel
-        if (!in_array($user->tipo, [1, 2])) {
+        if (!PermisoRol::tienePermiso('puedeAprobarNotas', $user->tipo)) {
             return response()->json([
                 'error' => 'No tiene permisos para aprobar notas'
             ], 403);
@@ -1114,8 +1114,7 @@ class ExpedienteController extends Controller
     {
         $user = $request->user();
 
-        // Verificar que el usuario sea admin o bedel
-        if (!in_array($user->tipo, [1, 2])) {
+        if (!PermisoRol::tienePermiso('puedeAprobarNotas', $user->tipo)) {
             return response()->json([
                 'error' => 'No tiene permisos para rechazar notas'
             ], 403);
@@ -1304,8 +1303,7 @@ class ExpedienteController extends Controller
     {
         $user = $request->user();
 
-        // Verificar que el usuario sea admin o bedel
-        if (!in_array($user->tipo, [1, 2])) {
+        if (!PermisoRol::tienePermiso('puedeModificar', $user->tipo)) {
             return response()->json([
                 'error' => 'No tiene permisos para editar legajos'
             ], 403);
@@ -1465,8 +1463,7 @@ class ExpedienteController extends Controller
     {
         $user = $request->user();
 
-        // Verificar que el usuario sea admin o bedel
-        if (!in_array($user->tipo, [1, 2])) {
+        if (!PermisoRol::tienePermiso('puedeModificar', $user->tipo)) {
             return response()->json([
                 'error' => 'No tiene permisos para agregar materias al legajo'
             ], 403);

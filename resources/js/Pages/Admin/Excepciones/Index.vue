@@ -128,6 +128,7 @@ const alumnoNombre = computed(() => (alumnoId) => {
             <!-- Botón Nueva Excepción -->
             <div class="flex justify-end mb-6">
                 <button
+                    v-if="$page.props.permisos?.puedeCrear"
                     @click="abrirModalNueva"
                     class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200"
                 >
@@ -273,7 +274,7 @@ const alumnoNombre = computed(() => (alumnoId) => {
                                 <!-- Acciones -->
                                 <td class="px-6 py-4 text-right text-sm font-medium space-x-2">
                                     <button
-                                        v-if="excepcion.estado === 'pendiente'"
+                                        v-if="excepcion.estado === 'pendiente' && $page.props.permisos?.puedeModificar"
                                         @click="abrirModalResolver(excepcion)"
                                         class="text-blue-600 hover:text-blue-900"
                                         title="Resolver excepción"
@@ -281,6 +282,7 @@ const alumnoNombre = computed(() => (alumnoId) => {
                                         <i class="bx bx-check-circle text-lg"></i>
                                     </button>
                                     <button
+                                        v-if="$page.props.permisos?.puedeEliminar"
                                         @click="eliminarExcepcion(excepcion)"
                                         class="text-red-600 hover:text-red-900"
                                         title="Eliminar"

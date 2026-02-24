@@ -106,7 +106,7 @@ const getEstadoBadgeClass = (estado) => {
         <div class="p-8 max-w-7xl mx-auto">
             <!-- Botón Nueva Regla -->
             <div class="flex justify-end mb-6">
-                <Link :href="route('admin.correlativas.create')"
+                <Link v-if="$page.props.permisos?.puedeCrear" :href="route('admin.correlativas.create')"
                     class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200">
                     <i class="bx bx-plus text-xl mr-2"></i>
                     Nueva Regla
@@ -235,9 +235,11 @@ const getEstadoBadgeClass = (estado) => {
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <button @click="toggleRegla(regla.id)"
+                                            :disabled="!$page.props.permisos?.puedeModificar"
                                             :class="[
                                                 'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
-                                                regla.es_activa ? 'bg-blue-600' : 'bg-gray-200'
+                                                regla.es_activa ? 'bg-blue-600' : 'bg-gray-200',
+                                                !$page.props.permisos?.puedeModificar ? 'opacity-60 cursor-not-allowed' : ''
                                             ]">
                                             <span :class="[
                                                 'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
@@ -246,11 +248,11 @@ const getEstadoBadgeClass = (estado) => {
                                         </button>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <Link :href="route('admin.correlativas.edit', regla.id)"
+                                        <Link v-if="$page.props.permisos?.puedeModificar" :href="route('admin.correlativas.edit', regla.id)"
                                             class="text-blue-600 hover:text-blue-900 mr-3">
                                             <i class="bx bx-edit text-lg"></i>
                                         </Link>
-                                        <button @click="eliminarRegla(regla.id)"
+                                        <button v-if="$page.props.permisos?.puedeEliminar" @click="eliminarRegla(regla.id)"
                                             class="text-red-600 hover:text-red-900">
                                             <i class="bx bx-trash text-lg"></i>
                                         </button>

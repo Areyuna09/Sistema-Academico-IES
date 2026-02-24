@@ -16,10 +16,10 @@ class VerificarModuloActivo
      */
     public function handle(Request $request, Closure $next, string $modulo): Response
     {
-        // Los admins y profesores siempre tienen acceso
-        // Tipos: 1=Admin, 2=Puesto, 3=Profesor, 4=Alumno
+        // Admins, profesores y roles administrativos siempre tienen acceso
+        // Solo alumnos (tipo 4) dependen de que el módulo esté activo
         $tipoUsuario = $request->user()?->tipo;
-        if (in_array($tipoUsuario, [1, 2, 3])) {
+        if (in_array($tipoUsuario, [1, 2, 3, 5, 6, 7, 8])) {
             return $next($request);
         }
 

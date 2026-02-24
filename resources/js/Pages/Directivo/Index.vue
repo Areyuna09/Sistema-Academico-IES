@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue';
-import { Head, Link, router } from '@inertiajs/vue3';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import SidebarLayout from '@/Layouts/SidebarLayout.vue';
 
 const props = defineProps({
     legajosPendientes: Object,
@@ -46,19 +46,16 @@ const getEstadoTexto = (estado) => {
 <template>
     <Head title="Panel de Directivo" />
 
-    <AuthenticatedLayout>
-        <div class="py-12">
-            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                <!-- Encabezado -->
-                <div class="mb-6">
-                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
-                        Panel de Directivo
-                    </h1>
-                    <p class="mt-2 text-gray-600 dark:text-gray-400">
-                        Revisa y aprueba legajos académicos antes de enviarlos a supervisión
-                    </p>
-                </div>
+    <SidebarLayout :user="$page.props.auth.user">
+        <template #header>
+            <div>
+                <h1 class="text-xl font-semibold text-white">Panel de Directivo</h1>
+                <p class="text-xs text-gray-400 mt-0.5">Revisión de legajos académicos</p>
+            </div>
+        </template>
 
+        <div class="p-4 md:p-8">
+            <div class="max-w-7xl mx-auto">
                 <!-- Estadísticas -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                     <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
@@ -361,18 +358,24 @@ const getEstadoTexto = (estado) => {
                                     </div>
                                     <div>
                                         <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                                            <Link
-                                                v-for="(link, index) in legajosPendientes.links"
-                                                :key="index"
-                                                :href="link.url"
-                                                :class="[
-                                                    link.active
-                                                        ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                                                        : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50',
-                                                    'relative inline-flex items-center px-4 py-2 border text-sm font-medium'
-                                                ]"
-                                                v-html="link.label"
-                                            />
+                                            <template v-for="(link, index) in legajosPendientes.links" :key="index">
+                                                <Link
+                                                    v-if="link.url"
+                                                    :href="link.url"
+                                                    :class="[
+                                                        link.active
+                                                            ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                                                            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50',
+                                                        'relative inline-flex items-center px-4 py-2 border text-sm font-medium'
+                                                    ]"
+                                                    v-html="link.label"
+                                                />
+                                                <span
+                                                    v-else
+                                                    :class="['relative inline-flex items-center px-4 py-2 border text-sm font-medium bg-white border-gray-300 text-gray-300 cursor-default']"
+                                                    v-html="link.label"
+                                                />
+                                            </template>
                                         </nav>
                                     </div>
                                 </div>
@@ -382,5 +385,5 @@ const getEstadoTexto = (estado) => {
                 </div>
             </div>
         </div>
-    </AuthenticatedLayout>
+    </SidebarLayout>
 </template>

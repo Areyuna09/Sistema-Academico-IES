@@ -19,6 +19,8 @@ use App\Http\Requests\UpdateUsuarioRequest;
 
 class UsuariosController extends Controller
 {
+    use \App\Traits\ChecksPermissions;
+
     /**
      * Mostrar listado de usuarios
      */
@@ -111,11 +113,16 @@ class UsuariosController extends Controller
      */
     public function store(Request $request)
     {
+        $this->autorizarCrear($request);
+
         $validated = $request->validate([
             'dni' => ['required', 'string', 'max:10', 'regex:/^[0-9]+$/', 'unique:tbl_usuarios,dni'],
             'nombre' => ['required', 'string', 'max:100', 'regex:/^.*[a-zA-ZáéíóúÁÉÍÓÚñÑ]+.*$/'],
             'email' => 'required|email|max:100|unique:tbl_usuarios,email',
-            'tipo' => ['required', 'integer', Rule::in([TipoUsuario::ADMIN, TipoUsuario::PROFESOR, TipoUsuario::ALUMNO])],
+            'tipo' => ['required', 'integer', Rule::in([
+                TipoUsuario::ADMIN, TipoUsuario::PROFESOR, TipoUsuario::ALUMNO,
+                TipoUsuario::DIRECTIVO, TipoUsuario::SUPERVISOR, TipoUsuario::BEDEL, TipoUsuario::PRECEPTOR,
+            ])],
             'password' => 'required|string|min:6|confirmed',
             'telefono' => ['nullable', 'string', 'max:20', 'regex:/^[0-9\s\-\+\(\)]+$/'],
             'alumno_id' => 'nullable|exists:tbl_alumnos,id',
@@ -249,11 +256,16 @@ class UsuariosController extends Controller
      */
     public function update(Request $request, User $usuario)
     {
+        $this->autorizarModificar($request);
+
         $validated = $request->validate([
             'dni' => ['required', 'string', 'max:10', 'regex:/^[0-9]+$/', Rule::unique('tbl_usuarios')->ignore($usuario->id)],
             'nombre' => ['required', 'string', 'max:100', 'regex:/^.*[a-zA-ZáéíóúÁÉÍÓÚñÑ]+.*$/'],
             'email' => ['required', 'email', 'max:100', Rule::unique('tbl_usuarios')->ignore($usuario->id)],
-            'tipo' => ['required', 'integer', Rule::in([TipoUsuario::ADMIN, TipoUsuario::PROFESOR, TipoUsuario::ALUMNO])],
+            'tipo' => ['required', 'integer', Rule::in([
+                TipoUsuario::ADMIN, TipoUsuario::PROFESOR, TipoUsuario::ALUMNO,
+                TipoUsuario::DIRECTIVO, TipoUsuario::SUPERVISOR, TipoUsuario::BEDEL, TipoUsuario::PRECEPTOR,
+            ])],
             'password' => 'nullable|string|min:6|confirmed',
             'telefono' => ['nullable', 'string', 'max:20', 'regex:/^[0-9\s\-\+\(\)]+$/'],
             'alumno_id' => 'nullable|exists:tbl_alumnos,id',
@@ -308,8 +320,10 @@ class UsuariosController extends Controller
     /**
      * Alternar estado activo/inactivo
      */
-    public function toggle(User $usuario)
+    public function toggle(Request $request, User $usuario)
     {
+        $this->autorizarModificar($request);
+
         $usuario->update([
             'activo' => !$usuario->activo
         ]);
@@ -322,8 +336,10 @@ class UsuariosController extends Controller
     /**
      * Eliminar usuario
      */
-    public function destroy(User $usuario)
+    public function destroy(Request $request, User $usuario)
     {
+        $this->autorizarEliminar($request);
+
         // Validar que no se elimine a sí mismo
         if ($usuario->id === auth()->id()) {
             return back()->withErrors(['error' => 'No puedes eliminar tu propio usuario.']);
@@ -340,6 +356,8 @@ class UsuariosController extends Controller
      */
     public function resetPassword(Request $request, User $usuario)
     {
+        $this->autorizarModificar($request);
+
         $validated = $request->validate([
             'password' => 'required|string|min:6|confirmed',
         ]);
@@ -406,6 +424,8 @@ class UsuariosController extends Controller
      */
     public function generarUsuariosAutomaticos(Request $request)
     {
+        $this->autorizarCrear($request);
+
         // Aumentar tiempo de ejecución para operaciones masivas
         set_time_limit(300);
 

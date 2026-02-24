@@ -262,7 +262,7 @@ const formatDate = (date) => {
                                     <div class="flex items-center gap-2">
                                         <!-- Aprobar -->
                                         <button
-                                            v-if="solicitud.estado === 'pendiente'"
+                                            v-if="solicitud.estado === 'pendiente' && $page.props.permisos?.puedeModificar"
                                             @click="aprobarSolicitud(solicitud)"
                                             class="px-3 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors font-medium text-xs flex items-center gap-1"
                                             title="Aprobar"
@@ -273,7 +273,7 @@ const formatDate = (date) => {
 
                                         <!-- Rechazar -->
                                         <button
-                                            v-if="solicitud.estado === 'pendiente'"
+                                            v-if="solicitud.estado === 'pendiente' && $page.props.permisos?.puedeModificar"
                                             @click="rechazarSolicitud(solicitud)"
                                             class="px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors font-medium text-xs flex items-center gap-1"
                                             title="Rechazar"
@@ -284,6 +284,7 @@ const formatDate = (date) => {
 
                                         <!-- Eliminar -->
                                         <button
+                                            v-if="$page.props.permisos?.puedeEliminar"
                                             @click="eliminarSolicitud(solicitud)"
                                             class="px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors font-medium text-xs"
                                             title="Eliminar"

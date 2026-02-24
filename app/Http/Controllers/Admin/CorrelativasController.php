@@ -11,6 +11,8 @@ use Inertia\Inertia;
 
 class CorrelativasController extends Controller
 {
+    use \App\Traits\ChecksPermissions;
+
     /**
      * Mostrar listado de reglas de correlativas
      */
@@ -65,6 +67,8 @@ class CorrelativasController extends Controller
      */
     public function store(Request $request)
     {
+        $this->autorizarCrear($request);
+
         $validated = $request->validate([
             'materia_id' => 'required|exists:tbl_materias,id',
             'carrera_id' => 'required|exists:tbl_carreras,Id',
@@ -112,6 +116,8 @@ class CorrelativasController extends Controller
      */
     public function update(Request $request, ReglaCorrelativa $correlativa)
     {
+        $this->autorizarModificar($request);
+
         $validated = $request->validate([
             'materia_id' => 'required|exists:tbl_materias,id',
             'carrera_id' => 'required|exists:tbl_carreras,Id',
@@ -143,8 +149,10 @@ class CorrelativasController extends Controller
     /**
      * Activar/Desactivar regla
      */
-    public function toggle(ReglaCorrelativa $correlativa)
+    public function toggle(Request $request, ReglaCorrelativa $correlativa)
     {
+        $this->autorizarModificar($request);
+
         $correlativa->update([
             'es_activa' => !$correlativa->es_activa
         ]);
@@ -157,8 +165,10 @@ class CorrelativasController extends Controller
     /**
      * Eliminar regla de correlativa
      */
-    public function destroy(ReglaCorrelativa $correlativa)
+    public function destroy(Request $request, ReglaCorrelativa $correlativa)
     {
+        $this->autorizarEliminar($request);
+
         try {
             $correlativa->delete();
 

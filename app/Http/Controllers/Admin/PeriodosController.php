@@ -11,6 +11,8 @@ use Inertia\Inertia;
 
 class PeriodosController extends Controller
 {
+    use \App\Traits\ChecksPermissions;
+
     /**
      * Mostrar listado de períodos
      */
@@ -78,6 +80,8 @@ class PeriodosController extends Controller
      */
     public function store(Request $request)
     {
+        $this->autorizarCrear($request);
+
         $validated = $request->validate([
             'nombre' => 'required|string|max:100',
             'cuatrimestre' => 'required|integer|min:1|max:2',
@@ -136,6 +140,8 @@ class PeriodosController extends Controller
      */
     public function update(Request $request, PeriodoInscripcion $periodo)
     {
+        $this->autorizarModificar($request);
+
         $validated = $request->validate([
             'nombre' => 'required|string|max:100',
             'cuatrimestre' => 'required|integer|min:1|max:2',
@@ -175,8 +181,10 @@ class PeriodosController extends Controller
     /**
      * Alternar estado activo/inactivo
      */
-    public function toggle(PeriodoInscripcion $periodo)
+    public function toggle(Request $request, PeriodoInscripcion $periodo)
     {
+        $this->autorizarModificar($request);
+
         // Si se va a activar, desactivar todos los demás
         if (!$periodo->activo) {
             PeriodoInscripcion::where('activo', true)->update(['activo' => false]);
@@ -209,6 +217,8 @@ class PeriodosController extends Controller
      */
     public function clonarAsignaciones(Request $request, PeriodoInscripcion $periodo)
     {
+        $this->autorizarCrear($request);
+
         $request->validate([
             'periodo_origen_id' => 'required|exists:tbl_periodos_inscripcion,id',
         ]);
@@ -267,8 +277,10 @@ class PeriodosController extends Controller
     /**
      * Eliminar período
      */
-    public function destroy(PeriodoInscripcion $periodo)
+    public function destroy(Request $request, PeriodoInscripcion $periodo)
     {
+        $this->autorizarEliminar($request);
+
         // Validar que no sea el período activo
         if ($periodo->activo) {
             return back()->withErrors(['error' => 'No se puede eliminar el período activo.']);

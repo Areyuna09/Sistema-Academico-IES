@@ -30,6 +30,11 @@ class CompartirConfiguracionModulos
                 if (!$user) return [];
                 return PermisoRol::obtenerAccesosModulo($user->tipo);
             },
+            'permisos' => function () use ($request) {
+                $user = $request->user();
+                if (!$user) return [];
+                return PermisoRol::obtenerPermisosAccion($user->tipo);
+            },
         ]);
 
         return $next($request);

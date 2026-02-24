@@ -123,6 +123,7 @@ const getCuatrimestreBadge = (semestre) => {
             <!-- Botón Nueva Materia -->
             <div class="flex justify-end mb-6">
                 <button
+                    v-if="$page.props.permisos?.puedeCrear"
                     @click="abrirModalNuevaMateria"
                     class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200"
                 >
@@ -311,6 +312,7 @@ const getCuatrimestreBadge = (semestre) => {
                                         class="flex items-center justify-end gap-2"
                                     >
                                         <button
+                                            v-if="$page.props.permisos?.puedeModificar"
                                             @click="abrirModalEditarMateria(materia)"
                                             class="text-blue-600 hover:text-blue-900"
                                             title="Editar"
@@ -318,6 +320,7 @@ const getCuatrimestreBadge = (semestre) => {
                                             <i class="bx bx-edit text-lg"></i>
                                         </button>
                                         <button
+                                            v-if="$page.props.permisos?.puedeEliminar"
                                             @click="eliminarMateria(materia)"
                                             class="text-red-600 hover:text-red-900"
                                             title="Eliminar"

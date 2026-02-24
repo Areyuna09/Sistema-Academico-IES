@@ -137,6 +137,7 @@ const estaEnInscripcion = (periodo) => {
             <!-- Botón Nuevo Período -->
             <div class="flex justify-end mb-6">
                 <Link
+                    v-if="$page.props.permisos?.puedeCrear"
                     :href="route('admin.periodos.create')"
                     class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200"
                 >
@@ -272,6 +273,7 @@ const estaEnInscripcion = (periodo) => {
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     <div class="flex items-center justify-end gap-2">
                                         <button
+                                            v-if="$page.props.permisos?.puedeModificar"
                                             @click="toggleActivo(periodo)"
                                             :class="[
                                                 'transition-colors',
@@ -282,6 +284,7 @@ const estaEnInscripcion = (periodo) => {
                                             <i :class="['bx text-lg', periodo.activo ? 'bx-toggle-right' : 'bx-toggle-left']"></i>
                                         </button>
                                         <Link
+                                            v-if="$page.props.permisos?.puedeModificar"
                                             :href="route('admin.periodos.edit', periodo.id)"
                                             class="text-blue-600 hover:text-blue-900"
                                             title="Editar"
@@ -289,6 +292,7 @@ const estaEnInscripcion = (periodo) => {
                                             <i class="bx bx-edit text-lg"></i>
                                         </Link>
                                         <button
+                                            v-if="$page.props.permisos?.puedeEliminar"
                                             @click="eliminarPeriodo(periodo)"
                                             class="text-red-600 hover:text-red-900"
                                             title="Eliminar"

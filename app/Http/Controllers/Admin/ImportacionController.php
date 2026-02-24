@@ -10,6 +10,8 @@ use Inertia\Inertia;
 
 class ImportacionController extends Controller
 {
+    use \App\Traits\ChecksPermissions;
+
     public function __construct(
         private ImportacionService $importacionService
     ) {}

@@ -69,6 +69,7 @@
 
       <!-- Editar -->
       <button
+        v-if="$page.props.permisos?.puedeModificar"
         @click="$emit('editar', plan)"
         class="rounded bg-gray-600 px-3 py-2 text-sm font-medium text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
         title="Editar plan"
@@ -78,6 +79,7 @@
 
       <!-- Clonar -->
       <button
+        v-if="$page.props.permisos?.puedeCrear"
         @click="$emit('clonar', plan)"
         class="rounded bg-purple-600 px-3 py-2 text-sm font-medium text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
         title="Clonar plan con sus materias"
@@ -87,6 +89,7 @@
 
       <!-- Toggle Activo/Archivado -->
       <button
+        v-if="$page.props.permisos?.puedeModificar"
         @click="$emit('toggle-activo', plan)"
         class="rounded px-3 py-2 text-sm font-medium text-white focus:outline-none focus:ring-2"
         :class="
@@ -101,6 +104,7 @@
 
       <!-- Toggle Vigente -->
       <button
+        v-if="$page.props.permisos?.puedeModificar"
         @click="$emit('toggle-vigente', plan)"
         class="rounded px-3 py-2 text-sm font-medium text-white focus:outline-none focus:ring-2"
         :class="
@@ -115,6 +119,7 @@
 
       <!-- Eliminar -->
       <button
+        v-if="$page.props.permisos?.puedeEliminar"
         @click="$emit('eliminar', plan)"
         class="rounded bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
         title="Eliminar plan"

@@ -105,6 +105,10 @@ const getTipoBadge = (tipo) => {
         1: { text: 'Admin', class: 'bg-purple-100 text-purple-800' },
         3: { text: 'Profesor', class: 'bg-blue-100 text-blue-800' },
         4: { text: 'Alumno', class: 'bg-green-100 text-green-800' },
+        5: { text: 'Directivo', class: 'bg-amber-100 text-amber-800' },
+        6: { text: 'Supervisor', class: 'bg-cyan-100 text-cyan-800' },
+        7: { text: 'Bedel', class: 'bg-orange-100 text-orange-800' },
+        8: { text: 'Preceptor', class: 'bg-teal-100 text-teal-800' },
     };
     return badges[tipo] || { text: 'Usuario', class: 'bg-gray-100 text-gray-800' };
 };
@@ -214,6 +218,7 @@ const cerrarPreview = () => {
                     <h2 class="text-lg font-semibold text-gray-800">Usuarios del Sistema</h2>
                     <div class="flex flex-col sm:flex-row gap-2">
                         <button
+                            v-if="$page.props.permisos?.puedeCrear"
                             @click="generarUsuariosAutomaticos"
                             :disabled="cargandoPreview || generandoUsuarios"
                             class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors duration-200"
@@ -224,6 +229,7 @@ const cerrarPreview = () => {
                             <span v-else>Generar Usuarios Automáticos</span>
                         </button>
                         <Link
+                            v-if="$page.props.permisos?.puedeCrear"
                             :href="route('admin.usuarios.create')"
                             class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200"
                         >
@@ -245,6 +251,10 @@ const cerrarPreview = () => {
                             <option value="1">Admin</option>
                             <option value="3">Profesor</option>
                             <option value="4">Alumno</option>
+                            <option value="5">Directivo</option>
+                            <option value="6">Supervisor</option>
+                            <option value="7">Bedel</option>
+                            <option value="8">Preceptor</option>
                         </select>
                     </div>
 
@@ -348,6 +358,7 @@ const cerrarPreview = () => {
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     <div class="flex items-center justify-end gap-2">
                                         <Link
+                                            v-if="$page.props.permisos?.puedeModificar"
                                             :href="route('admin.usuarios.edit', usuario.id)"
                                             class="text-blue-600 hover:text-blue-900"
                                             title="Editar"
@@ -355,6 +366,7 @@ const cerrarPreview = () => {
                                             <i class="bx bx-edit text-lg"></i>
                                         </Link>
                                         <button
+                                            v-if="$page.props.permisos?.puedeModificar"
                                             @click="toggleActivo(usuario)"
                                             :class="[
                                                 'hover:opacity-75',
@@ -368,6 +380,7 @@ const cerrarPreview = () => {
                                             ]"></i>
                                         </button>
                                         <button
+                                            v-if="$page.props.permisos?.puedeEliminar"
                                             @click="eliminarUsuario(usuario)"
                                             class="text-red-600 hover:text-red-900"
                                             title="Eliminar"

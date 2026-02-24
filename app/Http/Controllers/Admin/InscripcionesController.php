@@ -20,6 +20,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class InscripcionesController extends Controller
 {
+    use \App\Traits\ChecksPermissions;
+
     /**
      * Mostrar listado de inscripciones con filtros
      * Maneja TANTO inscripciones a cursado COMO a mesas
@@ -220,6 +222,8 @@ class InscripcionesController extends Controller
      */
     public function destroy(Request $request, $id)
     {
+        $this->autorizarEliminar($request);
+
         $tipo = $request->get('tipo', 'cursado');
 
         try {
@@ -306,6 +310,8 @@ class InscripcionesController extends Controller
      */
     public function update(Request $request, $id)
     {
+        $this->autorizarModificar($request);
+
         $tipo = $request->get('tipo', 'cursado');
 
         if ($tipo === 'mesas') {
@@ -421,6 +427,8 @@ class InscripcionesController extends Controller
      */
     public function store(Request $request)
     {
+        $this->autorizarCrear($request);
+
         $request->validate([
             'alumno_id' => 'required|exists:tbl_alumnos,id',
             'materia_id' => 'required|exists:tbl_materias,id',

@@ -531,6 +531,7 @@ watch(() => filtrosLocales.value.carrera_id, () => {
                                 <!-- Acciones -->
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     <button
+                                        v-if="$page.props.permisos?.puedeEliminar"
                                         @click="eliminarInscripcion(inscripcion.id, inscripcion.alumno.apellido + ', ' + inscripcion.alumno.nombre, tipo === 'mesas' ? inscripcion.mesa?.materia?.nombre : inscripcion.materia?.nombre)"
                                         class="text-red-600 hover:text-red-900"
                                         title="Eliminar inscripción"

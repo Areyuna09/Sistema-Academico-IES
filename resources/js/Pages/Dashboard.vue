@@ -112,7 +112,7 @@ const configMetricas = computed(() => {
                 gradient: 'from-purple-500 to-purple-600'
             }
         ];
-    } else if (props.tipoUsuario === 'admin') {
+    } else if (['admin', 'directivo', 'supervisor', 'bedel', 'preceptor'].includes(props.tipoUsuario)) {
         return [
             {
                 titulo: 'Usuarios',
@@ -259,6 +259,67 @@ const accesosRapidos = computed(() => {
                 modulo: null
             }
         ];
+    } else if (props.tipoUsuario === 'directivo' || props.tipoUsuario === 'supervisor') {
+        accesos = [
+            {
+                titulo: 'Expediente',
+                descripcion: 'Consultar legajos académicos',
+                icono: 'bx-folder-open',
+                color: 'blue',
+                bgColor: 'bg-blue-100',
+                textColor: 'text-blue-600',
+                hoverBorder: 'hover:border-blue-400',
+                route: 'expediente.index',
+                modulo: 'expediente'
+            },
+            {
+                titulo: 'Mi Perfil',
+                descripcion: 'Actualizar datos personales',
+                icono: 'bx-user',
+                color: 'green',
+                bgColor: 'bg-green-100',
+                textColor: 'text-green-600',
+                hoverBorder: 'hover:border-green-400',
+                route: 'profile.edit',
+                modulo: null
+            },
+        ];
+    } else if (props.tipoUsuario === 'bedel' || props.tipoUsuario === 'preceptor') {
+        accesos = [
+            {
+                titulo: 'Expediente',
+                descripcion: 'Gestionar legajos académicos',
+                icono: 'bx-folder-open',
+                color: 'blue',
+                bgColor: 'bg-blue-100',
+                textColor: 'text-blue-600',
+                hoverBorder: 'hover:border-blue-400',
+                route: 'expediente.index',
+                modulo: 'expediente'
+            },
+            {
+                titulo: 'Inscripciones',
+                descripcion: 'Gestionar inscripciones',
+                icono: 'bx-clipboard',
+                color: 'indigo',
+                bgColor: 'bg-indigo-100',
+                textColor: 'text-indigo-600',
+                hoverBorder: 'hover:border-indigo-400',
+                href: '/inscripciones',
+                modulo: 'inscripciones'
+            },
+            {
+                titulo: 'Mi Perfil',
+                descripcion: 'Actualizar datos personales',
+                icono: 'bx-user',
+                color: 'green',
+                bgColor: 'bg-green-100',
+                textColor: 'text-green-600',
+                hoverBorder: 'hover:border-green-400',
+                route: 'profile.edit',
+                modulo: null
+            },
+        ];
     }
 
     // Filtrar accesos según módulos activos
@@ -331,6 +392,10 @@ const irAMateria = (materiaId) => {
                             <template v-if="tipoUsuario === 'profesor'">Panel de profesor</template>
                             <template v-else-if="tipoUsuario === 'alumno'">Panel de estudiante</template>
                             <template v-else-if="tipoUsuario === 'admin'">Panel de administración</template>
+                            <template v-else-if="tipoUsuario === 'directivo'">Panel de directivo</template>
+                            <template v-else-if="tipoUsuario === 'supervisor'">Panel de supervisor</template>
+                            <template v-else-if="tipoUsuario === 'bedel'">Panel de bedel</template>
+                            <template v-else-if="tipoUsuario === 'preceptor'">Panel de preceptor</template>
                             <template v-else>Sistema Académico</template>
                         </p>
                         <div class="hidden sm:flex mt-2 md:mt-3 text-xs md:text-sm text-blue-100">
@@ -341,7 +406,15 @@ const irAMateria = (materiaId) => {
                     <!-- Ilustración decorativa - Más pequeña en tablet -->
                     <div class="hidden md:block flex-shrink-0 ml-4">
                         <div class="w-20 h-20 md:w-32 md:h-32 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm">
-                            <i :class="['bx text-4xl md:text-6xl', tipoUsuario === 'profesor' ? 'bx-chalkboard' : tipoUsuario === 'alumno' ? 'bx-book-reader' : 'bx-briefcase']"></i>
+                            <i :class="['bx text-4xl md:text-6xl', {
+                                'bx-chalkboard': tipoUsuario === 'profesor',
+                                'bx-book-reader': tipoUsuario === 'alumno',
+                                'bx-briefcase': tipoUsuario === 'admin',
+                                'bx-building': tipoUsuario === 'directivo',
+                                'bx-shield-quarter': tipoUsuario === 'supervisor',
+                                'bx-id-card': tipoUsuario === 'bedel',
+                                'bx-calendar-check': tipoUsuario === 'preceptor',
+                            }]"></i>
                         </div>
                     </div>
                 </div>
@@ -463,6 +536,14 @@ const irAMateria = (materiaId) => {
                                 <p>• Revisa regularmente las notas pendientes de aprobación.</p>
                                 <p>• Mantén actualizados los datos de materias y usuarios.</p>
                                 <p>• Gestiona los legajos desde el panel de Expediente.</p>
+                            </template>
+                            <template v-else-if="tipoUsuario === 'directivo' || tipoUsuario === 'supervisor'">
+                                <p>• Consulta los legajos académicos desde Expediente.</p>
+                                <p>• Tu acceso es de solo lectura.</p>
+                            </template>
+                            <template v-else-if="tipoUsuario === 'bedel' || tipoUsuario === 'preceptor'">
+                                <p>• Gestiona inscripciones y legajos desde los accesos rápidos.</p>
+                                <p>• Utiliza el menú lateral para navegar entre secciones.</p>
                             </template>
                             <template v-else>
                                 <p>• Sistema Académico del Instituto de Educación Superior</p>

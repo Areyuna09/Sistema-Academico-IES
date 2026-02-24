@@ -14,6 +14,8 @@ use Inertia\Inertia;
 
 class PlanesEstudioController extends Controller
 {
+    use \App\Traits\ChecksPermissions;
+
     /**
      * Dashboard: lista de todas las carreras con sus planes
      */
@@ -62,6 +64,8 @@ class PlanesEstudioController extends Controller
      */
     public function store(Request $request)
     {
+        $this->autorizarCrear($request);
+
         $validated = $request->validate([
             'carrera_id' => 'required|exists:tbl_carreras,Id',
             'nombre' => 'required|string|max:100',
@@ -112,6 +116,8 @@ class PlanesEstudioController extends Controller
      */
     public function update(Request $request, PlanEstudio $plan)
     {
+        $this->autorizarModificar($request);
+
         $validated = $request->validate([
             'nombre' => 'required|string|max:100',
             'anio' => 'required|integer|min:1900|max:' . (date('Y') + 10),
@@ -150,8 +156,10 @@ class PlanesEstudioController extends Controller
     /**
      * Eliminar plan
      */
-    public function destroy(PlanEstudio $plan)
+    public function destroy(Request $request, PlanEstudio $plan)
     {
+        $this->autorizarEliminar($request);
+
         // Validación: No tiene alumnos asignados (futuro)
         // if (method_exists($plan, 'alumnos') && $plan->alumnos()->count() > 0) {
         //     return back()->withErrors([
@@ -185,6 +193,8 @@ class PlanesEstudioController extends Controller
      */
     public function clonar(Request $request, PlanEstudio $plan)
     {
+        $this->autorizarCrear($request);
+
         $validated = $request->validate([
             'nombre' => 'required|string|max:100',
             'anio' => 'required|integer|min:1900|max:' . (date('Y') + 10),
@@ -233,8 +243,10 @@ class PlanesEstudioController extends Controller
      * Toggle activo/archivado
      * Ahora permite múltiples planes activos simultáneamente
      */
-    public function toggleActivo(PlanEstudio $plan)
+    public function toggleActivo(Request $request, PlanEstudio $plan)
     {
+        $this->autorizarModificar($request);
+
         DB::beginTransaction();
         try {
             $nuevoEstado = !$plan->activo;
@@ -264,8 +276,10 @@ class PlanesEstudioController extends Controller
      * Toggle vigente (plan por defecto para nuevos inscriptos)
      * Solo puede haber un plan vigente por carrera
      */
-    public function toggleVigente(PlanEstudio $plan)
+    public function toggleVigente(Request $request, PlanEstudio $plan)
     {
+        $this->autorizarModificar($request);
+
         DB::beginTransaction();
         try {
             if ($plan->vigente) {
@@ -376,6 +390,8 @@ class PlanesEstudioController extends Controller
      */
     public function agregarMateria(Request $request, PlanEstudio $plan)
     {
+        $this->autorizarModificar($request);
+
         $validated = $request->validate([
             'materia_id' => 'required|exists:tbl_materias,id',
         ]);
@@ -421,8 +437,10 @@ class PlanesEstudioController extends Controller
     /**
      * Eliminar materia del plan (solo la relación)
      */
-    public function quitarMateria(PlanEstudio $plan, Materia $materia)
+    public function quitarMateria(Request $request, PlanEstudio $plan, Materia $materia)
     {
+        $this->autorizarModificar($request);
+
         DB::beginTransaction();
         try {
             $plan->materias()->detach($materia->id);
@@ -448,6 +466,8 @@ class PlanesEstudioController extends Controller
      */
     public function reemplazarMateria(Request $request, PlanEstudio $plan)
     {
+        $this->autorizarModificar($request);
+
         $validated = $request->validate([
             'materia_actual_id' => 'required|exists:tbl_materias,id',
             'materia_nueva_id' => 'required|exists:tbl_materias,id',

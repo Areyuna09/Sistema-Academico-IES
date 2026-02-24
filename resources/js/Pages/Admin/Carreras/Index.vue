@@ -55,6 +55,7 @@ const eliminarCarrera = async (carrera) => {
             <!-- Botón Nueva Carrera -->
             <div class="flex justify-end mb-6">
                 <Link
+                    v-if="$page.props.permisos?.puedeCrear"
                     :href="route('admin.carreras.create')"
                     class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200"
                 >
@@ -136,6 +137,7 @@ const eliminarCarrera = async (carrera) => {
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     <div class="flex items-center justify-end gap-2">
                                         <Link
+                                            v-if="$page.props.permisos?.puedeModificar"
                                             :href="route('admin.carreras.edit', carrera.Id)"
                                             class="text-blue-600 hover:text-blue-900"
                                             title="Editar"
@@ -143,6 +145,7 @@ const eliminarCarrera = async (carrera) => {
                                             <i class="bx bx-edit text-lg"></i>
                                         </Link>
                                         <button
+                                            v-if="$page.props.permisos?.puedeEliminar"
                                             @click="eliminarCarrera(carrera)"
                                             class="text-red-600 hover:text-red-900"
                                             title="Eliminar"

@@ -8,6 +8,10 @@ class TipoUsuario
     const USUARIO = 2;
     const PROFESOR = 3;
     const ALUMNO = 4;
+    const DIRECTIVO = 5;
+    const SUPERVISOR = 6;
+    const BEDEL = 7;
+    const PRECEPTOR = 8;
 
     /**
      * Obtener todos los tipos de usuario
@@ -19,6 +23,10 @@ class TipoUsuario
             self::USUARIO => 'Usuario',
             self::PROFESOR => 'Profesor',
             self::ALUMNO => 'Alumno',
+            self::DIRECTIVO => 'Directivo',
+            self::SUPERVISOR => 'Supervisor',
+            self::BEDEL => 'Bedel',
+            self::PRECEPTOR => 'Preceptor',
         ];
     }
 

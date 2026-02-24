@@ -13,7 +13,7 @@ use Inertia\Inertia;
 
 class MateriasController extends Controller
 {
-    use HandlesErrors;
+    use HandlesErrors, \App\Traits\ChecksPermissions;
     /**
      * Mostrar listado de materias
      */
@@ -93,6 +93,8 @@ class MateriasController extends Controller
      */
     public function store(Request $request)
     {
+        $this->autorizarCrear($request);
+
         $validated = $request->validate([
             'nombre' => 'required|string|max:100|regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\d\-\(\)\.]+$/',
             'carrera' => 'required|exists:tbl_carreras,Id',
@@ -202,6 +204,8 @@ class MateriasController extends Controller
      */
     public function update(Request $request, Materia $materia)
     {
+        $this->autorizarModificar($request);
+
         $validated = $request->validate([
             'nombre' => 'required|string|max:100|regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\d\-\(\)\.]+$/',
             'carrera' => 'required|exists:tbl_carreras,Id',
@@ -295,8 +299,10 @@ class MateriasController extends Controller
     /**
      * Eliminar materia
      */
-    public function destroy(Materia $materia)
+    public function destroy(Request $request, Materia $materia)
     {
+        $this->autorizarEliminar($request);
+
         // Verificar que no tenga correlativas configuradas
         if ($materia->reglasCorrelativas()->count() > 0) {
             return back()->withErrors(['error' => 'No se puede eliminar una materia con reglas de correlativas configuradas.']);
