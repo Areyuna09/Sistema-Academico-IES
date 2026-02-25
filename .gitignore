@@ -31,6 +31,12 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 
+# Archivos locales (bat, sql dump, docs temporales)
+*.bat
+database/*.sql
+VALIDACIONES.md
+nul
+
 # Archivos de test y desarrollo
 test_*.php
 crear_*.php
