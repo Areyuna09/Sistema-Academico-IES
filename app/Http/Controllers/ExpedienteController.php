@@ -852,6 +852,7 @@ class ExpedienteController extends Controller
             'notas' => 'required|array',
             'notas.*.alumno_id' => 'required|exists:tbl_alumnos,id',
             'notas.*.nota' => 'required|numeric|min:1|max:10',
+            'notas.*.condicion' => 'nullable|in:regular,promocionado,libre,equivalencia',
             'notas.*.observaciones' => 'nullable|string|max:500'
         ]);
 
@@ -869,6 +870,7 @@ class ExpedienteController extends Controller
                 // Actualizar registro existente
                 $existe->update([
                     'nota' => $nota['nota'],
+                    'condicion' => $nota['condicion'] ?? null,
                     'fecha' => $request->fecha,
                     'observaciones' => $nota['observaciones'] ?? null,
                     'estado' => 'pendiente', // Volver a pendiente si se modifica
@@ -881,6 +883,7 @@ class ExpedienteController extends Controller
                     'alumno_id' => $nota['alumno_id'],
                     'nota' => $nota['nota'],
                     'tipo_evaluacion' => 'Final',
+                    'condicion' => $nota['condicion'] ?? null,
                     'estado' => 'pendiente',
                     'fecha' => $request->fecha,
                     'observaciones' => $nota['observaciones'] ?? null,
@@ -948,77 +951,63 @@ class ExpedienteController extends Controller
                 ->where('carrera', $profesorMateria->carrera)
                 ->first();
 
-            // Determinar si es nota de cursada o final
-            $esFinal = strtolower($nota->tipo_evaluacion) === 'final';
+            // Determinar condición del alumno (viene del profesor al cargar la nota)
+            $condicion = $nota->condicion ?? 'regular';
 
-            // Obtener notas mínimas configuradas (defaults según migración: promoción=7, regularidad=4)
-            $notaMinimaPromocion = $profesorMateria->nota_minima_promocion ?? 7.00;
-            $notaMinimaRegularidad = $profesorMateria->nota_minima_regularidad ?? 4.00;
+            // Armar datos del legajo según la condición elegida por el profesor
+            $datosLegajo = [
+                'nota_aprobada_por' => $user->id,
+                'fecha_transferencia' => now(),
+                'fecha' => $nota->fecha,
+            ];
+
+            switch ($condicion) {
+                case 'promocionado':
+                    $datosLegajo['nota'] = $nota->nota;
+                    $datosLegajo['calificacion-cursada'] = $nota->nota;
+                    $datosLegajo['calificacion_rendida'] = $nota->nota;
+                    $datosLegajo['cursada'] = '1';
+                    $datosLegajo['rendida'] = '1';
+                    $datosLegajo['libre'] = 0;
+                    $datosLegajo['equivalencia'] = 0;
+                    break;
+
+                case 'libre':
+                    $datosLegajo['nota'] = $nota->nota;
+                    $datosLegajo['calificacion_rendida'] = $nota->nota;
+                    $datosLegajo['cursada'] = null;
+                    $datosLegajo['rendida'] = '1';
+                    $datosLegajo['libre'] = 1;
+                    $datosLegajo['equivalencia'] = 0;
+                    break;
+
+                case 'equivalencia':
+                    $datosLegajo['nota'] = $nota->nota;
+                    $datosLegajo['equivalencia'] = 1;
+                    $datosLegajo['cursada'] = null;
+                    $datosLegajo['rendida'] = null;
+                    $datosLegajo['libre'] = 0;
+                    break;
+
+                case 'regular':
+                default:
+                    $datosLegajo['nota'] = $nota->nota;
+                    $datosLegajo['calificacion_rendida'] = $nota->nota;
+                    $datosLegajo['cursada'] = '1';
+                    $datosLegajo['rendida'] = '1';
+                    $datosLegajo['libre'] = 0;
+                    $datosLegajo['equivalencia'] = 0;
+                    break;
+            }
 
             if ($alumnoMateria) {
-                // Actualizar registro existente
-                if ($esFinal) {
-                    // Nota final: verificar si aprueba antes de marcar rendida
-                    $aprobado = $nota->nota >= $notaMinimaPromocion;
-                    $alumnoMateria->update([
-                        'nota' => $nota->nota,
-                        'calificacion_rendida' => $nota->nota,
-                        'rendida' => $aprobado ? '1' : '0',
-                        'fecha' => $nota->fecha,
-                        'nota_aprobada_por' => $user->id,
-                        'fecha_transferencia' => now(),
-                        // NO tocar cursada ni libre - se mantiene el estado anterior
-                    ]);
-                } else {
-                    // Nota de cursada: verificar si regulariza antes de marcar cursada
-                    $regularizado = $nota->nota >= $notaMinimaRegularidad;
-                    $alumnoMateria->update([
-                        'calificacion-cursada' => $nota->nota,
-                        'cursada' => $regularizado ? '1' : '0',
-                        'nota_aprobada_por' => $user->id,
-                        'fecha_transferencia' => now(),
-                        // NO marcar rendida - solo es regular
-                    ]);
-                }
+                $alumnoMateria->update($datosLegajo);
             } else {
-                // Crear nuevo registro en el legajo
-                if ($esFinal) {
-                    // Si es final y no existe registro previo, asumimos que rindió LIBRE
-                    $aprobado = $nota->nota >= $notaMinimaPromocion;
-                    AlumnoMateria::create([
-                        'alumno' => $nota->alumno_id,
-                        'carrera' => $profesorMateria->carrera,
-                        'materia' => $profesorMateria->materia,
-                        'nota' => $nota->nota,
-                        'cursada' => null, // No cursó
-                        'rendida' => $aprobado ? '1' : '0',  // Solo aprobado si cumple mínimo
-                        'calificacion-cursada' => null,
-                        'calificacion_rendida' => $nota->nota,
-                        'fecha' => $nota->fecha,
-                        'equivalencia' => 0,
-                        'libre' => 1, // Por defecto LIBRE si no cursó antes
-                        'nota_aprobada_por' => $user->id,
-                        'fecha_transferencia' => now(),
-                    ]);
-                } else {
-                    // Nota de cursada: crear como regular si cumple mínimo
-                    $regularizado = $nota->nota >= $notaMinimaRegularidad;
-                    AlumnoMateria::create([
-                        'alumno' => $nota->alumno_id,
-                        'carrera' => $profesorMateria->carrera,
-                        'materia' => $profesorMateria->materia,
-                        'nota' => null, // No rindió final aún
-                        'cursada' => $regularizado ? '1' : '0', // Solo si cumple mínimo
-                        'rendida' => null,
-                        'calificacion-cursada' => $nota->nota,
-                        'calificacion_rendida' => null,
-                        'fecha' => $nota->fecha,
-                        'equivalencia' => 0,
-                        'libre' => $regularizado ? 0 : 1, // Libre si no cumple mínimo
-                        'nota_aprobada_por' => $user->id,
-                        'fecha_transferencia' => now(),
-                    ]);
-                }
+                AlumnoMateria::create(array_merge([
+                    'alumno' => $nota->alumno_id,
+                    'carrera' => $profesorMateria->carrera,
+                    'materia' => $profesorMateria->materia,
+                ], $datosLegajo));
             }
 
             // 3. Log de auditoría

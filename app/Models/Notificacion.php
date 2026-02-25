@@ -94,9 +94,14 @@ class Notificacion extends Model
 
     /**
      * Helper estático para crear notificaciones
+     * Respeta la configuración de módulos: si notificaciones_sistema está desactivado, no crea nada.
      */
     public static function crear($userId, $tipo, $titulo, $mensaje, $opciones = [])
     {
+        if (!ConfiguracionModulo::estaActivo('notificaciones_sistema')) {
+            return null;
+        }
+
         return self::create(array_merge([
             'user_id' => $userId,
             'tipo' => $tipo,

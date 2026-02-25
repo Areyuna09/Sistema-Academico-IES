@@ -13,6 +13,7 @@ class NotaTemporal extends Model
         'alumno_id',
         'nota',
         'tipo_evaluacion',
+        'condicion',
         'estado',
         'fecha',
         'observaciones',

@@ -82,10 +82,11 @@ const getBadgeNota = (estado) => {
 // Determinar estado académico de una nota (reactivo)
 // Retorna: 'aprueba' | 'regular' | 'no_aprueba'
 const estadoAcademico = (nota) => {
-    const minimaPromocion = props.profesorMateria.nota_minima_promocion ?? 7;
-    const minimaRegularidad = props.profesorMateria.nota_minima_regularidad ?? 4;
-    if (nota.nota >= minimaPromocion) return 'aprueba';
-    if (nota.nota >= minimaRegularidad) return 'regular';
+    const minimaPromocion = Number(props.profesorMateria.nota_minima_promocion ?? 7);
+    const minimaRegularidad = Number(props.profesorMateria.nota_minima_regularidad ?? 4);
+    const valorNota = Number(nota.nota);
+    if (valorNota >= minimaPromocion) return 'aprueba';
+    if (valorNota >= minimaRegularidad) return 'regular';
     return 'no_aprueba';
 };
 
@@ -195,6 +196,7 @@ const abrirModalNotasFinales = () => {
 
         notasFinales.value[alumno.id] = {
             nota: notaExistente ? notaExistente.nota : '',
+            condicion: notaExistente ? (notaExistente.condicion || 'regular') : 'regular',
             observaciones: notaExistente ? notaExistente.observaciones : ''
         };
     });
@@ -205,6 +207,20 @@ const abrirModalNotasFinales = () => {
 
 const cerrarModalNotasFinales = () => {
     modalNotasFinales.value = false;
+};
+
+const autoCondicion = (alumnoId) => {
+    const nota = Number(notasFinales.value[alumnoId].nota);
+    const minimaPromocion = Number(props.profesorMateria.nota_minima_promocion ?? 7);
+    const minimaRegularidad = Number(props.profesorMateria.nota_minima_regularidad ?? 4);
+    if (!nota && nota !== 0) return;
+    if (nota >= minimaPromocion) {
+        notasFinales.value[alumnoId].condicion = 'promocionado';
+    } else if (nota >= minimaRegularidad) {
+        notasFinales.value[alumnoId].condicion = 'regular';
+    } else {
+        notasFinales.value[alumnoId].condicion = 'regular';
+    }
 };
 
 const guardarNotasFinalesMasivas = async () => {
@@ -219,6 +235,7 @@ const guardarNotasFinalesMasivas = async () => {
         .map(alumnoId => ({
             alumno_id: parseInt(alumnoId),
             nota: parseFloat(notasFinales.value[alumnoId].nota),
+            condicion: notasFinales.value[alumnoId].condicion || 'regular',
             observaciones: notasFinales.value[alumnoId].observaciones || null
         }));
 
@@ -795,6 +812,7 @@ const guardarNotasFinalesMasivas = async () => {
                                     <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700 border-b">#</th>
                                     <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700 border-b">Alumno</th>
                                     <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700 border-b">Nota Final (1-10)</th>
+                                    <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700 border-b">Condicion</th>
                                     <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700 border-b">Observaciones</th>
                                 </tr>
                             </thead>
@@ -814,7 +832,19 @@ const guardarNotasFinalesMasivas = async () => {
                                             step="0.01"
                                             placeholder="-"
                                             class="w-24 px-2 py-1 border border-gray-300 rounded text-sm text-center focus:ring-2 focus:ring-purple-500"
+                                            @input="autoCondicion(alumno.id)"
                                         />
+                                    </td>
+                                    <td class="px-4 py-3 text-center">
+                                        <select
+                                            v-model="notasFinales[alumno.id].condicion"
+                                            class="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-purple-500"
+                                        >
+                                            <option value="regular">Regular</option>
+                                            <option value="promocionado">Promocionado</option>
+                                            <option value="libre">Libre</option>
+                                            <option value="equivalencia">Equivalencia</option>
+                                        </select>
                                     </td>
                                     <td class="px-4 py-3">
                                         <input
