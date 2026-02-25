@@ -281,9 +281,12 @@ Route::middleware(['auth', 'bedel'])->prefix('bedel')->name('bedel.')->group(fun
 Route::middleware(['auth', 'preceptor'])->prefix('preceptor')->name('preceptor.')->group(function () {
     // Panel principal del preceptor
     Route::get('/', [PreceptorController::class, 'index'])->name('index');
-    
-    // Asistencias y seguimiento
+
+    // Asistencias
     Route::get('/asistencias', [AsistenciasController::class, 'index'])->name('asistencias.index');
+    Route::get('/asistencias/{profesorMateria}/tomar', [AsistenciasController::class, 'tomar'])->name('asistencias.tomar');
+    Route::post('/asistencias/{profesorMateria}/guardar', [AsistenciasController::class, 'guardar'])->name('asistencias.guardar');
+    Route::get('/asistencias/{profesorMateria}/historial', [AsistenciasController::class, 'historial'])->name('asistencias.historial');
 });
 
 // Rutas de Profesores (asistencias y materias)

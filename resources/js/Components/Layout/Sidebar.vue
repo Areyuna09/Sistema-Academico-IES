@@ -116,6 +116,16 @@ const menuItems = computed(() => {
         },
     ];
 
+    // Asistencias - solo para preceptor
+    if (page.props.auth.user?.tipo === 8) {
+        baseItems.push({
+            name: "Asistencias",
+            route: "preceptor.asistencias.index",
+            icon: "bx-calendar-check",
+            path: "/preceptor/asistencias",
+        });
+    }
+
     // Plan de Estudio - solo para alumnos y profesores (admin lo ve en Parámetros)
     if (page.props.auth.user?.tipo === 3 || page.props.auth.user?.tipo === 4) {
         // Profesores y Alumnos: ir a la vista de consulta
