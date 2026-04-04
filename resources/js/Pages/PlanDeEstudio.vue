@@ -18,11 +18,14 @@ const loading = ref(true)
 const error = ref(null)
 const plan = ref({ alumno: null, resumen: null, materias: [] })
 
+// Info del plan de estudio resuelto (para alumnos)
+const planInfo = ref(null) // { id, nombre, anio, resolucion }
+
 // Modo carrera (cuando el usuario no es alumno)
 const carreras = ref([])
 const carreraId = ref('')
-const planesDisponibles = ref([]) // Lista de planes de la carrera seleccionada
-const planSeleccionadoId = ref(null) // ID del plan seleccionado
+const planesDisponibles = ref([])
+const planSeleccionadoId = ref(null)
 const carreraPlan = ref({ carrera: null, plan: null, materias: [] })
 const duracionCarreras = ref({})
 
@@ -58,14 +61,12 @@ const errorModal = ref('')
 
 const fetchPlan = async () => {
   if (!alumnoId) {
-    // Cargar listado de carreras para selección
+    // Cargar listado de carreras para selección (vista no-alumno)
     try {
       const { data } = await axios.get('/carreras')
       carreras.value = data
 
-      // Cargar duración de carreras
       if (data?.length) {
-        // Calcular duración basado en las materias de cada carrera
         for (const carrera of data) {
           try {
             const planData = await axios.get(`/carreras/${carrera.id}/plan`)
@@ -74,7 +75,7 @@ const fetchPlan = async () => {
             }, 0)
             duracionCarreras.value[carrera.id] = maxAnno || 4
           } catch (e) {
-            duracionCarreras.value[carrera.id] = 4 // Default
+            duracionCarreras.value[carrera.id] = 4
           }
         }
 
@@ -88,9 +89,18 @@ const fetchPlan = async () => {
     }
     return
   }
+
+  // Vista alumno: cargar el plan de estudio resuelto por el backend
   try {
     const { data } = await axios.get(`/alumnos/${alumnoId}/plan-estudio`)
     plan.value = data
+
+    // Guardar la info del plan si el backend la devuelve
+    // El endpoint puede devolver { alumno, resumen, materias, plan }
+    if (data.plan) {
+      planInfo.value = data.plan
+    }
+
     // Expandir primer año por defecto
     if (materiasPorAnio.value.length > 0) {
       aniosExpandidos.value[materiasPorAnio.value[0].anio] = true
@@ -110,13 +120,13 @@ const fetchCarreraPlan = async () => {
     const { data: planesData } = await axios.get(`/carreras/${carreraId.value}/planes`)
     planesDisponibles.value = planesData.planes || []
 
-    // Si hay planes, seleccionar el activo por defecto
+    // Seleccionar el vigente por defecto, luego el activo, luego el primero
     if (planesDisponibles.value.length > 0) {
+      const planVigente = planesDisponibles.value.find(p => p.vigente)
       const planActivo = planesDisponibles.value.find(p => p.activo)
-      planSeleccionadoId.value = planActivo ? planActivo.id : planesDisponibles.value[0].id
+      planSeleccionadoId.value = planVigente?.id ?? planActivo?.id ?? planesDisponibles.value[0].id
     }
 
-    // Cargar el plan seleccionado (o el plan activo por defecto)
     const endpoint = planSeleccionadoId.value
       ? `/carreras/${carreraId.value}/planes/${planSeleccionadoId.value}`
       : `/carreras/${carreraId.value}/plan`
@@ -137,21 +147,20 @@ const fetchCarreraPlan = async () => {
 
 onMounted(fetchPlan)
 
-// Recargar el plan cuando cambie la carrera seleccionada
+// Recargar cuando cambie la carrera seleccionada
 watch(carreraId, async (newCarreraId) => {
   if (newCarreraId && !alumnoId) {
     await fetchCarreraPlan()
   }
 })
 
-// Recargar el plan cuando cambie el plan seleccionado
+// Recargar cuando cambie el plan seleccionado
 watch(planSeleccionadoId, async (newPlanId) => {
   if (newPlanId && carreraId.value && !alumnoId) {
     loading.value = true
     try {
       const { data } = await axios.get(`/carreras/${carreraId.value}/planes/${newPlanId}`)
       carreraPlan.value = data
-      // Expandir primer año
       if (materiasPorAnioCarrera.value.length > 0) {
         aniosExpandidos.value[materiasPorAnioCarrera.value[0].anio] = true
       }
@@ -163,7 +172,7 @@ watch(planSeleccionadoId, async (newPlanId) => {
   }
 })
 
-// Organizar materias por año
+// Organizar materias por año (vista alumno)
 const materiasPorAnio = computed(() => {
   if (!alumnoId || !plan.value.materias) return []
 
@@ -190,6 +199,7 @@ const materiasPorAnio = computed(() => {
   return Object.values(grupos).sort((a, b) => a.anio - b.anio)
 })
 
+// Organizar materias por año (vista no-alumno / carrera)
 const materiasPorAnioCarrera = computed(() => {
   if (alumnoId || !carreraPlan.value.materias) return []
 
@@ -257,26 +267,22 @@ const porcentajeProgreso = (grupo) => {
   return Math.round((grupo.aprobadas / grupo.total) * 100)
 }
 
-// Funciones de gestión admin del plan de estudio
+// ─── Admin: gestión del plan ──────────────────────────────────────────────────
 
-// Cargar materias disponibles que no están en el plan
 const cargarMateriasDisponibles = async () => {
   if (!carreraId.value) return
 
   cargandoMateriasDisponibles.value = true
   try {
-    // Obtener TODAS las materias de la carrera desde el endpoint de materias
     const response = await axiosInstance.get(`/admin/materias?carrera_id=${carreraId.value}`)
     let todasLasMaterias = []
 
-    // El endpoint de materias devuelve un objeto con data
     if (response.data.data) {
       todasLasMaterias = response.data.data
     } else if (Array.isArray(response.data)) {
       todasLasMaterias = response.data
     }
 
-    // Filtrar solo las que NO están ya en el plan
     const materiasEnPlan = carreraPlan.value.materias.map(m => m.id)
     materiasDisponiblesParaAsignar.value = todasLasMaterias.filter(
       m => !materiasEnPlan.includes(m.id)
@@ -289,7 +295,6 @@ const cargarMateriasDisponibles = async () => {
   }
 }
 
-// Abrir modal para asignar materia al plan
 const abrirModalNuevoPlan = () => {
   modalNuevoPlan.value = {
     visible: true,
@@ -324,7 +329,7 @@ const crearNuevoPlan = async () => {
     })
 
     cerrarModalNuevoPlan()
-    await fetchCarreraPlan() // Recargar para ver el nuevo plan
+    await fetchCarreraPlan()
   } catch (error) {
     errorModal.value = error.response?.data?.message || 'Error al crear el plan'
   } finally {
@@ -341,7 +346,6 @@ const abrirModalAsignar = async () => {
   errorModal.value = ''
 }
 
-// Asignar materia al plan (sin modificar la materia en sí)
 const asignarMateria = async () => {
   if (!modalAsignarMateria.value.materiaSeleccionada) {
     errorModal.value = 'Debes seleccionar una materia'
@@ -354,12 +358,9 @@ const asignarMateria = async () => {
   }
 
   try {
-    // Llamar al endpoint para asignar la materia al plan
     await axiosInstance.post(
       `/carreras/${carreraId.value}/planes/${carreraPlan.value.plan.id}/materias`,
-      {
-        materia_id: modalAsignarMateria.value.materiaSeleccionada
-      }
+      { materia_id: modalAsignarMateria.value.materiaSeleccionada }
     )
 
     modalAsignarMateria.value.visible = false
@@ -371,7 +372,6 @@ const asignarMateria = async () => {
   }
 }
 
-// Abrir modal para reemplazar materia
 const abrirModalReemplazar = async (materiaActual) => {
   await cargarMateriasDisponibles()
   modalReemplazarMateria.value = {
@@ -382,7 +382,6 @@ const abrirModalReemplazar = async (materiaActual) => {
   errorModal.value = ''
 }
 
-// Reemplazar materia en el plan (cambiar una por otra)
 const reemplazarMateria = async () => {
   if (!modalReemplazarMateria.value.materiaNueva) {
     errorModal.value = 'Debes seleccionar una materia para reemplazar'
@@ -390,8 +389,6 @@ const reemplazarMateria = async () => {
   }
 
   try {
-    // En la práctica, esto solo actualiza la visualización del plan
-    // Las materias no se modifican en el sistema
     modalReemplazarMateria.value.visible = false
     await fetchCarreraPlan()
   } catch (e) {
@@ -399,7 +396,6 @@ const reemplazarMateria = async () => {
   }
 }
 
-// Quitar materia del plan (no la elimina del sistema)
 const quitarDelPlan = async (materia) => {
   if (!carreraPlan.value.plan?.id) {
     alert('No hay un plan activo para esta carrera')
@@ -413,11 +409,9 @@ const quitarDelPlan = async (materia) => {
   if (!confirmacion) return
 
   try {
-    // Llamar al endpoint para quitar la materia del plan
     await axiosInstance.delete(
       `/carreras/${carreraId.value}/planes/${carreraPlan.value.plan.id}/materias/${materia.id}`
     )
-
     await fetchCarreraPlan()
   } catch (e) {
     console.error('Error al quitar materia:', e)
@@ -471,7 +465,9 @@ const cerrarModal = () => {
           <div v-if="alumnoId">
             <div class="flex items-center justify-between">
               <div>
-                <h2 class="text-lg md:text-xl lg:text-2xl font-bold text-gray-900 leading-tight">{{ plan.alumno?.carrera?.nombre || 'Plan de Estudio' }}</h2>
+                <h2 class="text-lg md:text-xl lg:text-2xl font-bold text-gray-900 leading-tight">
+                  {{ plan.alumno?.carrera?.nombre || 'Plan de Estudio' }}
+                </h2>
                 <div class="mt-1.5 md:mt-2 flex flex-wrap gap-2 md:gap-3 lg:gap-4 text-xs md:text-sm text-gray-600">
                   <div class="flex items-center gap-1">
                     <i class='bx bx-user text-sm md:text-base'></i>
@@ -482,11 +478,19 @@ const cerrarModal = () => {
                     <span>{{ plan.resumen.totalMaterias }} materias</span>
                   </div>
                 </div>
+                <!-- Badge del plan de estudio resuelto -->
+                <div v-if="planInfo" class="mt-2">
+                  <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-semibold">
+                    <i class="bx bx-book-bookmark"></i>
+                    {{ planInfo.nombre }}
+                    <span v-if="planInfo.resolucion" class="opacity-75">· Res. {{ planInfo.resolucion }}</span>
+                  </span>
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- Para no-alumnos: selector de carrera -->
+          <!-- Para no-alumnos: selector de carrera y plan -->
           <div v-else>
             <div class="space-y-3">
               <div>
@@ -509,9 +513,10 @@ const cerrarModal = () => {
                   v-model="planSeleccionadoId"
                   class="w-full border-2 border-gray-300 rounded-lg px-4 py-2.5 text-gray-900 focus:outline-none focus:border-indigo-500 transition-colors"
                 >
-                  <option v-for="plan in planesDisponibles" :key="plan.id" :value="plan.id">
-                    {{ plan.nombre }} ({{ plan.anio }})
-                    <span v-if="plan.activo" class="text-green-600">★ Activo</span>
+                  <option v-for="p in planesDisponibles" :key="p.id" :value="p.id">
+                    {{ p.nombre }} ({{ p.anio }})
+                    <template v-if="p.vigente"> ★ Vigente</template>
+                    <template v-else-if="p.activo"> · Activo</template>
                   </option>
                 </select>
               </div>
@@ -526,7 +531,7 @@ const cerrarModal = () => {
                 Crear Nuevo Plan de Estudio
               </button>
 
-              <!-- Botón asignar materia al plan (solo admin) - móvil -->
+              <!-- Botón asignar materia al plan (solo admin) -->
               <button
                 v-if="esAdmin && carreraId"
                 @click="abrirModalAsignar"
@@ -545,7 +550,6 @@ const cerrarModal = () => {
 
         <!-- Métricas (solo alumnos) -->
         <div v-if="alumnoId && plan.resumen" class="mb-4 md:mb-6">
-          <!-- Resumen principal en móvil -->
           <div class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg p-3 md:p-4 text-white mb-2 md:mb-3">
             <div class="flex items-center justify-between">
               <div>
@@ -562,9 +566,7 @@ const cerrarModal = () => {
             </div>
           </div>
 
-          <!-- Métricas compactas -->
           <div class="grid grid-cols-2 gap-2 md:gap-3">
-            <!-- Aprobadas -->
             <div class="bg-white border-2 border-green-200 rounded-lg p-2 md:p-3">
               <div class="flex items-center gap-1 md:gap-2 mb-0.5 md:mb-1">
                 <i class="bx bx-check-circle text-base md:text-xl text-green-600"></i>
@@ -573,7 +575,6 @@ const cerrarModal = () => {
               <p class="text-xl md:text-2xl font-bold text-green-600">{{ plan.resumen.aprobadas + plan.resumen.promocionadas }}</p>
             </div>
 
-            <!-- Cursando -->
             <div class="bg-white border-2 border-yellow-200 rounded-lg p-2 md:p-3">
               <div class="flex items-center gap-1 md:gap-2 mb-0.5 md:mb-1">
                 <i class="bx bx-time-five text-base md:text-xl text-yellow-600"></i>
@@ -582,7 +583,6 @@ const cerrarModal = () => {
               <p class="text-xl md:text-2xl font-bold text-yellow-600">{{ plan.resumen.regularizadas }}</p>
             </div>
 
-            <!-- Pendientes -->
             <div class="bg-white border-2 border-gray-200 rounded-lg p-2 md:p-3">
               <div class="flex items-center gap-1 md:gap-2 mb-0.5 md:mb-1">
                 <i class="bx bx-circle text-base md:text-xl text-gray-600"></i>
@@ -591,7 +591,6 @@ const cerrarModal = () => {
               <p class="text-xl md:text-2xl font-bold text-gray-600">{{ plan.resumen.pendientes }}</p>
             </div>
 
-            <!-- Total -->
             <div class="bg-white border-2 border-indigo-200 rounded-lg p-2 md:p-3">
               <div class="flex items-center gap-1 md:gap-2 mb-0.5 md:mb-1">
                 <i class="bx bx-book-open text-base md:text-xl text-indigo-600"></i>
@@ -661,7 +660,6 @@ const cerrarModal = () => {
                     <p class="text-xs text-gray-600 mt-1 text-center">{{ porcentajeProgreso(grupo) }}%</p>
                   </div>
 
-                  <!-- Icono expand/collapse -->
                   <i
                     :class="['bx text-xl md:text-2xl text-gray-600 transition-transform duration-200', aniosExpandidos[grupo.anio] ? 'bx-chevron-up' : 'bx-chevron-down']"
                   ></i>
@@ -762,16 +760,12 @@ const cerrarModal = () => {
       @click.self="cerrarModal"
     >
       <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6">
-        <!-- Header del modal -->
         <div class="flex items-center justify-between mb-6">
           <h3 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <i class="bx bx-plus-circle text-3xl text-green-600"></i>
             Asignar Materia al Plan
           </h3>
-          <button
-            @click="cerrarModal"
-            class="text-gray-400 hover:text-gray-600 transition-colors"
-          >
+          <button @click="cerrarModal" class="text-gray-400 hover:text-gray-600 transition-colors">
             <i class="bx bx-x text-3xl"></i>
           </button>
         </div>
@@ -779,13 +773,11 @@ const cerrarModal = () => {
         <div class="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
           <p class="text-blue-800 text-sm">
             <i class="bx bx-info-circle mr-1"></i>
-            Selecciona una materia existente para agregarla al plan de estudio. Las materias se gestionan en el módulo de Administración.
+            Selecciona una materia existente para agregarla al plan de estudio.
           </p>
         </div>
 
-        <!-- Formulario -->
         <form @submit.prevent="asignarMateria" class="space-y-4">
-          <!-- Selector de Materia -->
           <div>
             <label class="block text-sm font-semibold text-gray-700 mb-1">Seleccionar Materia</label>
             <div v-if="cargandoMateriasDisponibles" class="text-sm text-gray-500 py-4">
@@ -808,22 +800,16 @@ const cerrarModal = () => {
               </option>
             </select>
             <p v-if="materiasDisponiblesParaAsignar.length === 0 && !cargandoMateriasDisponibles" class="text-amber-600 text-xs mt-1">
-              No hay materias disponibles para asignar. Todas las materias de esta carrera ya están en el plan.
+              No hay materias disponibles para asignar.
             </p>
           </div>
 
-          <!-- Error -->
           <div v-if="errorModal" class="bg-red-50 border border-red-200 rounded-lg p-3">
             <p class="text-red-700 text-sm">{{ errorModal }}</p>
           </div>
 
-          <!-- Botones -->
           <div class="flex gap-3 mt-6">
-            <button
-              type="button"
-              @click="cerrarModal"
-              class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2.5 rounded-lg transition-colors"
-            >
+            <button type="button" @click="cerrarModal" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2.5 rounded-lg transition-colors">
               Cancelar
             </button>
             <button
@@ -839,23 +825,19 @@ const cerrarModal = () => {
       </div>
     </div>
 
-    <!-- Modal para reemplazar materia en el plan (solo admin) -->
+    <!-- Modal para reemplazar materia -->
     <div
       v-if="modalReemplazarMateria.visible"
       class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
       @click.self="cerrarModal"
     >
       <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6">
-        <!-- Header del modal -->
         <div class="flex items-center justify-between mb-6">
           <h3 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <i class="bx bx-transfer text-3xl text-blue-600"></i>
             Reemplazar Materia
           </h3>
-          <button
-            @click="cerrarModal"
-            class="text-gray-400 hover:text-gray-600 transition-colors"
-          >
+          <button @click="cerrarModal" class="text-gray-400 hover:text-gray-600 transition-colors">
             <i class="bx bx-x text-3xl"></i>
           </button>
         </div>
@@ -865,9 +847,7 @@ const cerrarModal = () => {
           <p class="text-gray-900 font-semibold">{{ modalReemplazarMateria.materiaActual.nombre }}</p>
         </div>
 
-        <!-- Formulario -->
         <form @submit.prevent="reemplazarMateria" class="space-y-4">
-          <!-- Selector de Nueva Materia -->
           <div>
             <label class="block text-sm font-semibold text-gray-700 mb-1">Reemplazar por:</label>
             <div v-if="cargandoMateriasDisponibles" class="text-sm text-gray-500 py-4">
@@ -891,18 +871,12 @@ const cerrarModal = () => {
             </select>
           </div>
 
-          <!-- Error -->
           <div v-if="errorModal" class="bg-red-50 border border-red-200 rounded-lg p-3">
             <p class="text-red-700 text-sm">{{ errorModal }}</p>
           </div>
 
-          <!-- Botones -->
           <div class="flex gap-3 mt-6">
-            <button
-              type="button"
-              @click="cerrarModal"
-              class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2.5 rounded-lg transition-colors"
-            >
+            <button type="button" @click="cerrarModal" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2.5 rounded-lg transition-colors">
               Cancelar
             </button>
             <button

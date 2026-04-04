@@ -1560,27 +1560,18 @@ class ExpedienteController extends Controller
     }
 
     /**
-     * Mostrar expediente completo del alumno
+     * Construye el payload de una carrera para el expediente del alumno.
+     * Reutilizado tanto en la vista del alumno como en la API del admin.
      */
-    private function mostrarExpedienteAlumno($user)
+    private function buildCarreraExpediente(Alumno $alumno): array
     {
-        // Obtener alumno relacionado
-        $alumno = Alumno::where('dni', $user->dni)->first();
-
-        if (!$alumno) {
-            abort(404, 'No se encontró información del alumno');
-        }
-
-        // Obtener carrera del alumno
         $carrera = Carrera::find($alumno->carrera);
 
-        // Obtener todas las materias del historial académico
         $materias = AlumnoMateria::with(['materiaRelacion', 'carrera'])
             ->where('alumno', $alumno->id)
             ->orderBy('fecha', 'desc')
             ->get()
             ->filter(function($am) {
-                // Filtrar solo las que tienen relación con materia
                 return $am->materiaRelacion !== null;
             })
             ->map(function($am) {
@@ -1604,14 +1595,12 @@ class ExpedienteController extends Controller
                     'folio' => $am->folio ?? null,
                 ];
             })
-            ->values(); // Reindexar después del filter
+            ->values();
 
-        // Calcular estadísticas
         $materiasAprobadas = $materias->where('rendida', true)->count();
         $materiasRegulares = $materias->where('cursada', true)->where('rendida', false)->count();
         $totalMaterias = $materias->count();
 
-        // Calcular promedio (solo materias aprobadas con nota)
         $materiasConNota = $materias->where('rendida', true)->filter(function($m) {
             return !empty($m['nota_final']) && is_numeric($m['nota_final']);
         });
@@ -1620,18 +1609,15 @@ class ExpedienteController extends Controller
             ? round($materiasConNota->avg('nota_final'), 2)
             : null;
 
-        // Obtener inscripciones actuales con asistencias
         $inscripcionesActuales = Inscripcion::with(['materia'])
             ->where('alumno_id', $alumno->id)
             ->where('estado', 'confirmada')
             ->get()
             ->map(function($inscripcion) use ($alumno) {
-                // Obtener IDs de profesor_materia para esta materia
                 $profesorMateriaIds = \DB::table('tbl_profesor_tiene_materias')
                     ->where('materia', $inscripcion->materia_id)
                     ->pluck('id');
 
-                // Obtener asistencias del alumno para esta materia
                 $asistencias = Asistencia::where('alumno_id', $alumno->id)
                     ->whereIn('profesor_materia_id', $profesorMateriaIds)
                     ->where('tipo_carga', 'diaria')
@@ -1639,9 +1625,6 @@ class ExpedienteController extends Controller
 
                 $totalClases = $asistencias->count();
                 $asistenciasPresentes = $asistencias->where('estado', 'presente')->count();
-                $porcentajeAsistencia = $totalClases > 0
-                    ? round(($asistenciasPresentes / $totalClases) * 100, 1)
-                    : null;
 
                 return [
                     'materia' => [
@@ -1653,27 +1636,21 @@ class ExpedienteController extends Controller
                     'asistencia' => [
                         'total_clases' => $totalClases,
                         'presentes' => $asistenciasPresentes,
-                        'porcentaje' => $porcentajeAsistencia,
+                        'porcentaje' => $totalClases > 0
+                            ? round(($asistenciasPresentes / $totalClases) * 100, 1)
+                            : null,
                     ],
                 ];
             });
 
-        return Inertia::render('Expediente/AlumnoPanel', [
-            'alumno' => [
-                'id' => $alumno->id,
-                'dni' => $alumno->dni,
-                'nombre_completo' => trim($alumno->apellido . ', ' . $alumno->nombre),
-                'legajo' => $alumno->legajo,
-                'email' => $alumno->email,
-                'telefono' => $alumno->telefono,
-                'celular' => $alumno->celular,
-                'curso' => $alumno->curso,
-                'division' => $alumno->division,
-            ],
+        return [
+            'nombre' => $carrera ? $carrera->nombre : "Carrera #{$alumno->carrera}",
+            'carrera_id' => $alumno->carrera,
+            'alumno_id' => $alumno->id,
             'carrera' => $carrera ? [
                 'id' => $carrera->Id,
                 'nombre' => $carrera->nombre,
-                'duracion' => $carrera->duracion,
+                'duracion' => $carrera->duracion ?? null,
             ] : null,
             'estadisticas' => [
                 'total_materias' => $totalMaterias,
@@ -1686,11 +1663,11 @@ class ExpedienteController extends Controller
             ],
             'historial' => $materias,
             'materias_actuales' => $inscripcionesActuales,
-        ]);
+        ];
     }
 
     /**
-     * Obtener estado legible de una materia
+     * Mostrar expediente completo del alumno
      */
     private function obtenerEstadoMateria($alumnoMateria)
     {
