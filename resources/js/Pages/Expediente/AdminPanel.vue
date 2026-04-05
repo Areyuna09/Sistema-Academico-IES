@@ -71,6 +71,9 @@ const alumnoEncontrado = ref(null);
 const historialAcademico = ref(null);
 const historialOriginal = ref(null);
 const errorBusqueda = ref('');
+// Soporte multi-carrera en legajos
+const todosLosRegistros = ref([]); // todos los registros del DNI buscado
+const carreraLegajoIdx = ref(0);   // índice de la carrera activa en legajos
 const guardando = ref(false);
 
 // Variables para agregar fila nueva en tabla
@@ -90,7 +93,8 @@ const expedienteData = ref({
     carrera: null,
     estadisticas: {},
     historial: [],
-    materias_actuales: []
+    materias_actuales: [],
+    carreras: []
 });
 const cargandoExpediente = ref(false);
 
@@ -332,8 +336,11 @@ const buscarAlumno = async () => {
 
         alumnoEncontrado.value = response.data.alumno;
         historialAcademico.value = response.data.historial;
-        // Guardar copia del original para comparar cambios
         historialOriginal.value = JSON.parse(JSON.stringify(response.data.historial));
+
+        // Cargar todos los registros del DNI para el selector de carrera
+        todosLosRegistros.value = response.data.todos_los_registros || [];
+        carreraLegajoIdx.value = 0;
     } catch (error) {
         if (error.response && error.response.status === 404) {
             errorBusqueda.value = 'No se encontró ningún alumno con ese DNI';
@@ -351,6 +358,29 @@ const limpiarBusqueda = () => {
     historialAcademico.value = null;
     historialOriginal.value = null;
     errorBusqueda.value = '';
+};
+
+// Cambiar la carrera activa en el legajo
+const cambiarCarreraLegajo = async (idx) => {
+    carreraLegajoIdx.value = idx;
+    const registro = todosLosRegistros.value[idx];
+        console.log('registro seleccionado:', JSON.parse(JSON.stringify(registro)));
+    if (!registro) return;
+
+    buscando.value = true;
+    try {
+        const response = await axios.post(route('expediente.buscar-dni'), {
+            dni: registro.dni,
+            carrera_id: registro.id_carrera
+        });
+        alumnoEncontrado.value = response.data.alumno;
+        historialAcademico.value = response.data.historial;
+        historialOriginal.value = JSON.parse(JSON.stringify(response.data.historial));
+    } catch (error) {
+        errorBusqueda.value = 'Error al cargar la carrera seleccionada';
+    } finally {
+        buscando.value = false;
+    }
 };
 
 // Función para agregar fila nueva en un año específico
@@ -485,12 +515,13 @@ const verExpediente = async (alumno) => {
 const cerrarModalExpediente = () => {
     mostrarModalExpediente.value = false;
     expedienteData.value = {
-        alumno: null,
-        carrera: null,
-        estadisticas: {},
-        historial: [],
-        materias_actuales: []
-    };
+    alumno: null,
+    carrera: null,
+    estadisticas: {},
+    historial: [],
+    materias_actuales: [],
+    carreras: []
+};
 };
 
 const limpiarMateriasProfesor = async (profesor) => {
@@ -1702,6 +1733,30 @@ const getEstadoBadge = (estado) => {
                             </div>
                         </div>
 
+                        <!-- Selector de carrera (solo cuando hay múltiples registros) -->
+                        <div v-if="todosLosRegistros.length > 1" class="mb-4">
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                                <i class="bx bx-transfer-alt mr-1"></i>
+                                Carreras del alumno
+                            </p>
+                            <div class="flex flex-wrap gap-2">
+                                <button
+                                    v-for="(reg, idx) in todosLosRegistros"
+                                    :key="idx"
+                                    @click="cambiarCarreraLegajo(idx)"
+                                    :class="[
+                                        'px-3 py-1.5 rounded-lg text-sm font-medium border transition-all',
+                                        carreraLegajoIdx === idx
+                                            ? 'bg-orange-600 text-white border-orange-600'
+                                            : 'bg-white text-gray-700 border-gray-300 hover:border-orange-400'
+                                    ]"
+                                >
+                                    <i class="bx bx-book mr-1"></i>
+                                    {{ reg.carrera }}
+                                </button>
+                            </div>
+                        </div>
+
                         <!-- Datos del alumno -->
                         <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
                             <div class="grid grid-cols-2 md:grid-cols-6 gap-4">
@@ -2012,13 +2067,14 @@ const getEstadoBadge = (estado) => {
         />
 
         <ExpedienteAlumnoModal
-            :show="mostrarModalExpediente"
-            :alumno="expedienteData.alumno"
-            :carrera="expedienteData.carrera"
-            :estadisticas="expedienteData.estadisticas"
-            :historial="expedienteData.historial"
-            :materias_actuales="expedienteData.materias_actuales"
-            @close="cerrarModalExpediente"
-        />
+    :show="mostrarModalExpediente"
+    :alumno="expedienteData.alumno"
+    :carrera="expedienteData.carrera"
+    :estadisticas="expedienteData.estadisticas"
+    :historial="expedienteData.historial"
+    :materias_actuales="expedienteData.materias_actuales"
+    :carreras="expedienteData.carreras"
+    @close="cerrarModalExpediente"
+/>
     </SidebarLayout>
 </template>

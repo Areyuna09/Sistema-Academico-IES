@@ -367,7 +367,12 @@ class ExpedienteController extends Controller
         ]);
 
         // Usar carreraRelacion para evitar conflicto con el atributo 'carrera'
-        $alumno = Alumno::with(['carreraRelacion'])->where('dni', $request->dni)->first();
+        // Si viene carrera_id, buscar el registro específico de esa carrera
+$query = Alumno::with(['carreraRelacion'])->where('dni', $request->dni);
+if ($request->filled('carrera_id')) {
+    $query->where('carrera', $request->carrera_id);
+}
+$alumno = $query->first();
 
         if (!$alumno) {
             return response()->json([
@@ -418,18 +423,36 @@ class ExpedienteController extends Controller
                 });
             });
 
+        // Cargar todos los registros del DNI para el selector de carrera en legajos
+        $todosLosRegistros = Alumno::with('carreraRelacion')
+            ->where('dni', $request->dni)
+            ->get()
+            ->map(function($r) {
+                return [
+                    'id'         => $r->id,
+                    'dni'        => $r->dni,
+                    'apellido'   => $r->apellido,
+                    'nombre'     => $r->nombre,
+                    'anno'       => $r->anno ?? 'N/A',
+                    'curso'      => $r->curso ?? 0,
+                    'carrera'    => $r->carreraRelacion ? $r->carreraRelacion->nombre : 'Sin carrera',
+                    'id_carrera' => $r->getAttributes()['carrera'] ?? null,
+                ];
+            });
+
         return response()->json([
             'alumno' => [
-                'id' => $alumno->id,
-                'dni' => $alumno->dni,
-                'apellido' => $alumno->apellido,
-                'nombre' => $alumno->nombre,
-                'anno' => $alumno->anno ?? 'N/A',
-                'curso' => $alumno->curso ?? 0,
-                'carrera' => $alumno->carreraRelacion ? $alumno->carreraRelacion->nombre : 'Sin carrera',
-                'id_carrera' => $carreraId
+                'id'         => $alumno->id,
+                'dni'        => $alumno->dni,
+                'apellido'   => $alumno->apellido,
+                'nombre'     => $alumno->nombre,
+                'anno'       => $alumno->anno ?? 'N/A',
+                'curso'      => $alumno->curso ?? 0,
+                'carrera'    => $alumno->carreraRelacion ? $alumno->carreraRelacion->nombre : 'Sin carrera',
+                'id_carrera' => $carreraId,
             ],
-            'historial' => $historialAcademico
+            'historial'            => $historialAcademico,
+            'todos_los_registros'  => $todosLosRegistros,
         ]);
     }
 
@@ -1560,54 +1583,91 @@ class ExpedienteController extends Controller
     }
 
     /**
-     * Construye el payload de una carrera para el expediente del alumno.
-     * Reutilizado tanto en la vista del alumno como en la API del admin.
+     * Mostrar expediente completo del alumno
+     * MODIFICADO: soporta alumnos con múltiples carreras buscando por DNI
+     */
+    private function mostrarExpedienteAlumno($user)
+    {
+        // Buscar TODOS los registros del alumno por DNI (uno por carrera)
+        $registros = Alumno::where('dni', $user->dni)->get();
+
+        if ($registros->isEmpty()) {
+            abort(404, 'No se encontró información del alumno');
+        }
+
+        // Construir payload por cada carrera
+        $carreras = $registros->map(fn($r) => $this->buildCarreraExpediente($r))->values();
+
+        // Registro principal: el que coincide con user->alumno_id, o el primero
+        $principal = $registros->firstWhere('id', $user->alumno_id) ?? $registros->first();
+        $datoPrincipal = $carreras->firstWhere('alumno_id', $principal->id) ?? $carreras->first();
+
+        return Inertia::render('Expediente/AlumnoPanel', [
+            'alumno' => [
+                'id'              => $principal->id,
+                'dni'             => $principal->dni,
+                'nombre_completo' => trim($principal->apellido . ', ' . $principal->nombre),
+                'legajo'          => $principal->legajo,
+                'email'           => $principal->email,
+                'telefono'        => $principal->telefono,
+                'celular'         => $principal->celular,
+                'curso'           => $principal->curso,
+                'division'        => $principal->division,
+            ],
+            // Compatibilidad legacy
+            'carrera'           => $datoPrincipal['carrera'] ?? null,
+            'estadisticas'      => $datoPrincipal['estadisticas'] ?? [],
+            'historial'         => $datoPrincipal['historial'] ?? [],
+            'materias_actuales' => $datoPrincipal['materias_actuales'] ?? [],
+            // NUEVO: array con todas las carreras para el selector
+            'carreras'          => $carreras,
+        ]);
+    }
+
+    /**
+     * Construye el payload de historial/estadísticas/inscripciones para un registro de alumno.
+     * NUEVO: necesario para soportar múltiples carreras por alumno.
      */
     private function buildCarreraExpediente(Alumno $alumno): array
     {
         $carrera = Carrera::find($alumno->carrera);
 
         $materias = AlumnoMateria::with(['materiaRelacion', 'carrera'])
-            ->where('alumno', $alumno->id)
-            ->orderBy('fecha', 'desc')
+    ->where('alumno', $alumno->id)
+    ->where('carrera', $alumno->carrera) // filtrar solo materias de esta carrera
+    ->orderBy('fecha', 'desc')
             ->get()
-            ->filter(function($am) {
-                return $am->materiaRelacion !== null;
-            })
+            ->filter(fn($am) => $am->materiaRelacion !== null)
             ->map(function($am) {
                 return [
-                    'id' => $am->Id,
+                    'id'     => $am->Id,
                     'materia' => [
-                        'id' => $am->materiaRelacion->id,
-                        'nombre' => $am->materiaRelacion->nombre,
-                        'codigo' => $am->materiaRelacion->codigo ?? null,
-                        'anno' => $am->materiaRelacion->anno,
+                        'id'       => $am->materiaRelacion->id,
+                        'nombre'   => $am->materiaRelacion->nombre,
+                        'codigo'   => $am->materiaRelacion->codigo ?? null,
+                        'anno'     => $am->materiaRelacion->anno,
                         'semestre' => $am->materiaRelacion->semestre,
                     ],
-                    'nota_final' => $am->nota,
+                    'nota_final'           => $am->nota,
                     'calificacion_cursada' => $am->{'calificacion-cursada'} ?? null,
                     'calificacion_rendida' => $am->calificacion_rendida ?? null,
-                    'estado' => $this->obtenerEstadoMateria($am),
-                    'cursada' => $am->cursada === '1',
-                    'rendida' => $am->rendida === '1',
-                    'fecha' => $am->fecha ? $am->fecha->format('d/m/Y') : null,
-                    'libro' => $am->libro ?? null,
-                    'folio' => $am->folio ?? null,
+                    'estado'   => $this->obtenerEstadoMateria($am),
+                    'cursada'  => $am->cursada === '1',
+                    'rendida'  => $am->rendida === '1',
+                    'fecha'    => $am->fecha ? $am->fecha->format('d/m/Y') : null,
+                    'libro'    => $am->libro ?? null,
+                    'folio'    => $am->folio ?? null,
                 ];
             })
             ->values();
 
         $materiasAprobadas = $materias->where('rendida', true)->count();
         $materiasRegulares = $materias->where('cursada', true)->where('rendida', false)->count();
-        $totalMaterias = $materias->count();
-
-        $materiasConNota = $materias->where('rendida', true)->filter(function($m) {
-            return !empty($m['nota_final']) && is_numeric($m['nota_final']);
-        });
-
+        $totalMaterias     = $materias->count();
+        $materiasConNota   = $materias->where('rendida', true)
+            ->filter(fn($m) => !empty($m['nota_final']) && is_numeric($m['nota_final']));
         $promedio = $materiasConNota->count() > 0
-            ? round($materiasConNota->avg('nota_final'), 2)
-            : null;
+            ? round($materiasConNota->avg('nota_final'), 2) : null;
 
         $inscripcionesActuales = Inscripcion::with(['materia'])
             ->where('alumno_id', $alumno->id)
@@ -1615,59 +1675,55 @@ class ExpedienteController extends Controller
             ->get()
             ->map(function($inscripcion) use ($alumno) {
                 $profesorMateriaIds = \DB::table('tbl_profesor_tiene_materias')
-                    ->where('materia', $inscripcion->materia_id)
-                    ->pluck('id');
+                    ->where('materia', $inscripcion->materia_id)->pluck('id');
 
                 $asistencias = Asistencia::where('alumno_id', $alumno->id)
                     ->whereIn('profesor_materia_id', $profesorMateriaIds)
-                    ->where('tipo_carga', 'diaria')
-                    ->get();
+                    ->where('tipo_carga', 'diaria')->get();
 
-                $totalClases = $asistencias->count();
+                $totalClases          = $asistencias->count();
                 $asistenciasPresentes = $asistencias->where('estado', 'presente')->count();
 
                 return [
                     'materia' => [
-                        'id' => $inscripcion->materia->id,
-                        'nombre' => $inscripcion->materia->nombre,
-                        'anno' => $inscripcion->materia->anno,
+                        'id'       => $inscripcion->materia->id,
+                        'nombre'   => $inscripcion->materia->nombre,
+                        'anno'     => $inscripcion->materia->anno,
                         'semestre' => $inscripcion->materia->semestre,
                     ],
                     'asistencia' => [
                         'total_clases' => $totalClases,
-                        'presentes' => $asistenciasPresentes,
-                        'porcentaje' => $totalClases > 0
-                            ? round(($asistenciasPresentes / $totalClases) * 100, 1)
-                            : null,
+                        'presentes'    => $asistenciasPresentes,
+                        'porcentaje'   => $totalClases > 0
+                            ? round(($asistenciasPresentes / $totalClases) * 100, 1) : null,
                     ],
                 ];
             });
 
         return [
-            'nombre' => $carrera ? $carrera->nombre : "Carrera #{$alumno->carrera}",
+            'nombre'     => $carrera ? $carrera->nombre : "Carrera #{$alumno->carrera}",
             'carrera_id' => $alumno->carrera,
-            'alumno_id' => $alumno->id,
+            'alumno_id'  => $alumno->id,
             'carrera' => $carrera ? [
-                'id' => $carrera->Id,
-                'nombre' => $carrera->nombre,
+                'id'      => $carrera->Id,
+                'nombre'  => $carrera->nombre,
                 'duracion' => $carrera->duracion ?? null,
             ] : null,
             'estadisticas' => [
-                'total_materias' => $totalMaterias,
-                'aprobadas' => $materiasAprobadas,
-                'regulares' => $materiasRegulares,
-                'promedio' => $promedio,
+                'total_materias'      => $totalMaterias,
+                'aprobadas'           => $materiasAprobadas,
+                'regulares'           => $materiasRegulares,
+                'promedio'            => $promedio,
                 'porcentaje_progreso' => $totalMaterias > 0
-                    ? round(($materiasAprobadas / $totalMaterias) * 100, 1)
-                    : 0,
+                    ? round(($materiasAprobadas / $totalMaterias) * 100, 1) : 0,
             ],
-            'historial' => $materias,
+            'historial'         => $materias,
             'materias_actuales' => $inscripcionesActuales,
         ];
     }
 
     /**
-     * Mostrar expediente completo del alumno
+     * Obtener estado legible de una materia
      */
     private function obtenerEstadoMateria($alumnoMateria)
     {
@@ -1681,132 +1737,45 @@ class ExpedienteController extends Controller
     }
 
     /**
-     * API: Obtener datos del expediente de un alumno para el modal
+     * API: Obtener datos del expediente de un alumno para el modal del admin
+     * MODIFICADO: soporta múltiples carreras
      */
     public function obtenerExpedienteAlumno($alumnoId)
     {
         try {
             $alumno = Alumno::findOrFail($alumnoId);
 
-            // Obtener carrera del alumno
-            $carrera = Carrera::find($alumno->carrera);
+            // Buscar todos los registros del mismo DNI (una fila por carrera)
+            $registros = Alumno::where('dni', $alumno->dni)->get();
+            $carreras  = $registros->map(fn($r) => $this->buildCarreraExpediente($r))->values();
 
-            // Obtener todas las materias del historial académico
-            $materias = AlumnoMateria::with(['materiaRelacion', 'carrera'])
-                ->where('alumno', $alumno->id)
-                ->orderBy('fecha', 'desc')
-                ->get()
-                ->filter(function($am) {
-                    return $am->materiaRelacion !== null;
-                })
-                ->map(function($am) {
-                    return [
-                        'id' => $am->Id,
-                        'materia' => [
-                            'id' => $am->materiaRelacion->id,
-                            'nombre' => $am->materiaRelacion->nombre,
-                            'codigo' => $am->materiaRelacion->codigo ?? null,
-                            'anno' => $am->materiaRelacion->anno,
-                            'semestre' => $am->materiaRelacion->semestre,
-                        ],
-                        'nota_final' => $am->nota,
-                        'calificacion_cursada' => $am->{'calificacion-cursada'} ?? null,
-                        'calificacion_rendida' => $am->calificacion_rendida ?? null,
-                        'estado' => $this->obtenerEstadoMateria($am),
-                        'cursada' => $am->cursada === '1',
-                        'rendida' => $am->rendida === '1',
-                        'fecha' => $am->fecha ? $am->fecha->format('d/m/Y') : null,
-                        'libro' => $am->libro ?? null,
-                        'folio' => $am->folio ?? null,
-                    ];
-                })
-                ->values();
-
-            // Calcular estadísticas
-            $materiasAprobadas = $materias->where('rendida', true)->count();
-            $materiasRegulares = $materias->where('cursada', true)->where('rendida', false)->count();
-            $totalMaterias = $materias->count();
-
-            // Calcular promedio (solo materias aprobadas con nota)
-            $materiasConNota = $materias->where('rendida', true)->filter(function($m) {
-                return !empty($m['nota_final']) && is_numeric($m['nota_final']);
-            });
-
-            $promedio = $materiasConNota->count() > 0
-                ? round($materiasConNota->avg('nota_final'), 2)
-                : null;
-
-            // Obtener inscripciones actuales
-            $inscripcionesActuales = Inscripcion::with(['materia'])
-                ->where('alumno_id', $alumno->id)
-                ->where('estado', 'confirmada')
-                ->get()
-                ->map(function($inscripcion) use ($alumno) {
-                    $profesorMateriaIds = \DB::table('tbl_profesor_tiene_materias')
-                        ->where('materia', $inscripcion->materia_id)
-                        ->pluck('id');
-
-                    $asistencias = Asistencia::where('alumno_id', $alumno->id)
-                        ->whereIn('profesor_materia_id', $profesorMateriaIds)
-                        ->where('tipo_carga', 'diaria')
-                        ->get();
-
-                    $totalClases = $asistencias->count();
-                    $asistenciasPresentes = $asistencias->where('estado', 'presente')->count();
-                    $porcentajeAsistencia = $totalClases > 0
-                        ? round(($asistenciasPresentes / $totalClases) * 100, 1)
-                        : null;
-
-                    return [
-                        'materia' => [
-                            'id' => $inscripcion->materia->id,
-                            'nombre' => $inscripcion->materia->nombre,
-                            'anno' => $inscripcion->materia->anno,
-                            'semestre' => $inscripcion->materia->semestre,
-                        ],
-                        'asistencia' => [
-                            'total_clases' => $totalClases,
-                            'presentes' => $asistenciasPresentes,
-                            'porcentaje' => $porcentajeAsistencia,
-                        ],
-                    ];
-                });
+            // Datos del registro solicitado como principal
+            $datoPrincipal = $carreras->firstWhere('alumno_id', (int)$alumnoId) ?? $carreras->first();
 
             return response()->json([
                 'alumno' => [
-                    'id' => $alumno->id,
-                    'dni' => $alumno->dni,
+                    'id'              => $alumno->id,
+                    'dni'             => $alumno->dni,
                     'nombre_completo' => trim($alumno->apellido . ', ' . $alumno->nombre),
-                    'legajo' => $alumno->legajo,
-                    'email' => $alumno->email,
-                    'telefono' => $alumno->telefono,
-                    'celular' => $alumno->celular,
-                    'curso' => $alumno->curso,
-                    'division' => $alumno->division,
+                    'legajo'          => $alumno->legajo,
+                    'email'           => $alumno->email,
+                    'telefono'        => $alumno->telefono,
+                    'celular'         => $alumno->celular,
+                    'curso'           => $alumno->curso,
+                    'division'        => $alumno->division,
                 ],
-                'carrera' => $carrera ? [
-                    'id' => $carrera->Id,
-                    'nombre' => $carrera->nombre,
-                    'duracion' => $carrera->duracion,
-                ] : null,
-                'estadisticas' => [
-                    'total_materias' => $totalMaterias,
-                    'aprobadas' => $materiasAprobadas,
-                    'regulares' => $materiasRegulares,
-                    'promedio' => $promedio,
-                    'porcentaje_progreso' => $totalMaterias > 0
-                        ? round(($materiasAprobadas / $totalMaterias) * 100, 1)
-                        : 0,
-                ],
-                'historial' => $materias,
-                'materias_actuales' => $inscripcionesActuales,
+                // Compatibilidad con ExpedienteAlumnoModal existente
+                'carrera'           => $datoPrincipal['carrera'] ?? null,
+                'estadisticas'      => $datoPrincipal['estadisticas'] ?? [],
+                'historial'         => $datoPrincipal['historial'] ?? [],
+                'materias_actuales' => $datoPrincipal['materias_actuales'] ?? [],
+                // NUEVO
+                'carreras'          => $carreras,
             ]);
 
         } catch (\Exception $e) {
             \Log::error('Error al obtener expediente de alumno: ' . $e->getMessage());
-            return response()->json([
-                'error' => 'Error al obtener el expediente del alumno'
-            ], 500);
+            return response()->json(['error' => 'Error al obtener el expediente del alumno'], 500);
         }
     }
 }
