@@ -14,6 +14,7 @@ use Inertia\Inertia;
 class MateriasController extends Controller
 {
     use HandlesErrors, \App\Traits\ChecksPermissions;
+
     /**
      * Mostrar listado de materias
      */
@@ -22,22 +23,15 @@ class MateriasController extends Controller
         $query = Materia::with('carrera')
             ->withCount('alumnosMaterias as alumnos_count');
 
-        // Filtrar por carrera
         if ($request->filled('carrera')) {
             $query->where('carrera', $request->carrera);
         }
-
-        // Filtrar por cuatrimestre
         if ($request->filled('semestre')) {
             $query->where('semestre', $request->semestre);
         }
-
-        // Filtrar por año
         if ($request->filled('anno')) {
             $query->where('anno', $request->anno);
         }
-
-        // Buscar por nombre
         if ($request->filled('buscar')) {
             $query->where('nombre', 'like', "%{$request->buscar}%");
         }
@@ -50,20 +44,18 @@ class MateriasController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        // Obtener carreras para el filtro
         $carreras = Carrera::orderBy('nombre')->get(['Id', 'nombre']);
 
-        // Obtener duración de cada carrera basado en las materias existentes
         $duracionCarreras = [];
         foreach ($carreras as $carrera) {
             $maxAnno = Materia::where('carrera', $carrera->Id)->max('anno');
-            $duracionCarreras[$carrera->Id] = $maxAnno ? (int)$maxAnno : 4; // Default 4 si no tiene materias
+            $duracionCarreras[$carrera->Id] = $maxAnno ? (int)$maxAnno : 4;
         }
 
         return Inertia::render('Admin/Materias/Index', [
-            'materias' => $materias,
-            'carreras' => $carreras,
-            'filtros' => $request->only(['carrera', 'semestre', 'anno', 'buscar']),
+            'materias'        => $materias,
+            'carreras'        => $carreras,
+            'filtros'         => $request->only(['carrera', 'semestre', 'anno', 'buscar']),
             'duracionCarreras' => $duracionCarreras,
         ]);
     }
@@ -75,44 +67,46 @@ class MateriasController extends Controller
     {
         $carreras = Carrera::orderBy('nombre')->get(['Id', 'nombre']);
 
-        // Obtener duración de cada carrera basado en las materias existentes
         $duracionCarreras = [];
         foreach ($carreras as $carrera) {
             $maxAnno = Materia::where('carrera', $carrera->Id)->max('anno');
-            $duracionCarreras[$carrera->Id] = $maxAnno ? (int)$maxAnno : 4; // Default 4 si no tiene materias
+            $duracionCarreras[$carrera->Id] = $maxAnno ? (int)$maxAnno : 4;
         }
 
         return Inertia::render('Admin/Materias/Create', [
-            'carreras' => $carreras,
+            'carreras'        => $carreras,
             'duracionCarreras' => $duracionCarreras,
         ]);
     }
 
     /**
-     * Guardar nueva materia
+     * Guardar nueva materia.
+     *
+     * NO se agrega automáticamente a ningún plan de estudio.
+     * El administrador asigna las materias a los planes manualmente
+     * desde Parámetros → Planes de Estudio → Ver Materias.
      */
     public function store(Request $request)
     {
         $this->autorizarCrear($request);
 
         $validated = $request->validate([
-            'nombre' => 'required|string|max:100|regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\d\-\(\)\.]+$/',
-            'carrera' => 'required|exists:tbl_carreras,Id',
-            'semestre' => 'required|integer|min:1|max:2',
-            'anno' => 'required|integer|min:1|max:4',
+            'nombre'     => 'required|string|max:100|regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\d\-\(\)\.]+$/',
+            'carrera'    => 'required|exists:tbl_carreras,Id',
+            'semestre'   => 'required|integer|min:1|max:2',
+            'anno'       => 'required|integer|min:1|max:4',
             'resolucion' => 'nullable|string|max:55|regex:/^[a-zA-Z0-9\s\-\/]+$/',
         ], [
-            'nombre.regex' => 'El nombre de la materia contiene caracteres no válidos.',
-            'nombre.max' => 'El nombre de la materia no puede exceder 100 caracteres.',
+            'nombre.regex'    => 'El nombre de la materia contiene caracteres no válidos.',
+            'nombre.max'      => 'El nombre de la materia no puede exceder 100 caracteres.',
             'semestre.required' => 'El cuatrimestre es obligatorio.',
-            'semestre.min' => 'El cuatrimestre debe ser 1 o 2.',
-            'semestre.max' => 'El cuatrimestre debe ser 1 o 2.',
-            'anno.max' => 'El año no puede ser mayor a 4.',
+            'semestre.min'    => 'El cuatrimestre debe ser 1 o 2.',
+            'semestre.max'    => 'El cuatrimestre debe ser 1 o 2.',
+            'anno.max'        => 'El año no puede ser mayor a 4.',
             'resolucion.regex' => 'La resolución solo puede contener letras, números, espacios y guiones.',
         ]);
 
         try {
-            // Validar que no exista ya una materia con el mismo nombre en la misma carrera
             $existe = Materia::where('nombre', $validated['nombre'])
                 ->where('carrera', $validated['carrera'])
                 ->exists();
@@ -126,40 +120,18 @@ class MateriasController extends Controller
             $materia = Materia::create($validated);
 
             \Log::info('Materia creada', [
-                'materia_id' => $materia->id,
-                'materia' => $validated['nombre'],
-                'carrera' => $validated['carrera'],
-                'creado_por' => auth()->id()
+                'materia_id'  => $materia->id,
+                'materia'     => $validated['nombre'],
+                'carrera'     => $validated['carrera'],
+                'creado_por'  => auth()->id(),
             ]);
 
-            // Agregar automáticamente al plan activo de la carrera si existe
-            $planActivo = PlanEstudio::where('carrera_id', $validated['carrera'])
-                ->where('activo', true)
-                ->first();
-
-            if ($planActivo) {
-                // Obtener el siguiente orden disponible
-                $maxOrden = PlanEstudioMateria::where('plan_estudio_id', $planActivo->id)->max('orden') ?? 0;
-
-                PlanEstudioMateria::create([
-                    'plan_estudio_id' => $planActivo->id,
-                    'materia_id' => $materia->id,
-                    'orden' => $maxOrden + 1,
-                ]);
-
-                \Log::info('Materia agregada automáticamente al plan activo', [
-                    'materia_id' => $materia->id,
-                    'plan_id' => $planActivo->id,
-                    'orden' => $maxOrden + 1,
-                ]);
-            }
-
-            return back()->with('success', 'Materia creada exitosamente.');
+            return back()->with('success', 'Materia creada exitosamente. Recordá asignarla al plan de estudio correspondiente desde Parámetros → Planes de Estudio.');
 
         } catch (\Exception $e) {
             $this->handleError($e, 'crear materia', [
-                'nombre' => $validated['nombre'] ?? null,
-                'carrera' => $validated['carrera'] ?? null
+                'nombre'  => $validated['nombre'] ?? null,
+                'carrera' => $validated['carrera'] ?? null,
             ]);
 
             return back()
@@ -177,53 +149,55 @@ class MateriasController extends Controller
 
         $carreras = Carrera::orderBy('nombre')->get(['Id', 'nombre']);
 
-        // Obtener duración de cada carrera basado en las materias existentes
         $duracionCarreras = [];
         foreach ($carreras as $carrera) {
             $maxAnno = Materia::where('carrera', $carrera->Id)->max('anno');
-            $duracionCarreras[$carrera->Id] = $maxAnno ? (int)$maxAnno : 4; // Default 4 si no tiene materias
+            $duracionCarreras[$carrera->Id] = $maxAnno ? (int)$maxAnno : 4;
         }
 
         return Inertia::render('Admin/Materias/Edit', [
             'materia' => [
-                'id' => $materia->id,
-                'nombre' => $materia->nombre,
-                'carrera' => $materia->carrera,
-                'semestre' => $materia->semestre,
-                'anno' => $materia->anno,
-                'resolucion' => $materia->resolucion,
+                'id'             => $materia->id,
+                'nombre'         => $materia->nombre,
+                'carrera'        => $materia->carrera,
+                'semestre'       => $materia->semestre,
+                'anno'           => $materia->anno,
+                'resolucion'     => $materia->resolucion,
                 'carrera_nombre' => $materia->carrera->nombre ?? null,
             ],
-            'carreras' => $carreras,
+            'carreras'        => $carreras,
             'duracionCarreras' => $duracionCarreras,
         ]);
     }
 
     /**
-     * Actualizar materia
+     * Actualizar materia.
+     *
+     * Si cambia la carrera, se eliminan las asignaciones a planes de la
+     * carrera anterior. NO se agrega automáticamente a ningún plan nuevo —
+     * el administrador lo hace manualmente desde Planes de Estudio.
      */
     public function update(Request $request, Materia $materia)
     {
         $this->autorizarModificar($request);
 
         $validated = $request->validate([
-            'nombre' => 'required|string|max:100|regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\d\-\(\)\.]+$/',
-            'carrera' => 'required|exists:tbl_carreras,Id',
-            'semestre' => 'required|integer|min:1|max:2',
-            'anno' => 'required|integer|min:1|max:4',
+            'nombre'     => 'required|string|max:100|regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\d\-\(\)\.]+$/',
+            'carrera'    => 'required|exists:tbl_carreras,Id',
+            'semestre'   => 'required|integer|min:1|max:2',
+            'anno'       => 'required|integer|min:1|max:4',
             'resolucion' => 'nullable|string|max:55|regex:/^[a-zA-Z0-9\s\-\/]+$/',
         ], [
-            'nombre.regex' => 'El nombre de la materia contiene caracteres no válidos.',
-            'nombre.max' => 'El nombre de la materia no puede exceder 100 caracteres.',
+            'nombre.regex'    => 'El nombre de la materia contiene caracteres no válidos.',
+            'nombre.max'      => 'El nombre de la materia no puede exceder 100 caracteres.',
             'semestre.required' => 'El cuatrimestre es obligatorio.',
-            'semestre.min' => 'El cuatrimestre debe ser 1 o 2.',
-            'semestre.max' => 'El cuatrimestre debe ser 1 o 2.',
-            'anno.max' => 'El año no puede ser mayor a 4.',
+            'semestre.min'    => 'El cuatrimestre debe ser 1 o 2.',
+            'semestre.max'    => 'El cuatrimestre debe ser 1 o 2.',
+            'anno.max'        => 'El año no puede ser mayor a 4.',
             'resolucion.regex' => 'La resolución solo puede contener letras, números, espacios y guiones.',
         ]);
 
         try {
-            // Validar que no exista ya una materia con el mismo nombre en la misma carrera (excepto la actual)
             $existe = Materia::where('nombre', $validated['nombre'])
                 ->where('carrera', $validated['carrera'])
                 ->where('id', '!=', $materia->id)
@@ -235,51 +209,31 @@ class MateriasController extends Controller
                     ->withErrors(['nombre' => 'Ya existe una materia con este nombre en esta carrera.']);
             }
 
-            // Detectar si cambió la carrera
-            $carreraCambio = $materia->carrera != $validated['carrera'];
+            $carreraCambio  = $materia->carrera != $validated['carrera'];
             $carreraAnterior = $materia->carrera;
 
             $materia->update($validated);
 
             \Log::info('Materia actualizada', [
-                'materia_id' => $materia->id,
-                'nombre' => $validated['nombre'],
+                'materia_id'    => $materia->id,
+                'nombre'        => $validated['nombre'],
                 'carrera_cambio' => $carreraCambio,
-                'actualizado_por' => auth()->id()
+                'actualizado_por' => auth()->id(),
             ]);
 
-            // Si cambió la carrera, actualizar los planes de estudio
+            // Si cambió la carrera, limpiar asignaciones a planes de la carrera anterior
             if ($carreraCambio) {
-                // Eliminar de planes de la carrera anterior
-                PlanEstudioMateria::whereHas('planEstudio', function($query) use ($carreraAnterior) {
+                $eliminadas = PlanEstudioMateria::whereHas('planEstudio', function($query) use ($carreraAnterior) {
                     $query->where('carrera_id', $carreraAnterior);
                 })->where('materia_id', $materia->id)->delete();
 
                 \Log::info('Materia eliminada de planes de carrera anterior', [
-                    'materia_id' => $materia->id,
+                    'materia_id'      => $materia->id,
                     'carrera_anterior' => $carreraAnterior,
+                    'planes_afectados' => $eliminadas,
                 ]);
 
-                // Agregar al plan activo de la nueva carrera si existe
-                $planActivoNuevo = PlanEstudio::where('carrera_id', $validated['carrera'])
-                    ->where('activo', true)
-                    ->first();
-
-                if ($planActivoNuevo) {
-                    $maxOrden = PlanEstudioMateria::where('plan_estudio_id', $planActivoNuevo->id)->max('orden') ?? 0;
-
-                    PlanEstudioMateria::create([
-                        'plan_estudio_id' => $planActivoNuevo->id,
-                        'materia_id' => $materia->id,
-                        'orden' => $maxOrden + 1,
-                    ]);
-
-                    \Log::info('Materia agregada al plan activo de nueva carrera', [
-                        'materia_id' => $materia->id,
-                        'plan_id' => $planActivoNuevo->id,
-                        'nueva_carrera' => $validated['carrera'],
-                    ]);
-                }
+                return back()->with('success', 'Materia actualizada. Como cambió la carrera, fue removida de los planes anteriores. Asignala manualmente al plan correspondiente de la nueva carrera desde Parámetros → Planes de Estudio.');
             }
 
             return back()->with('success', 'Materia actualizada exitosamente.');
@@ -287,7 +241,7 @@ class MateriasController extends Controller
         } catch (\Exception $e) {
             $this->handleError($e, 'actualizar materia', [
                 'materia_id' => $materia->id,
-                'nombre' => $validated['nombre'] ?? null
+                'nombre'     => $validated['nombre'] ?? null,
             ]);
 
             return back()
@@ -303,59 +257,52 @@ class MateriasController extends Controller
     {
         $this->autorizarEliminar($request);
 
-        // Verificar que no tenga correlativas configuradas
         if ($materia->reglasCorrelativas()->count() > 0) {
             return back()->withErrors(['error' => 'No se puede eliminar una materia con reglas de correlativas configuradas.']);
         }
 
-        // Verificar que no tenga alumnos con notas registradas
         $alumnosConNotas = $materia->alumnosMaterias()->whereNotNull('nota')->count();
         if ($alumnosConNotas > 0) {
             return back()->withErrors([
-                'eliminar' => "No se puede eliminar esta materia porque hay {$alumnosConNotas} alumno(s) con notas registradas en el legajo."
+                'eliminar' => "No se puede eliminar esta materia porque hay {$alumnosConNotas} alumno(s) con notas registradas en el legajo.",
             ]);
         }
 
-        // Verificar que no tenga alumnos en el legajo (aunque sin nota)
         $alumnosEnLegajo = $materia->alumnosMaterias()->count();
         if ($alumnosEnLegajo > 0) {
             return back()->withErrors([
-                'eliminar' => "No se puede eliminar esta materia porque hay {$alumnosEnLegajo} alumno(s) con registros en el legajo."
+                'eliminar' => "No se puede eliminar esta materia porque hay {$alumnosEnLegajo} alumno(s) con registros en el legajo.",
             ]);
         }
 
         try {
             \DB::beginTransaction();
 
-            // Eliminar la materia de todos los planes de estudio donde esté asignada
+            // Eliminar de todos los planes donde esté asignada
             $relacionesEliminadas = PlanEstudioMateria::where('materia_id', $materia->id)->delete();
 
             if ($relacionesEliminadas > 0) {
                 \Log::info('Materia eliminada de planes de estudio', [
-                    'materia_id' => $materia->id,
+                    'materia_id'      => $materia->id,
                     'planes_afectados' => $relacionesEliminadas,
                 ]);
             }
 
-            // Eliminar la materia
             $materia->delete();
 
             \DB::commit();
 
             \Log::info('Materia eliminada exitosamente', [
-                'materia_id' => $materia->id,
+                'materia_id'   => $materia->id,
                 'eliminado_por' => auth()->id(),
             ]);
 
-            // Redirigir de vuelta sin especificar ruta (para que Inertia maneje el refresh)
             return back()->with('success', 'Materia eliminada exitosamente.');
 
         } catch (\Exception $e) {
             \DB::rollBack();
 
-            $this->handleError($e, 'eliminar materia', [
-                'materia_id' => $materia->id,
-            ]);
+            $this->handleError($e, 'eliminar materia', ['materia_id' => $materia->id]);
 
             return back()->withErrors(['error' => $this->getFriendlyErrorMessage($e, 'Error al eliminar la materia')]);
         }
