@@ -64,6 +64,33 @@ console.log('AdminPanel Props:', props);
 // Tab activo
 const tabActivo = ref('materias');
 
+// copilot estubo aqui:Cambio 1 — En mostrarPanelAdmin del ExpedienteController, agregá un computed en Vue que agrupe los alumnos por DNI.
+// Pero es más limpio hacerlo directo en el frontend con un computed.
+// Agrupar alumnos por DNI para mostrar múltiples carreras en una sola fila
+const alumnosAgrupados = computed(() => {
+    const data = props.alumnos?.data || [];
+    const grupos = new Map();
+
+    data.forEach(alumno => {
+        if (!grupos.has(alumno.dni)) {
+            grupos.set(alumno.dni, {
+                ...alumno,
+                carreras: []
+            });
+        }
+        const grupo = grupos.get(alumno.dni);
+        if (alumno.carrera_relacion) {
+            grupo.carreras.push({
+                id: alumno.id,
+                nombre: alumno.carrera_relacion.nombre,
+                alumno_registro: alumno // registro completo para acciones
+            });
+        }
+    });
+
+    return Array.from(grupos.values());
+});
+
 // Variables para búsqueda de legajos
 const dniBusqueda = ref('');
 const buscando = ref(false);
@@ -1441,15 +1468,24 @@ const getEstadoBadge = (estado) => {
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
-                                <tr v-for="alumno in alumnos?.data || []" :key="alumno.id" class="hover:bg-gray-50">
+                                <tr v-for="alumno in alumnosAgrupados" :key="alumno.dni" class="hover:bg-gray-50">
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                         {{ alumno.dni }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                         {{ alumno.apellido }}, {{ alumno.nombre }}
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {{ alumno.carrera_relacion?.nombre || '-' }}
+                                    <td class="px-6 py-4 text-sm text-gray-500">
+                                        <div class="flex flex-wrap gap-1">
+                                            <span
+                                                v-for="c in alumno.carreras"
+                                                :key="c.id"
+                                                class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700"
+                                            >
+                                                {{ c.nombre }}
+                                            </span>
+                                            <span v-if="alumno.carreras.length === 0" class="text-gray-400">-</span>
+                                        </div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         {{ alumno.email || '-' }}

@@ -15,14 +15,7 @@ class AlumnoImportador implements ImportadorInterface
 {
     private array $carrerasCache = [];
 
-    /**
-     * Columnas requeridas para validar que es una plantilla de alumnos
-     */
     private const COLUMNAS_REQUERIDAS = ['dni', 'apellido', 'nombre', 'carrera'];
-
-    /**
-     * Columnas que NO deben estar (para detectar plantilla incorrecta)
-     */
     private const COLUMNAS_PROHIBIDAS = ['correlativas_regular', 'correlativas_rendido', 'resolucion'];
 
     public function analizar(UploadedFile $file): array
@@ -33,43 +26,39 @@ class AlumnoImportador implements ImportadorInterface
 
         if (empty($filas)) {
             return [
-                'nuevos' => [],
-                'duplicados' => [],
-                'errores' => [],
-                'total' => 0,
+                'nuevos'           => [],
+                'duplicados'       => [],
+                'errores'          => [],
+                'total'            => 0,
                 'error_estructura' => null,
             ];
         }
 
-        // Primera fila es encabezado - limpiar asteriscos y espacios
-        $encabezados = array_map(function($h) {
+        $encabezados = array_map(function ($h) {
             $h = strtolower(trim($h ?? ''));
-            $h = preg_replace('/\s*\*\s*$/', '', $h); // Quitar asteriscos al final
+            $h = preg_replace('/\s*\*\s*$/', '', $h);
             return trim($h);
         }, $filas[0]);
 
-        // Validar estructura del Excel
         $errorEstructura = $this->validarEstructura($encabezados);
         if ($errorEstructura) {
             return [
-                'nuevos' => [],
-                'duplicados' => [],
-                'errores' => [],
-                'total' => 0,
+                'nuevos'           => [],
+                'duplicados'       => [],
+                'errores'          => [],
+                'total'            => 0,
                 'error_estructura' => $errorEstructura,
             ];
         }
 
-        $datos = array_slice($filas, 1);
-
-        $nuevos = [];
+        $datos    = array_slice($filas, 1);
+        $nuevos   = [];
         $duplicados = [];
-        $errores = [];
+        $errores  = [];
 
         foreach ($datos as $index => $fila) {
-            $numeroFila = $index + 2; // +2 porque empezamos en fila 2 (1 es encabezado)
+            $numeroFila = $index + 2;
 
-            // Ignorar filas completamente vacías
             $filaLimpia = array_filter($fila, fn($v) => $v !== null && $v !== '');
             if (empty($filaLimpia)) {
                 continue;
@@ -77,68 +66,74 @@ class AlumnoImportador implements ImportadorInterface
 
             $registro = $this->mapearFila($fila, $encabezados);
 
-            // Validar campos requeridos
             $erroresValidacion = $this->validarRegistro($registro, $numeroFila);
-
             if (!empty($erroresValidacion)) {
                 $errores[] = [
-                    'fila' => $numeroFila,
-                    'datos' => $registro,
+                    'fila'    => $numeroFila,
+                    'datos'   => $registro,
                     'errores' => $erroresValidacion,
                 ];
                 continue;
             }
 
-            // Buscar carrera por nombre
             $carreraId = $this->buscarCarreraId($registro['carrera']);
             if (!$carreraId) {
                 $errores[] = [
-                    'fila' => $numeroFila,
-                    'datos' => $registro,
+                    'fila'    => $numeroFila,
+                    'datos'   => $registro,
                     'errores' => ["Carrera '{$registro['carrera']}' no encontrada"],
                 ];
                 continue;
             }
             $registro['carrera_id'] = $carreraId;
 
-            // Verificar duplicados por DNI
-            $alumnoExistente = Alumno::where('dni', $registro['dni'])->first();
+            // Buscar si ya existe un registro con este DNI Y esta carrera específica
+            $registroExacto = Alumno::where('dni', $registro['dni'])
+                ->where('carrera', $carreraId)
+                ->first();
 
-            if ($alumnoExistente) {
+            // Buscar si existe en cualquier otra carrera (para informar al admin)
+            $registroOtraCarrera = Alumno::where('dni', $registro['dni'])
+                ->where('carrera', '!=', $carreraId)
+                ->first();
+
+            if ($registroExacto) {
+                // Ya existe en esta misma carrera — es un duplicado real
                 $duplicados[] = [
-                    'fila' => $numeroFila,
-                    'datos' => $registro,
+                    'fila'   => $numeroFila,
+                    'datos'  => $registro,
                     'existente' => [
-                        'id' => $alumnoExistente->id,
-                        'dni' => $alumnoExistente->dni,
-                        'nombre' => $alumnoExistente->nombre_completo,
-                        'carrera' => $alumnoExistente->carreraRelacion?->nombre ?? 'N/A',
+                        'id'     => $registroExacto->id,
+                        'dni'    => $registroExacto->dni,
+                        'nombre' => $registroExacto->nombre_completo,
+                        'carrera' => $registroExacto->carreraRelacion?->nombre ?? 'N/A',
                     ],
+                    'tipo_duplicado' => 'misma_carrera',
                 ];
             } else {
+                // No existe en esta carrera — puede ser alumno nuevo o segunda carrera
                 $nuevos[] = [
-                    'fila' => $numeroFila,
+                    'fila'  => $numeroFila,
                     'datos' => $registro,
+                    // Flag para que el importador no cree usuario si ya tiene uno
+                    'tiene_registro_otra_carrera' => $registroOtraCarrera !== null,
+                    'id_registro_existente'       => $registroOtraCarrera?->id,
                 ];
             }
         }
 
         return [
-            'nuevos' => $nuevos,
-            'duplicados' => $duplicados,
-            'errores' => $errores,
-            'total' => count($datos),
-            'error_estructura' => null,
+            'nuevos'               => $nuevos,
+            'duplicados'           => $duplicados,
+            'errores'              => $errores,
+            'total'                => count($datos),
+            'error_estructura'     => null,
             'encabezados_detectados' => array_filter($encabezados, fn($h) => $h !== ''),
         ];
     }
 
-    /**
-     * Validar que el Excel tenga la estructura esperada para alumnos
-     */
     private function validarEstructura(array $encabezados): ?string
     {
-        // Verificar columnas requeridas
         $columnasFaltantes = [];
         foreach (self::COLUMNAS_REQUERIDAS as $columna) {
             if (!in_array($columna, $encabezados)) {
@@ -152,7 +147,6 @@ class AlumnoImportador implements ImportadorInterface
                    "Por favor, descargue la plantilla correcta desde el botón 'Descargar Plantilla'.";
         }
 
-        // Verificar que no tenga columnas de otras plantillas
         foreach (self::COLUMNAS_PROHIBIDAS as $columna) {
             if (in_array($columna, $encabezados)) {
                 return "El archivo parece ser una plantilla de MATERIAS, no de ALUMNOS. " .
@@ -166,51 +160,65 @@ class AlumnoImportador implements ImportadorInterface
     public function importar(array $datos, array $opciones = []): array
     {
         $actualizarDuplicados = $opciones['actualizar_duplicados'] ?? [];
-        $crearUsuarios = $opciones['crear_usuarios'] ?? true;
+        $crearUsuarios        = $opciones['crear_usuarios'] ?? true;
 
-        $importados = 0;
-        $actualizados = 0;
+        $importados      = 0;
+        $actualizados    = 0;
         $usuariosCreados = 0;
         $erroresImportacion = [];
 
         DB::beginTransaction();
 
         try {
-            // Importar nuevos
+            // ── Importar nuevos ────────────────────────────────────────────────
             foreach ($datos['nuevos'] as $item) {
-                $registro = $item['datos'];
-
+                $registro    = $item['datos'];
                 $annoIngreso = $registro['anno'] ?? date('Y');
                 $cursoCalculado = $this->calcularCurso($annoIngreso, $registro['carrera_id']);
 
                 $alumno = Alumno::create([
-                    'dni' => $registro['dni'],
+                    'dni'      => $registro['dni'],
                     'apellido' => $registro['apellido'],
-                    'nombre' => $registro['nombre'],
-                    'email' => $registro['email'] ?? null,
+                    'nombre'   => $registro['nombre'],
+                    'email'    => $registro['email'] ?? null,
                     'telefono' => $registro['telefono'] ?? null,
-                    'celular' => $registro['celular'] ?? null,
-                    'legajo' => $registro['legajo'] ?? null,
-                    'carrera' => $registro['carrera_id'],
-                    'anno' => $annoIngreso,
-                    'curso' => $cursoCalculado,
+                    'celular'  => $registro['celular'] ?? null,
+                    'legajo'   => $registro['legajo'] ?? null,
+                    'carrera'  => $registro['carrera_id'],
+                    'anno'     => $annoIngreso,
+                    'curso'    => $cursoCalculado,
                     'division' => $registro['division'] ?? '',
-                    'turno' => $registro['turno'] ?? '',
-                    'fecha' => $registro['fecha'] ?? now()->toDateString(),
+                    'turno'    => $registro['turno'] ?? '',
+                    'fecha'    => $registro['fecha'] ?? now()->toDateString(),
                 ]);
 
                 $importados++;
 
-                // Crear usuario automáticamente
                 if ($crearUsuarios) {
-                    $usuarioCreado = $this->crearUsuarioAlumno($alumno);
-                    if ($usuarioCreado) {
-                        $usuariosCreados++;
+                    // Si el alumno ya tiene un registro en otra carrera, NO crear
+                    // un nuevo usuario — vincular el existente al nuevo registro.
+                    $tieneRegistroOtraCarrera = $item['tiene_registro_otra_carrera'] ?? false;
+
+                    if ($tieneRegistroOtraCarrera) {
+                        // El usuario ya existe vinculado al primer registro (otra carrera).
+                        // No hacemos nada: el login del alumno sigue funcionando con el
+                        // user.alumno_id original. El nuevo registro queda sin usuario
+                        // propio, lo cual es correcto — un alumno = un usuario.
+                        \Log::info('Alumno con segunda carrera importado sin crear usuario duplicado', [
+                            'alumno_id'   => $alumno->id,
+                            'carrera_id'  => $registro['carrera_id'],
+                            'dni'         => $registro['dni'],
+                        ]);
+                    } else {
+                        $usuarioCreado = $this->crearUsuarioAlumno($alumno);
+                        if ($usuarioCreado) {
+                            $usuariosCreados++;
+                        }
                     }
                 }
             }
 
-            // Actualizar duplicados seleccionados
+            // ── Actualizar duplicados seleccionados ────────────────────────────
             foreach ($datos['duplicados'] as $item) {
                 $dni = $item['datos']['dni'];
 
@@ -219,29 +227,31 @@ class AlumnoImportador implements ImportadorInterface
                 }
 
                 $registro = $item['datos'];
-                $alumno = Alumno::where('dni', $dni)->first();
+
+                // Actualizar el registro exacto de esta carrera
+                $alumno = Alumno::where('dni', $dni)
+                    ->where('carrera', $registro['carrera_id'])
+                    ->first();
 
                 if ($alumno) {
-                    $annoIngreso = $registro['anno'] ?? $alumno->anno;
+                    $annoIngreso    = $registro['anno'] ?? $alumno->anno;
                     $cursoCalculado = $this->calcularCurso($annoIngreso, $registro['carrera_id']);
 
                     $alumno->update([
                         'apellido' => $registro['apellido'],
-                        'nombre' => $registro['nombre'],
-                        'email' => $registro['email'] ?? $alumno->email,
+                        'nombre'   => $registro['nombre'],
+                        'email'    => $registro['email']    ?? $alumno->email,
                         'telefono' => $registro['telefono'] ?? $alumno->telefono,
-                        'celular' => $registro['celular'] ?? $alumno->celular,
-                        'legajo' => $registro['legajo'] ?? $alumno->legajo,
-                        'carrera' => $registro['carrera_id'],
-                        'anno' => $annoIngreso,
-                        'curso' => $cursoCalculado,
+                        'celular'  => $registro['celular']  ?? $alumno->celular,
+                        'legajo'   => $registro['legajo']   ?? $alumno->legajo,
+                        'anno'     => $annoIngreso,
+                        'curso'    => $cursoCalculado,
                         'division' => $registro['division'] ?? $alumno->division,
-                        'turno' => $registro['turno'] ?? $alumno->turno,
+                        'turno'    => $registro['turno']    ?? $alumno->turno,
                     ]);
 
                     $actualizados++;
 
-                    // Crear usuario si no tiene
                     if ($crearUsuarios && !$alumno->user) {
                         $usuarioCreado = $this->crearUsuarioAlumno($alumno);
                         if ($usuarioCreado) {
@@ -254,22 +264,22 @@ class AlumnoImportador implements ImportadorInterface
             DB::commit();
 
             return [
-                'success' => true,
-                'importados' => $importados,
-                'actualizados' => $actualizados,
+                'success'         => true,
+                'importados'      => $importados,
+                'actualizados'    => $actualizados,
                 'usuarios_creados' => $usuariosCreados,
-                'errores' => $erroresImportacion,
+                'errores'         => $erroresImportacion,
             ];
 
         } catch (\Exception $e) {
             DB::rollBack();
 
             return [
-                'success' => false,
-                'importados' => 0,
-                'actualizados' => 0,
+                'success'         => false,
+                'importados'      => 0,
+                'actualizados'    => 0,
                 'usuarios_creados' => 0,
-                'errores' => [$e->getMessage()],
+                'errores'         => [$e->getMessage()],
             ];
         }
     }
@@ -277,23 +287,23 @@ class AlumnoImportador implements ImportadorInterface
     public function getCamposRequeridos(): array
     {
         return [
-            'dni' => 'DNI del alumno (único)',
+            'dni'      => 'DNI del alumno (único por persona)',
             'apellido' => 'Apellido del alumno',
-            'nombre' => 'Nombre del alumno',
-            'carrera' => 'Nombre exacto de la carrera',
+            'nombre'   => 'Nombre del alumno',
+            'carrera'  => 'Nombre exacto de la carrera',
         ];
     }
 
     public function getCamposOpcionales(): array
     {
         return [
-            'email' => 'Correo electrónico',
+            'email'    => 'Correo electrónico',
             'telefono' => 'Teléfono fijo',
-            'celular' => 'Teléfono celular',
-            'legajo' => 'Número de legajo',
-            'anno' => 'Año de ingreso (ej: 2024, 2025)',
+            'celular'  => 'Teléfono celular',
+            'legajo'   => 'Número de legajo',
+            'anno'     => 'Año de ingreso (ej: 2024, 2025)',
             'division' => 'División',
-            'turno' => 'Turno (Mañana, Tarde, Noche)',
+            'turno'    => 'Turno (Mañana, Tarde, Noche)',
         ];
     }
 
@@ -305,12 +315,10 @@ class AlumnoImportador implements ImportadorInterface
     private function mapearFila(array $fila, array $encabezados): array
     {
         $registro = [];
-
         foreach ($encabezados as $index => $campo) {
-            $valor = $fila[$index] ?? null;
+            $valor            = $fila[$index] ?? null;
             $registro[$campo] = is_string($valor) ? trim($valor) : $valor;
         }
-
         return $registro;
     }
 
@@ -340,7 +348,11 @@ class AlumnoImportador implements ImportadorInterface
             $errores[] = "Email no tiene formato válido";
         }
 
-        if (!empty($registro['anno']) && (!is_numeric($registro['anno']) || $registro['anno'] < 1900 || $registro['anno'] > date('Y') + 1)) {
+        if (!empty($registro['anno']) && (
+            !is_numeric($registro['anno']) ||
+            $registro['anno'] < 1900 ||
+            $registro['anno'] > date('Y') + 1
+        )) {
             $errores[] = "Año de ingreso debe ser un año válido (ej: 2024, 2025)";
         }
 
@@ -352,7 +364,6 @@ class AlumnoImportador implements ImportadorInterface
         if (empty($this->carrerasCache)) {
             $carreras = Carrera::all();
             foreach ($carreras as $carrera) {
-                // Guardamos por nombre normalizado (lowercase, sin espacios extras)
                 $nombreNormalizado = mb_strtolower(trim($carrera->nombre));
                 $this->carrerasCache[$nombreNormalizado] = $carrera->Id;
             }
@@ -367,7 +378,7 @@ class AlumnoImportador implements ImportadorInterface
 
     private function crearUsuarioAlumno(Alumno $alumno): bool
     {
-        // Verificar si ya existe usuario con este DNI o alumno_id
+        // No crear usuario si ya existe uno con este DNI
         $existe = User::where('dni', $alumno->dni)
             ->orWhere('alumno_id', $alumno->id)
             ->exists();
@@ -377,12 +388,12 @@ class AlumnoImportador implements ImportadorInterface
         }
 
         User::create([
-            'dni' => $alumno->dni,
-            'nombre' => $alumno->nombre . ' ' . $alumno->apellido,
-            'email' => $alumno->email,
-            'clave' => Hash::make($alumno->dni), // Password = DNI
-            'tipo' => 4, // Alumno
-            'activo' => true,
+            'dni'      => $alumno->dni,
+            'nombre'   => $alumno->nombre . ' ' . $alumno->apellido,
+            'email'    => $alumno->email,
+            'clave'    => Hash::make($alumno->dni),
+            'tipo'     => 4,
+            'activo'   => true,
             'alumno_id' => $alumno->id,
         ]);
 
@@ -391,20 +402,14 @@ class AlumnoImportador implements ImportadorInterface
 
     private function calcularCurso(int $annoIngreso, int $carreraId): int
     {
-        $annoActual = (int) date('Y');
+        $annoActual     = (int) date('Y');
         $cursoCalculado = $annoActual - $annoIngreso + 1;
 
-        // Obtener duración máxima de la carrera
-        $maxAnno = Materia::where('carrera', $carreraId)->max('anno');
-        $duracionCarrera = $maxAnno ? (int) $maxAnno : 3;
+        $maxAnno          = Materia::where('carrera', $carreraId)->max('anno');
+        $duracionCarrera  = $maxAnno ? (int) $maxAnno : 3;
 
-        // Limitar al rango válido
-        if ($cursoCalculado < 1) {
-            return 1;
-        }
-        if ($cursoCalculado > $duracionCarrera) {
-            return $duracionCarrera;
-        }
+        if ($cursoCalculado < 1) return 1;
+        if ($cursoCalculado > $duracionCarrera) return $duracionCarrera;
 
         return $cursoCalculado;
     }
