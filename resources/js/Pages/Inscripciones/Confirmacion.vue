@@ -77,10 +77,10 @@ const props = defineProps({
                                     <i class="bx bx-check text-blue-600 text-xl"></i>
                                 </div>
                                 <div class="flex-1">
-                                    <p class="font-semibold text-gray-900">{{ inscripcion.materia.nombre }}</p>
+                                    <p class="font-semibold text-gray-900">{{ inscripcion.materia?.nombre ?? '—' }}</p>
                                     <p class="text-sm text-gray-500">
-                                        {{ inscripcion.materia.anno }}° Año -
-                                        {{ inscripcion.materia.semestre === 1 ? '1er' : '2do' }} Cuatrimestre
+                                        {{ inscripcion.materia?.anno }}° Año -
+                                        {{ inscripcion.materia?.semestre === 1 ? '1er' : '2do' }} Cuatrimestre
                                     </p>
                                 </div>
                                 <div class="text-right">
