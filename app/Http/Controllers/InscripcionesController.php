@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Alumno;
 use App\Models\Carrera;
 use App\Models\Materia;
+use App\Models\PlanEstudioMateria;
 use App\Models\PeriodoInscripcion;
 use App\Models\Inscripcion;
 use App\Models\Configuracion;
@@ -17,12 +18,17 @@ use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 
 /**
- * Controlador para gestión de inscripciones a materias
- * Integra el motor de correlativas con la interfaz Vue
+ * Controlador para gestión de inscripciones a materias.
+ * Integra el motor de correlativas con la interfaz Vue.
+ *
+ * Las materias que se muestran al alumno se filtran por su plan de estudio,
+ * resuelto por Alumno::resolverPlan(). Si el alumno no tiene plan asignado
+ * explícitamente, se usa el año de ingreso como heurística. Ver modelo Alumno.
  */
 class InscripcionesController extends Controller
 {
     use HandlesErrors;
+
     protected MotorCorrelativasService $motorCorrelativas;
 
     public function __construct(MotorCorrelativasService $motorCorrelativas)
@@ -35,7 +41,6 @@ class InscripcionesController extends Controller
      */
     public function index(Request $request)
     {
-        // Obtener usuario autenticado
         $user = $request->user();
 
         if (!$user->alumno_id) {
@@ -43,7 +48,6 @@ class InscripcionesController extends Controller
                 ->with('error', 'No tienes un perfil de alumno asociado');
         }
 
-        // Obtener alumno del usuario autenticado
         $alumno = $user->alumno;
 
         if (!$alumno) {
@@ -51,7 +55,6 @@ class InscripcionesController extends Controller
                 ->with('error', 'Alumno no encontrado');
         }
 
-        // Obtener la carrera del alumno
         $carreraId = $alumno->carrera;
         $carrera = Carrera::find($carreraId);
 
@@ -60,7 +63,6 @@ class InscripcionesController extends Controller
                 ->with('error', 'Tu perfil no tiene una carrera asignada. Contactá a Secretaría Académica.');
         }
 
-        // Obtener período de inscripción activo
         $periodoActivo = PeriodoInscripcion::activo();
 
         if (!$periodoActivo) {
@@ -68,56 +70,65 @@ class InscripcionesController extends Controller
                 ->with('warning', 'No hay un período de inscripción activo en este momento');
         }
 
-        // Obtener historial académico del alumno
-        // La fuente de verdad es la NOTA en el legajo (no el flag rendida)
+        // Historial: materias ya aprobadas (nota >= 4) — se excluyen de la lista
         $historialAlumno = \App\Models\AlumnoMateria::where('alumno', $alumno->id)
             ->where('carrera', $carreraId)
-            ->whereNotNull('nota') // Tiene nota registrada
-            ->where('nota', '>=', 4) // Nota aprobada (>= 4)
+            ->whereNotNull('nota')
+            ->where('nota', '>=', 4)
             ->pluck('materia')
             ->toArray();
 
-        // Obtener año que está cursando el alumno
-        // Nota: 'curso' = año que cursa (1, 2, 3), 'anno' = año de ingreso
-        $anioAlumno = $alumno->curso ?? 1; // Por defecto 1er año si no está especificado
+        // -----------------------------------------------------------------------
+        // Resolver plan de estudio del alumno y filtrar materias por él
+        // -----------------------------------------------------------------------
+        $planAlumno = $alumno->resolverPlan();
 
-        // Obtener materias del cuatrimestre activo con profesores
-        // Filtrar por: año del alumno, cuatrimestre activo, y excluir materias aprobadas
-        // Optimización: Eager loading de profesores para evitar N+1
-        $materias = Materia::with(['profesores:id,dni,apellido,nombre', 'carrera'])
-            ->deCarrera($carreraId)
-            ->where('semestre', $periodoActivo->cuatrimestre)
-            ->whereNotIn('id', $historialAlumno) // Excluir materias aprobadas
-            ->get();
+        if ($planAlumno) {
+            // Obtener IDs de materias que pertenecen al plan del alumno
+            $materiasDelPlan = PlanEstudioMateria::where('plan_estudio_id', $planAlumno->id)
+                ->pluck('materia_id')
+                ->toArray();
 
-        // Obtener materias ya inscritas en este período
+            $materias = Materia::with(['profesores:id,dni,apellido,nombre', 'carrera'])
+                ->whereIn('id', $materiasDelPlan)
+                ->where('semestre', $periodoActivo->cuatrimestre)
+                ->whereNotIn('id', $historialAlumno)
+                ->get();
+        } else {
+            // Sin plan definido: comportamiento anterior como fallback
+            // (muestra todas las materias de la carrera en el cuatrimestre)
+            $materias = Materia::with(['profesores:id,dni,apellido,nombre', 'carrera'])
+                ->deCarrera($carreraId)
+                ->where('semestre', $periodoActivo->cuatrimestre)
+                ->whereNotIn('id', $historialAlumno)
+                ->get();
+        }
+        // -----------------------------------------------------------------------
+
+        // Materias ya inscriptas en este período
         $materiasInscritasIds = Inscripcion::where('alumno_id', $alumno->id)
             ->where('periodo_id', $periodoActivo->id)
             ->where('estado', '!=', 'cancelada')
             ->pluck('materia_id')
             ->toArray();
 
-        // Crear mapa de materias por ID para búsquedas rápidas
+        // Mapa para búsquedas O(1) al armar correlativas
         $materiasMap = $materias->keyBy('id');
 
-        // Para cada materia, validar si el alumno puede cursarla
+        // Para cada materia, validar correlativas y armar el DTO para el frontend
         $materiasConEstado = $materias->map(function ($materia) use ($alumno, $carreraId, $materiasMap, $materiasInscritasIds) {
-            // Verificar si ya está inscrito
             $yaInscrito = in_array($materia->id, $materiasInscritasIds);
 
-            // Validar correlativas
             $validacion = $this->motorCorrelativas->validarParaCursar(
                 $alumno->dni,
                 $materia->id,
                 $carreraId
             );
 
-            // Obtener profesores reales
-            $profesoresNombres = $materia->profesores->map(function($profesor) {
+            $profesoresNombres = $materia->profesores->map(function ($profesor) {
                 return $profesor->nombre_completo;
             })->toArray();
 
-            // Obtener nombres de correlativas necesarias usando el mapa para búsqueda O(1)
             $correlativasNecesarias = [];
             if (!empty($materia->paracursar_regular) || !empty($materia->paracursar_rendido)) {
                 $idsRegular = !empty($materia->paracursar_regular) ? explode(':', $materia->paracursar_regular) : [];
@@ -129,7 +140,7 @@ class InscripcionesController extends Controller
                         $correlativasNecesarias[] = [
                             'id' => $correlativa->id,
                             'nombre' => $correlativa->nombre,
-                            'tipo' => 'Regular'
+                            'tipo' => 'Regular',
                         ];
                     }
                 }
@@ -140,7 +151,7 @@ class InscripcionesController extends Controller
                         $correlativasNecesarias[] = [
                             'id' => $correlativa->id,
                             'nombre' => $correlativa->nombre,
-                            'tipo' => 'Aprobada'
+                            'tipo' => 'Aprobada',
                         ];
                     }
                 }
@@ -174,6 +185,13 @@ class InscripcionesController extends Controller
                 'id' => $carrera->Id,
                 'nombre' => $carrera->nombre ?? 'Sin descripción',
             ],
+            // Plan de estudio resuelto — el frontend puede mostrarlo si quiere
+            'plan' => $planAlumno ? [
+                'id' => $planAlumno->id,
+                'nombre' => $planAlumno->nombre,
+                'anio' => $planAlumno->anio,
+                'resolucion' => $planAlumno->resolucion ?? null,
+            ] : null,
             'periodo' => [
                 'nombre' => $periodoActivo->nombre,
                 'fecha_inicio' => $periodoActivo->fecha_inicio_inscripcion->format('d/m/Y'),
@@ -200,7 +218,6 @@ class InscripcionesController extends Controller
 
         \Log::info('✅ Validación exitosa', ['validated' => $validated]);
 
-        // Obtener usuario autenticado y su alumno
         $user = $request->user();
 
         if (!$user->alumno_id) {
@@ -215,7 +232,6 @@ class InscripcionesController extends Controller
                 ->with('error', 'Alumno no encontrado');
         }
 
-        // Obtener período de inscripción activo
         $periodoActivo = PeriodoInscripcion::activo();
 
         if (!$periodoActivo) {
@@ -223,7 +239,6 @@ class InscripcionesController extends Controller
                 ->with('error', 'No hay un período de inscripción activo');
         }
 
-        // Verificar que las inscripciones estén abiertas
         if (!$periodoActivo->inscripcionesAbiertas()) {
             return redirect()->route('inscripciones.index')
                 ->with('error', 'El período de inscripción no está abierto en este momento');
@@ -233,11 +248,22 @@ class InscripcionesController extends Controller
         $materiasInscritas = 0;
         $errores = [];
 
+        // Resolver plan UNA sola vez fuera del loop
+        $planAlumno = $alumno->resolverPlan();
+
+        // Si hay plan, precargar sus IDs para validar en O(1) dentro del loop
+        $idsDelPlan = $planAlumno
+            ? PlanEstudioMateria::where('plan_estudio_id', $planAlumno->id)
+                ->pluck('materia_id')
+                ->flip() // convierte a [id => index] para usar isset()
+                ->toArray()
+            : null;
+
         DB::beginTransaction();
 
         try {
             foreach ($validated['materias'] as $materiaId) {
-                // Validar que la materia pertenezca a la carrera del alumno
+                // Validar que la materia pertenezca a la carrera y al cuatrimestre activo
                 $materia = Materia::where('id', $materiaId)
                     ->where('carrera', $carreraId)
                     ->where('semestre', $periodoActivo->cuatrimestre)
@@ -245,6 +271,18 @@ class InscripcionesController extends Controller
 
                 if (!$materia) {
                     $errores[] = "La materia ID {$materiaId} no corresponde a tu carrera o al cuatrimestre activo";
+                    continue;
+                }
+
+                // Validar que la materia esté en el plan del alumno
+                // (evita que alguien manipule el request y se inscriba a materias de otro plan)
+                if ($idsDelPlan !== null && !isset($idsDelPlan[$materiaId])) {
+                    $errores[] = "La materia \"{$materia->nombre}\" no pertenece a tu plan de estudios ({$planAlumno->nombre})";
+                    \Log::warning('⚠️ Intento de inscripción fuera del plan', [
+                        'alumno_id' => $alumno->id,
+                        'materia_id' => $materiaId,
+                        'plan_id' => $planAlumno->id,
+                    ]);
                     continue;
                 }
 
@@ -256,17 +294,16 @@ class InscripcionesController extends Controller
                 );
 
                 if (!$validacion['puede_cursar']) {
-                    $error = "No cumples los requisitos para cursar: {$materia->nombre}";
-                    $errores[] = $error;
-                    \Log::warning('❌ Validación de correlativas falló', [
+                    $errores[] = "No cumplís los requisitos para cursar: {$materia->nombre}";
+                    \Log::warning('❌ Correlativas no cumplidas', [
                         'materia_id' => $materiaId,
                         'materia' => $materia->nombre,
-                        'validacion' => $validacion
+                        'validacion' => $validacion,
                     ]);
                     continue;
                 }
 
-                // Verificar si ya está inscrito en este período
+                // Verificar inscripción duplicada en este período
                 $inscripcionExistente = Inscripcion::where('alumno_id', $alumno->id)
                     ->where('materia_id', $materiaId)
                     ->where('periodo_id', $periodoActivo->id)
@@ -278,7 +315,7 @@ class InscripcionesController extends Controller
                     continue;
                 }
 
-                // Crear inscripción en tabla nueva
+                // Crear inscripción
                 Inscripcion::create([
                     'alumno_id' => $alumno->id,
                     'materia_id' => $materiaId,
@@ -300,11 +337,11 @@ class InscripcionesController extends Controller
                     'anno' => $alumno->anno ?? date('Y'),
                     'carrera' => $carreraId,
                     'materia' => $materiaId,
-                    'turno' => 1, // Por defecto turno 1
+                    'turno' => 1,
                     'fecha' => now(),
                     'curso' => $alumno->curso ?? 1,
                     'division' => $alumno->division ?? 1,
-                    'cursado' => 'cursando', // Estado por defecto
+                    'cursado' => 'cursando',
                     'mesa' => null,
                 ]);
 
@@ -315,25 +352,22 @@ class InscripcionesController extends Controller
 
             \Log::info('📊 Resultado de inscripciones', [
                 'materias_inscritas' => $materiasInscritas,
-                'errores' => $errores
+                'errores' => $errores,
             ]);
 
-            // Si hubo inscripciones exitosas, enviar email y redirigir a confirmación
             if ($materiasInscritas > 0) {
-                // Obtener inscripciones recién creadas
                 $inscripcionesCreadas = Inscripcion::with('materia')
                     ->where('alumno_id', $alumno->id)
                     ->where('periodo_id', $periodoActivo->id)
                     ->whereIn('materia_id', $validated['materias'])
                     ->get();
 
-                // Enviar email de comprobante inmediatamente
+                // Enviar email de comprobante
                 try {
                     $emailDestino = $alumno->email ?? $user->email;
 
                     if ($emailDestino) {
-                        // Enviar inmediatamente sin cola
-                        \Mail::to($emailDestino)->send(
+                        Mail::to($emailDestino)->send(
                             new \App\Mail\ComprobanteInscripcion(
                                 $alumno,
                                 $inscripcionesCreadas,
@@ -344,7 +378,6 @@ class InscripcionesController extends Controller
                     }
                 } catch (\Exception $e) {
                     \Log::error('Error al enviar email de comprobante: ' . $e->getMessage());
-                    // No fallar la inscripción por error en email
                 }
 
                 // Crear notificación para el alumno
@@ -372,7 +405,6 @@ class InscripcionesController extends Controller
                     \Log::error('Error al crear notificación de inscripción: ' . $e->getMessage());
                 }
 
-                // Preparar mensaje de respuesta
                 if (count($errores) === 0) {
                     return redirect()->route('inscripciones.confirmacion');
                 } else {
@@ -389,7 +421,7 @@ class InscripcionesController extends Controller
 
             $this->handleError($e, 'procesar inscripciones', [
                 'alumno_id' => $alumno->id,
-                'materias_count' => count($materiasIds ?? [])
+                'materias_count' => count($validated['materias'] ?? []),
             ]);
 
             return redirect()->route('inscripciones.index')
@@ -415,14 +447,12 @@ class InscripcionesController extends Controller
             return redirect()->route('dashboard');
         }
 
-        // Obtener inscripciones del período actual
         $inscripciones = Inscripcion::with('materia')
             ->where('alumno_id', $alumno->id)
             ->where('periodo_id', $periodoActivo->id)
             ->where('estado', 'confirmada')
             ->get();
 
-        // Determinar email al que se envió el comprobante
         $emailComprobante = $alumno->email ?? $user->email;
 
         return Inertia::render('Inscripciones/Confirmacion', [
@@ -444,14 +474,12 @@ class InscripcionesController extends Controller
     protected function enviarComprobanteEmail($emailDestino, $alumno, $inscripciones, $periodo)
     {
         try {
-            // Enviar email con comprobante
             Mail::to($emailDestino)->send(new \App\Mail\ComprobanteInscripcion(
                 $alumno,
                 $inscripciones,
                 $periodo
             ));
 
-            // Registrar en log
             \Log::info('Comprobante de inscripción enviado exitosamente', [
                 'email_destino' => $emailDestino,
                 'alumno' => $alumno->nombre_completo,
@@ -461,7 +489,6 @@ class InscripcionesController extends Controller
 
             return true;
         } catch (\Exception $e) {
-            // Registrar error pero no fallar la inscripción
             \Log::error('Error al enviar comprobante de inscripción', [
                 'error' => $e->getMessage(),
                 'email_destino' => $emailDestino,
@@ -489,7 +516,6 @@ class InscripcionesController extends Controller
             abort(404, 'No hay período de inscripción activo');
         }
 
-        // Obtener inscripciones del período actual
         $inscripciones = Inscripcion::with('materia')
             ->where('alumno_id', $alumno->id)
             ->where('periodo_id', $periodoActivo->id)
@@ -500,10 +526,8 @@ class InscripcionesController extends Controller
             abort(404, 'No tienes inscripciones en el período actual');
         }
 
-        // Obtener configuración global
         $configuracion = Configuracion::get();
 
-        // Generar PDF usando la vista específica para PDF (con logo y firma)
         $pdf = \PDF::loadView('pdfs.comprobante-inscripcion', [
             'alumno' => $alumno,
             'inscripciones' => $inscripciones,
@@ -511,11 +535,8 @@ class InscripcionesController extends Controller
             'configuracion' => $configuracion,
         ]);
 
-        // Configurar orientación y tamaño
         $pdf->setPaper('A4', 'portrait');
 
-        // Mostrar PDF en navegador (vista previa)
         return $pdf->stream('comprobante-inscripcion-' . $alumno->dni . '.pdf');
     }
-
 }

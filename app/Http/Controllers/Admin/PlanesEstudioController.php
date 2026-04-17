@@ -80,9 +80,11 @@ class PlanesEstudioController extends Controller
         try {
             $carrera = Carrera::findOrFail($validated['carrera_id']);
 
-            // Si se marca como vigente, marcar otros como no vigentes
+            // Si se marca como vigente, quitar vigencia a todos los otros planes
+            // de la misma carrera usando lockForUpdate para evitar race conditions
             if ($validated['vigente'] ?? false) {
                 PlanEstudio::where('carrera_id', $carrera->Id)
+                    ->lockForUpdate()
                     ->update(['vigente' => false]);
             }
 
@@ -129,10 +131,11 @@ class PlanesEstudioController extends Controller
 
         DB::beginTransaction();
         try {
-            // Si se marca como vigente, marcar otros como no vigentes
+            // Si se marca como vigente, quitar vigencia a los demás planes de la carrera
             if (($validated['vigente'] ?? false) && !$plan->vigente) {
                 PlanEstudio::where('carrera_id', $plan->carrera_id)
                     ->where('id', '!=', $plan->id)
+                    ->lockForUpdate()
                     ->update(['vigente' => false]);
             }
 
@@ -154,22 +157,44 @@ class PlanesEstudioController extends Controller
     }
 
     /**
-     * Eliminar plan
+     * Eliminar plan.
+     * No se permite eliminar si tiene alumnos asignados al plan
+     * (campo plan_estudio_id en tbl_alumnos) o si es el único plan de la carrera.
      */
     public function destroy(Request $request, PlanEstudio $plan)
     {
         $this->autorizarEliminar($request);
 
-        // Validación: No tiene alumnos asignados (futuro)
-        // if (method_exists($plan, 'alumnos') && $plan->alumnos()->count() > 0) {
-        //     return back()->withErrors([
-        //         'error' => "No se puede eliminar el plan porque tiene alumnos asignados."
-        //     ]);
-        // }
+        // Verificar que no tenga alumnos asignados explícitamente a este plan
+        $alumnosAsignados = DB::table('tbl_alumnos')
+            ->where('plan_estudio_id', $plan->id)
+            ->count();
+
+        if ($alumnosAsignados > 0) {
+            return back()->withErrors([
+                'error' => "No se puede eliminar el plan \"{$plan->nombre}\" porque tiene {$alumnosAsignados} alumno(s) asignado(s). Reasigná los alumnos antes de eliminar."
+            ]);
+        }
+
+        // Advertencia: no eliminar el único plan activo/vigente de la carrera
+        $otrosPlanesActivos = PlanEstudio::where('carrera_id', $plan->carrera_id)
+            ->where('id', '!=', $plan->id)
+            ->where('activo', true)
+            ->count();
+
+        if ($plan->vigente && $otrosPlanesActivos === 0) {
+            return back()->withErrors([
+                'error' => "No se puede eliminar el plan \"{$plan->nombre}\" porque es el único plan vigente de la carrera. Marcá otro plan como vigente primero."
+            ]);
+        }
 
         DB::beginTransaction();
         try {
             $nombrePlan = $plan->nombre;
+
+            // Eliminar relaciones con materias antes de eliminar el plan
+            $plan->materiasPivot()->delete();
+
             $plan->delete();
 
             Log::info('Plan de estudio eliminado', [
@@ -202,13 +227,14 @@ class PlanesEstudioController extends Controller
 
         DB::beginTransaction();
         try {
-            // Crear nuevo plan (archivado por defecto)
+            // Crear nuevo plan (archivado y no vigente por defecto)
             $nuevoPlan = PlanEstudio::create([
                 'carrera_id' => $plan->carrera_id,
                 'nombre' => $validated['nombre'],
                 'anio' => $validated['anio'],
                 'resolucion' => $plan->resolucion,
                 'activo' => false,
+                'vigente' => false,
                 'descripcion' => "Clonado de: {$plan->nombre}",
             ]);
 
@@ -240,12 +266,33 @@ class PlanesEstudioController extends Controller
     }
 
     /**
-     * Toggle activo/archivado
-     * Ahora permite múltiples planes activos simultáneamente
+     * Toggle activo/archivado.
+     *
+     * "Activo" significa que el plan está disponible para ser consultado y
+     * gestionado. Puede haber múltiples planes activos por carrera (uno por
+     * cada cohorte en curso). Esto es INTENCIONAL: alumnos de distintas
+     * resoluciones conviven activos al mismo tiempo.
+     *
+     * "Vigente" (ver toggleVigente) es distinto: indica cuál es el plan que
+     * se asigna a nuevos inscriptos, y solo puede haber uno por carrera.
      */
     public function toggleActivo(Request $request, PlanEstudio $plan)
     {
         $this->autorizarModificar($request);
+
+        // No permitir archivar el plan vigente si es el único activo
+        if ($plan->activo && $plan->vigente) {
+            $otrosActivos = PlanEstudio::where('carrera_id', $plan->carrera_id)
+                ->where('id', '!=', $plan->id)
+                ->where('activo', true)
+                ->count();
+
+            if ($otrosActivos === 0) {
+                return back()->withErrors([
+                    'error' => "No podés archivar \"{$plan->nombre}\" porque es el único plan vigente. Marcá otro como vigente primero."
+                ]);
+            }
+        }
 
         DB::beginTransaction();
         try {
@@ -273,8 +320,12 @@ class PlanesEstudioController extends Controller
     }
 
     /**
-     * Toggle vigente (plan por defecto para nuevos inscriptos)
-     * Solo puede haber un plan vigente por carrera
+     * Toggle vigente (plan por defecto para nuevos inscriptos).
+     *
+     * Solo puede haber UN plan vigente por carrera. Al marcar un plan como
+     * vigente, se quita la vigencia a todos los demás de la misma carrera
+     * dentro de la misma transacción con lockForUpdate para evitar race
+     * conditions si dos admins operan al mismo tiempo.
      */
     public function toggleVigente(Request $request, PlanEstudio $plan)
     {
@@ -283,13 +334,14 @@ class PlanesEstudioController extends Controller
         DB::beginTransaction();
         try {
             if ($plan->vigente) {
-                // Marcar como no vigente
+                // Quitar vigencia — quedará sin ningún plan vigente en la carrera
                 $plan->update(['vigente' => false]);
                 $mensaje = "Plan \"{$plan->nombre}\" ya no es el vigente para nuevos inscriptos.";
             } else {
-                // Marcar como vigente y quitar vigencia a otros
+                // Bloquear filas de la carrera para evitar race condition
                 PlanEstudio::where('carrera_id', $plan->carrera_id)
                     ->where('id', '!=', $plan->id)
+                    ->lockForUpdate()
                     ->update(['vigente' => false]);
 
                 $plan->update(['vigente' => true]);
@@ -298,7 +350,8 @@ class PlanesEstudioController extends Controller
 
             Log::info('Estado vigente de plan cambiado', [
                 'plan_id' => $plan->id,
-                'nuevo_estado' => $plan->vigente ? 'vigente' : 'no vigente',
+                'carrera_id' => $plan->carrera_id,
+                'nuevo_estado' => $plan->fresh()->vigente ? 'vigente' : 'no vigente',
                 'user_id' => auth()->id(),
             ]);
 
@@ -435,7 +488,7 @@ class PlanesEstudioController extends Controller
     }
 
     /**
-     * Eliminar materia del plan (solo la relación)
+     * Eliminar materia del plan (solo la relación, no la materia en sí)
      */
     public function quitarMateria(Request $request, PlanEstudio $plan, Materia $materia)
     {

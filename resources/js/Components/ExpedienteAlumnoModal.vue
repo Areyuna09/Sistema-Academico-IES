@@ -1,5 +1,7 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
+
+defineOptions({ inheritAttrs: false });
 
 const props = defineProps({
     show: {
@@ -10,6 +12,7 @@ const props = defineProps({
         type: Object,
         default: null
     },
+    // Props legacy (compatibilidad — se usan cuando carreras[] está vacío)
     carrera: {
         type: Object,
         default: null
@@ -25,34 +28,68 @@ const props = defineProps({
     materias_actuales: {
         type: Array,
         default: () => []
+    },
+    // Array con todas las carreras del alumno.
+    // Cada elemento: { nombre, carrera_id, alumno_id, carrera, estadisticas, historial, materias_actuales }
+    carreras: {
+        type: Array,
+        default: () => []
     }
 });
 
 const emit = defineEmits(['close']);
 
-const vistaActual = ref('resumen'); // resumen, historial, actuales
+const vistaActual = ref('resumen');
+const carreraSeleccionadaIdx = ref(0);
 
-// Obtener color según el estado de la materia
+// Hay múltiples carreras cuando el array tiene más de un elemento
+const modoMultiCarrera = computed(() => props.carreras && props.carreras.length > 1);
+
+// Carrera activa según el índice seleccionado
+const carreraActiva = computed(() => {
+    if (props.carreras && props.carreras.length > 0) {
+        return props.carreras[carreraSeleccionadaIdx.value];
+    }
+    // Modo legacy: armar objeto compatible desde props individuales
+    return props.carrera
+        ? {
+            nombre: props.carrera.nombre,
+            carrera: props.carrera,
+            estadisticas: props.estadisticas,
+            historial: props.historial,
+            materias_actuales: props.materias_actuales
+          }
+        : null;
+});
+
+// Datos reactivos según la carrera activa
+const estadisticasActivas     = computed(() => carreraActiva.value?.estadisticas     ?? props.estadisticas     ?? {});
+const historialActivo         = computed(() => carreraActiva.value?.historial         ?? props.historial         ?? []);
+const materiasActualesActivas = computed(() => carreraActiva.value?.materias_actuales ?? props.materias_actuales ?? []);
+
+const seleccionarCarrera = (idx) => {
+    carreraSeleccionadaIdx.value = idx;
+    vistaActual.value = 'resumen';
+};
+
 const obtenerColorEstado = (estado) => {
     const colores = {
         'aprobada': 'bg-green-100 text-green-700',
-        'regular': 'bg-blue-100 text-blue-700',
+        'regular':  'bg-blue-100 text-blue-700',
         'cursando': 'bg-yellow-100 text-yellow-700',
     };
     return colores[estado] || 'bg-gray-100 text-gray-700';
 };
 
-// Obtener texto legible del estado
 const obtenerTextoEstado = (estado) => {
     const textos = {
         'aprobada': 'Aprobada',
-        'regular': 'Regular',
+        'regular':  'Regular',
         'cursando': 'Cursando',
     };
     return textos[estado] || estado;
 };
 
-// Obtener color del porcentaje de asistencia
 const obtenerColorAsistencia = (porcentaje) => {
     if (porcentaje >= 80) return 'bg-green-500';
     if (porcentaje >= 60) return 'bg-yellow-500';
@@ -61,6 +98,7 @@ const obtenerColorAsistencia = (porcentaje) => {
 </script>
 
 <template>
+<div>
     <!-- Backdrop -->
     <Transition
         enter-active-class="transition-opacity duration-200"
@@ -112,8 +150,8 @@ const obtenerColorAsistencia = (porcentaje) => {
                 <div class="p-6">
                     <!-- Información del Alumno -->
                     <div class="bg-white rounded-lg p-6 mb-6 border border-gray-200">
-                        <div class="flex items-center justify-between">
-                            <div>
+                        <div class="flex items-start justify-between gap-4 flex-wrap">
+                            <div class="min-w-0 flex-1">
                                 <h3 class="text-2xl font-bold text-gray-900">{{ alumno?.nombre_completo }}</h3>
                                 <div class="mt-2 flex flex-wrap gap-4 text-sm text-gray-600">
                                     <div class="flex items-center gap-1">
@@ -124,53 +162,63 @@ const obtenerColorAsistencia = (porcentaje) => {
                                         <i class='bx bx-file'></i>
                                         <span>Legajo: {{ alumno.legajo }}</span>
                                     </div>
-                                    <div v-if="carrera" class="flex items-center gap-1">
+                                    <!-- Carrera activa en modo una sola carrera -->
+                                    <div v-if="!modoMultiCarrera && carreraActiva" class="flex items-center gap-1">
                                         <i class='bx bx-book'></i>
-                                        <span>{{ carrera.nombre }}</span>
+                                        <span>{{ carreraActiva.nombre }}</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Selector de carrera: solo cuando hay más de una -->
+                        <div v-if="modoMultiCarrera" class="mt-4">
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                                <i class="bx bx-transfer-alt mr-1"></i>
+                                Carreras del alumno
+                            </p>
+                            <div class="flex flex-wrap gap-2">
+                                <button
+                                    v-for="(c, idx) in carreras"
+                                    :key="idx"
+                                    @click="seleccionarCarrera(idx)"
+                                    :class="[
+                                        'px-3 py-1.5 rounded-lg text-sm font-medium border transition-all duration-150',
+                                        carreraSeleccionadaIdx === idx
+                                            ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                                            : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400 hover:text-blue-600'
+                                    ]"
+                                >
+                                    <i class="bx bx-book mr-1"></i>
+                                    {{ c.nombre }}
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- Métricas -->
+                    <!-- Métricas (reactivas a la carrera seleccionada) -->
                     <div class="grid grid-cols-4 gap-4 mb-6">
-                        <!-- Total Materias -->
                         <div class="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg p-5 text-white">
-                            <div class="text-center md:text-left">
-                                <i class="bx bx-book-open text-3xl opacity-80"></i>
-                                <p class="text-3xl font-bold mt-1">{{ estadisticas?.total_materias || 0 }}</p>
-                                <p class="text-xs opacity-90">Total</p>
-                            </div>
+                            <i class="bx bx-book-open text-3xl opacity-80"></i>
+                            <p class="text-3xl font-bold mt-1">{{ estadisticasActivas?.total_materias || 0 }}</p>
+                            <p class="text-xs opacity-90">Total</p>
                         </div>
-
-                        <!-- Aprobadas -->
                         <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-5 text-white">
-                            <div class="text-center md:text-left">
-                                <i class="bx bx-check-circle text-3xl opacity-80"></i>
-                                <p class="text-3xl font-bold mt-1">{{ estadisticas?.aprobadas || 0 }}</p>
-                                <p class="text-xs opacity-90">Aprob.</p>
-                            </div>
+                            <i class="bx bx-check-circle text-3xl opacity-80"></i>
+                            <p class="text-3xl font-bold mt-1">{{ estadisticasActivas?.aprobadas || 0 }}</p>
+                            <p class="text-xs opacity-90">Aprob.</p>
                         </div>
-
-                        <!-- Regulares -->
                         <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-5 text-white">
-                            <div class="text-center md:text-left">
-                                <i class="bx bx-time-five text-3xl opacity-80"></i>
-                                <p class="text-3xl font-bold mt-1">{{ estadisticas?.regulares || 0 }}</p>
-                                <p class="text-xs opacity-90">Regul.</p>
-                            </div>
+                            <i class="bx bx-time-five text-3xl opacity-80"></i>
+                            <p class="text-3xl font-bold mt-1">{{ estadisticasActivas?.regulares || 0 }}</p>
+                            <p class="text-xs opacity-90">Regul.</p>
                         </div>
-
-                        <!-- Promedio -->
                         <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-5 text-white">
-                            <div class="text-center md:text-left">
-                                <i class="bx bx-trophy text-3xl opacity-80"></i>
-                                <p class="text-3xl font-bold mt-1">
-                                    {{ estadisticas?.promedio ? estadisticas.promedio.toFixed(2) : 'N/A' }}
-                                </p>
-                                <p class="text-xs opacity-90">Prom.</p>
-                            </div>
+                            <i class="bx bx-trophy text-3xl opacity-80"></i>
+                            <p class="text-3xl font-bold mt-1">
+                                {{ estadisticasActivas?.promedio ? estadisticasActivas.promedio.toFixed(2) : 'N/A' }}
+                            </p>
+                            <p class="text-xs opacity-90">Prom.</p>
                         </div>
                     </div>
 
@@ -189,6 +237,9 @@ const obtenerColorAsistencia = (porcentaje) => {
                                 >
                                     <i class='bx bx-chart'></i>
                                     Resumen
+                                    <span v-if="modoMultiCarrera" class="text-xs font-normal text-indigo-500">
+                                        · {{ carreraActiva?.nombre }}
+                                    </span>
                                 </button>
                                 <button
                                     @click="vistaActual = 'historial'"
@@ -213,8 +264,8 @@ const obtenerColorAsistencia = (porcentaje) => {
                                 >
                                     <i class='bx bx-calendar'></i>
                                     Materias Actuales
-                                    <span v-if="materias_actuales.length > 0" class="bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full text-xs font-bold">
-                                        {{ materias_actuales.length }}
+                                    <span v-if="materiasActualesActivas.length > 0" class="bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full text-xs font-bold">
+                                        {{ materiasActualesActivas.length }}
                                     </span>
                                 </button>
                             </nav>
@@ -222,6 +273,7 @@ const obtenerColorAsistencia = (porcentaje) => {
 
                         <!-- Contenido de las Pestañas -->
                         <div class="p-6">
+
                             <!-- Vista Resumen -->
                             <div v-if="vistaActual === 'resumen'">
                                 <h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
@@ -231,20 +283,22 @@ const obtenerColorAsistencia = (porcentaje) => {
 
                                 <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
                                     <p class="text-sm text-blue-800">
-                                        Has completado <strong>{{ estadisticas?.aprobadas || 0 }}</strong> de <strong>{{ estadisticas?.total_materias || 0 }}</strong> materias en tu historial académico.
-                                        {{ estadisticas?.promedio ? `Tu promedio actual es de ${estadisticas.promedio.toFixed(2)}.` : '' }}
+                                        Ha completado <strong>{{ estadisticasActivas?.aprobadas || 0 }}</strong> de
+                                        <strong>{{ estadisticasActivas?.total_materias || 0 }}</strong> materias en el historial académico.
+                                        {{ estadisticasActivas?.promedio ? `Promedio: ${estadisticasActivas.promedio.toFixed(2)}.` : '' }}
                                     </p>
-                                    <p v-if="(estadisticas?.regulares || 0) > 0" class="text-sm text-blue-800 mt-2">
-                                        Tienes <strong>{{ estadisticas.regulares }}</strong> materia{{ estadisticas.regulares > 1 ? 's' : '' }}
-                                        regularizada{{ estadisticas.regulares > 1 ? 's' : '' }} pendiente{{ estadisticas.regulares > 1 ? 's' : '' }} de rendir.
+                                    <p v-if="(estadisticasActivas?.regulares || 0) > 0" class="text-sm text-blue-800 mt-2">
+                                        Tiene <strong>{{ estadisticasActivas.regulares }}</strong>
+                                        materia{{ estadisticasActivas.regulares > 1 ? 's' : '' }}
+                                        regularizada{{ estadisticasActivas.regulares > 1 ? 's' : '' }}
+                                        pendiente{{ estadisticasActivas.regulares > 1 ? 's' : '' }} de rendir.
                                     </p>
                                 </div>
 
-                                <!-- Últimas 5 materias -->
                                 <h5 class="font-semibold text-gray-800 mb-3">Últimas Materias</h5>
                                 <div class="space-y-3">
                                     <div
-                                        v-for="materia in historial.slice(0, 5)"
+                                        v-for="materia in historialActivo.slice(0, 5)"
                                         :key="materia.id"
                                         class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition"
                                     >
@@ -266,6 +320,9 @@ const obtenerColorAsistencia = (porcentaje) => {
                                             </div>
                                         </div>
                                     </div>
+                                    <div v-if="historialActivo.length === 0" class="text-center py-8 text-gray-500 text-sm">
+                                        Sin materias en el historial de esta carrera
+                                    </div>
                                 </div>
                             </div>
 
@@ -275,13 +332,16 @@ const obtenerColorAsistencia = (porcentaje) => {
                                     <h4 class="text-lg font-semibold text-gray-900 flex items-center">
                                         <i class='bx bx-history text-xl mr-2 text-blue-600'></i>
                                         Historial Completo
+                                        <span v-if="modoMultiCarrera" class="ml-2 text-xs font-normal text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+                                            {{ carreraActiva?.nombre }}
+                                        </span>
                                     </h4>
-                                    <span class="text-sm text-gray-500">{{ historial.length }} materias</span>
+                                    <span class="text-sm text-gray-500">{{ historialActivo.length }} materias</span>
                                 </div>
 
-                                <div v-if="historial.length === 0" class="text-center py-12 text-gray-500">
+                                <div v-if="historialActivo.length === 0" class="text-center py-12 text-gray-500">
                                     <i class='bx bx-book-open text-6xl mb-4'></i>
-                                    <p>No tienes materias en tu historial académico</p>
+                                    <p>No hay materias en el historial de esta carrera</p>
                                 </div>
 
                                 <div v-else class="overflow-x-auto">
@@ -297,7 +357,7 @@ const obtenerColorAsistencia = (porcentaje) => {
                                             </tr>
                                         </thead>
                                         <tbody class="bg-white divide-y divide-gray-200">
-                                            <tr v-for="materia in historial" :key="materia.id" class="hover:bg-gray-50">
+                                            <tr v-for="materia in historialActivo" :key="materia.id" class="hover:bg-gray-50">
                                                 <td class="px-4 py-4">
                                                     <div class="font-medium text-gray-900">{{ materia.materia.nombre }}</div>
                                                 </td>
@@ -336,17 +396,20 @@ const obtenerColorAsistencia = (porcentaje) => {
                                     <h4 class="text-lg font-semibold text-gray-900 flex items-center">
                                         <i class='bx bx-calendar text-xl mr-2 text-blue-600'></i>
                                         Materias del Cuatrimestre Actual
+                                        <span v-if="modoMultiCarrera" class="ml-2 text-xs font-normal text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+                                            {{ carreraActiva?.nombre }}
+                                        </span>
                                     </h4>
                                 </div>
 
-                                <div v-if="materias_actuales.length === 0" class="text-center py-12 text-gray-500">
+                                <div v-if="materiasActualesActivas.length === 0" class="text-center py-12 text-gray-500">
                                     <i class='bx bx-calendar-x text-6xl mb-4'></i>
-                                    <p>No tienes materias inscritas en el cuatrimestre actual</p>
+                                    <p>No hay materias inscritas en esta carrera</p>
                                 </div>
 
                                 <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div
-                                        v-for="item in materias_actuales"
+                                        v-for="item in materiasActualesActivas"
                                         :key="item.materia.id"
                                         class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition"
                                     >
@@ -360,11 +423,13 @@ const obtenerColorAsistencia = (porcentaje) => {
                                             <i class='bx bx-book-open text-2xl text-blue-600 flex-shrink-0'></i>
                                         </div>
 
-                                        <!-- Asistencias -->
                                         <div v-if="item.asistencia.total_clases > 0" class="bg-gray-50 rounded-lg p-3">
                                             <div class="flex items-center justify-between mb-2">
                                                 <span class="text-sm font-medium text-gray-600">Asistencias</span>
-                                                <span class="text-lg font-bold" :class="item.asistencia.porcentaje >= 80 ? 'text-green-600' : item.asistencia.porcentaje >= 60 ? 'text-yellow-600' : 'text-red-600'">
+                                                <span
+                                                    class="text-lg font-bold"
+                                                    :class="item.asistencia.porcentaje >= 80 ? 'text-green-600' : item.asistencia.porcentaje >= 60 ? 'text-yellow-600' : 'text-red-600'"
+                                                >
                                                     {{ item.asistencia.porcentaje }}%
                                                 </span>
                                             </div>
@@ -384,10 +449,12 @@ const obtenerColorAsistencia = (porcentaje) => {
                                     </div>
                                 </div>
                             </div>
+
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </Transition>
+</div>
 </template>

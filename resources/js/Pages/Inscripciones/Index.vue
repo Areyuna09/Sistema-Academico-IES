@@ -14,6 +14,11 @@ const props = defineProps({
         type: Object,
         required: true
     },
+    // Plan de estudio resuelto por el backend (puede ser null si no hay planes cargados)
+    plan: {
+        type: Object,
+        default: null
+    },
     periodo: {
         type: Object,
         required: true
@@ -133,7 +138,6 @@ const confirmarInscripcion = () => {
         return;
     }
 
-    // Mostrar modal de confirmación
     mostrandoAdvertencia.value = false;
     mostrarModalConfirmacion.value = true;
 };
@@ -146,15 +150,13 @@ const procesarInscripcion = () => {
     router.post('/inscripciones', {
         materias: materiasIds
     }, {
-        preserveState: false, // Importante: no preservar estado para permitir redirección
+        preserveState: false,
         onStart: () => {
             console.log('✅ Request iniciado');
         },
         onSuccess: (page) => {
             console.log('✅ Request exitoso', page);
-            // Emitir evento para actualizar notificaciones en tiempo real
             emitirNuevaNotificacion();
-            // Cerrar modal antes de redirigir
             cerrarModal();
         },
         onError: (errors) => {
@@ -253,7 +255,20 @@ const cerrarModal = () => {
                                 class="text-xs"
                                 :class="esUsuarioVIP ? 'text-yellow-700' : 'text-gray-500'"
                             >
-                                {{ carrera.nombre }} - {{ anioFormateado }}
+                                {{ carrera.nombre }} · {{ anioFormateado }}
+                            </p>
+                            <!-- Badge del plan de estudio -->
+                            <p v-if="plan" class="text-xs mt-0.5">
+                                <span
+                                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium"
+                                    :class="esUsuarioVIP
+                                        ? 'bg-yellow-200 text-yellow-800'
+                                        : 'bg-indigo-100 text-indigo-700'"
+                                >
+                                    <i class="bx bx-book-bookmark text-xs"></i>
+                                    Plan {{ plan.anio }}
+                                    <span v-if="plan.resolucion" class="opacity-75">· Res. {{ plan.resolucion }}</span>
+                                </span>
                             </p>
                             <p
                                 v-if="estudiante.descripcion"
@@ -291,6 +306,7 @@ const cerrarModal = () => {
                     </div>
                 </div>
             </div>
+
             <!-- Barra de búsqueda y filtros -->
             <div class="bg-white border border-gray-200 rounded-lg p-4">
                 <div class="flex flex-col md:flex-row gap-3">
@@ -353,7 +369,6 @@ const cerrarModal = () => {
             leave-to-class="opacity-0 translate-y-4"
         >
             <div v-if="materiasSeleccionadas.length > 0" class="fixed bottom-6 right-6 z-50">
-                <!-- Botón de confirmar cuando período está abierto -->
                 <button
                     v-if="periodo.inscripciones_abiertas"
                     @click="confirmarInscripcion"
@@ -365,7 +380,6 @@ const cerrarModal = () => {
                     <i class="bx bx-check-circle text-2xl group-hover:scale-110 transition-transform"></i>
                 </button>
 
-                <!-- Mensaje cuando período está cerrado -->
                 <div
                     v-else
                     class="flex items-center gap-3 bg-red-100 border-2 border-red-400 text-red-800 px-6 py-4 rounded-full shadow-2xl"
@@ -450,6 +464,12 @@ const cerrarModal = () => {
                                 </h3>
                                 <p class="text-gray-600">
                                     Estás a punto de inscribirte a las siguientes materias:
+                                </p>
+                                <!-- Mostrar plan en el modal si está disponible -->
+                                <p v-if="plan" class="text-xs text-indigo-600 mt-1">
+                                    <i class="bx bx-book-bookmark mr-1"></i>
+                                    Plan {{ plan.anio }}
+                                    <span v-if="plan.resolucion">· Res. {{ plan.resolucion }}</span>
                                 </p>
                             </div>
 

@@ -48,6 +48,11 @@ class AlumnoController extends Controller
             'carrera' => 'required|exists:tbl_carreras,Id',
             'curso' => 'nullable|integer|min:1|max:6',
             'division' => 'nullable|string|max:10|regex:/^[a-zA-Z0-9]+$/',
+            'carrera2' => 'nullable|exists:tbl_carreras,Id|different:carrera',
+            'legajo2' => 'nullable|string|max:50|regex:/^[a-zA-Z0-9\-\/]+$/',
+            'anno2' => 'nullable|integer|min:1900|max:' . (date('Y') + 1),
+            'curso2' => 'nullable|integer|min:1|max:6',
+            'division2' => 'nullable|string|max:10|regex:/^[a-zA-Z0-9]+$/',
         ], [
             'dni.required' => 'El DNI es obligatorio.',
             'dni.unique' => 'Ya existe un alumno con este DNI.',
@@ -143,6 +148,11 @@ class AlumnoController extends Controller
             'carrera' => 'required|exists:tbl_carreras,Id',
             'curso' => 'nullable|integer|min:1|max:6',
             'division' => 'nullable|string|max:10|regex:/^[a-zA-Z0-9]+$/',
+            'carrera2' => 'nullable|exists:tbl_carreras,Id|different:carrera',
+            'legajo2' => 'nullable|string|max:50|regex:/^[a-zA-Z0-9\-\/]+$/',
+            'anno2' => 'nullable|integer|min:1900|max:' . (date('Y') + 1),
+            'curso2' => 'nullable|integer|min:1|max:6',
+            'division2' => 'nullable|string|max:10|regex:/^[a-zA-Z0-9]+$/',
         ], [
             'dni.required' => 'El DNI es obligatorio.',
             'dni.unique' => 'Ya existe otro alumno con este DNI.',
