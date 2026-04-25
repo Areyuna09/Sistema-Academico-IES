@@ -16,6 +16,7 @@ use App\Models\User;
 use App\Models\Notificacion;
 use App\Models\PeriodoInscripcion;
 use App\Models\PermisoRol;
+use App\Models\PlanEstudio;
 use App\Services\EstadoAcademicoService;
 use App\Traits\HandlesErrors;
 
@@ -121,7 +122,7 @@ class ExpedienteController extends Controller
         });
 
         // Query para ALUMNOS - traer todos desde tbl_alumnos
-        $queryAlumnos = Alumno::with(['carrera', 'user']);
+        $queryAlumnos = Alumno::with(['carrera', 'user', 'planEstudio', 'carrerasSecundarias.carrera']);
 
         // Filtros para alumnos
         if ($request->filled('buscar_alumnos')) {
@@ -219,11 +220,15 @@ class ExpedienteController extends Controller
         // Obtener período activo para info en modal de profesor
         $periodoActivo = PeriodoInscripcion::activo();
 
+        // Planes de estudio agrupados por carrera para el modal de alumno
+        $planes = PlanEstudio::orderBy('carrera_id')->orderBy('anio', 'desc')->get(['id', 'carrera_id', 'nombre', 'anio', 'vigente']);
+
         return Inertia::render('Expediente/AdminPanel', [
             'materias' => $materias,
             'carreras' => $carreras,
             'profesores' => $profesores,
             'alumnos' => $alumnos,
+            'planes' => $planes,
             'notasPendientes' => $notasPendientes,
             'duracionCarreras' => $duracionCarreras,
             'periodoActivo' => $periodoActivo ? [
@@ -236,6 +241,36 @@ class ExpedienteController extends Controller
             'filtrosProfesores' => $request->only(['activo', 'buscar_profesores']),
             'filtrosAlumnos' => $request->only(['activo', 'buscar_alumnos', 'carrera_alumnos']),
         ]);
+    }
+
+    public function asignarPlanesAlumnos(Request $request)
+    {
+        if (!in_array(auth()->user()->tipo, [1, 2, 7])) {
+            abort(403);
+        }
+
+        $alumnos = Alumno::whereNull('plan_estudio_id')->get();
+        $asignados = 0;
+        $sinPlan = 0;
+
+        foreach ($alumnos as $alumno) {
+            $plan = $alumno->resolverPlan();
+            if ($plan) {
+                $alumno->plan_estudio_id = $plan->id;
+                $alumno->save();
+                $asignados++;
+            } else {
+                $sinPlan++;
+            }
+        }
+
+        \Log::info('Asignación masiva de planes', [
+            'asignados' => $asignados,
+            'sin_plan' => $sinPlan,
+            'ejecutado_por' => auth()->user()->nombre,
+        ]);
+
+        return back()->with('success', "Planes asignados: {$asignados} alumnos actualizados" . ($sinPlan > 0 ? ", {$sinPlan} sin plan disponible" : '') . '.');
     }
 
     private function listarAlumnos(Request $request)
@@ -366,7 +401,7 @@ class ExpedienteController extends Controller
             'dni.regex' => 'El DNI debe contener solo números.',
         ]);
 
-        $alumno = Alumno::with(['carreraRelacion', 'carreraRelacion2'])
+        $alumno = Alumno::with(['carreraRelacion', 'carrerasSecundarias.carrera'])
             ->where('dni', $request->dni)
             ->first();
 
@@ -412,7 +447,7 @@ class ExpedienteController extends Controller
                 });
             });
 
-        // Construir selector de carreras desde carrera y carrera2 del mismo registro
+        // Construir selector de carreras: principal + secundarias
         $todosLosRegistros = collect();
         $todosLosRegistros->push([
             'id'         => $alumno->id,
@@ -421,20 +456,22 @@ class ExpedienteController extends Controller
             'nombre'     => $alumno->nombre,
             'anno'       => $alumno->anno ?? 'N/A',
             'curso'      => $alumno->curso ?? 0,
+            'division'   => $alumno->division ?? null,
             'carrera'    => $alumno->carreraRelacion?->nombre ?? 'Sin carrera',
             'id_carrera' => $alumno->getAttributes()['carrera'] ?? null,
         ]);
 
-        if ($alumno->carrera2 && $alumno->carreraRelacion2) {
+        foreach ($alumno->carrerasSecundarias as $secundaria) {
             $todosLosRegistros->push([
                 'id'         => $alumno->id,
                 'dni'        => $alumno->dni,
                 'apellido'   => $alumno->apellido,
                 'nombre'     => $alumno->nombre,
-                'anno'       => $alumno->anno2 ?? 'N/A',
-                'curso'      => $alumno->curso2 ?? 0,
-                'carrera'    => $alumno->carreraRelacion2->nombre,
-                'id_carrera' => $alumno->carrera2,
+                'anno'       => $secundaria->anno ?? 'N/A',
+                'curso'      => $secundaria->curso ?? 0,
+                'division'   => $secundaria->division ?? null,
+                'carrera'    => $secundaria->carrera?->nombre ?? 'Sin carrera',
+                'id_carrera' => $secundaria->carrera_id,
             ]);
         }
 
@@ -449,6 +486,7 @@ class ExpedienteController extends Controller
                 'nombre'     => $alumno->nombre,
                 'anno'       => $carreraActiva['anno'],
                 'curso'      => $carreraActiva['curso'],
+                'division'   => $carreraActiva['division'],
                 'carrera'    => $carreraActiva['carrera'],
                 'id_carrera' => $carreraId,
             ],
@@ -1588,19 +1626,23 @@ class ExpedienteController extends Controller
      */
     private function mostrarExpedienteAlumno($user)
     {
-        // Buscar TODOS los registros del alumno por DNI (uno por carrera)
-        $registros = Alumno::where('dni', $user->dni)->get();
+        $principal = Alumno::with('carrerasSecundarias.carrera')
+            ->find($user->alumno_id);
 
-        if ($registros->isEmpty()) {
+        if (!$principal) {
             abort(404, 'No se encontró información del alumno');
         }
 
-        // Construir payload por cada carrera
-        $carreras = $registros->map(fn($r) => $this->buildCarreraExpediente($r))->values();
+        // Carrera principal
+        $carreras = collect([$this->buildCarreraExpediente($principal)]);
 
-        // Registro principal: el que coincide con user->alumno_id, o el primero
-        $principal = $registros->firstWhere('id', $user->alumno_id) ?? $registros->first();
-        $datoPrincipal = $carreras->firstWhere('alumno_id', $principal->id) ?? $carreras->first();
+        // Carreras secundarias desde tbl_alumno_carreras
+        foreach ($principal->carrerasSecundarias as $sec) {
+            $carreras->push($this->buildCarreraExpediente($principal, $sec->carrera_id));
+        }
+
+        $carreras = $carreras->values();
+        $datoPrincipal = $carreras->first();
 
         return Inertia::render('Expediente/AlumnoPanel', [
             'alumno' => [
@@ -1628,14 +1670,15 @@ class ExpedienteController extends Controller
      * Construye el payload de historial/estadísticas/inscripciones para un registro de alumno.
      * NUEVO: necesario para soportar múltiples carreras por alumno.
      */
-    private function buildCarreraExpediente(Alumno $alumno): array
+    private function buildCarreraExpediente(Alumno $alumno, ?int $carreraId = null): array
     {
-        $carrera = Carrera::find($alumno->carrera);
+        $carreraId = $carreraId ?? $alumno->getAttributes()['carrera'];
+        $carrera = Carrera::find($carreraId);
 
         $materias = AlumnoMateria::with(['materiaRelacion', 'carrera'])
-    ->where('alumno', $alumno->id)
-    ->where('carrera', $alumno->carrera) // filtrar solo materias de esta carrera
-    ->orderBy('fecha', 'desc')
+            ->where('alumno', $alumno->id)
+            ->where('carrera', $carreraId)
+            ->orderBy('fecha', 'desc')
             ->get()
             ->filter(fn($am) => $am->materiaRelacion !== null)
             ->map(function($am) {
@@ -1701,8 +1744,8 @@ class ExpedienteController extends Controller
             });
 
         return [
-            'nombre'     => $carrera ? $carrera->nombre : "Carrera #{$alumno->carrera}",
-            'carrera_id' => $alumno->carrera,
+            'nombre'     => $carrera ? $carrera->nombre : "Carrera #{$carreraId}",
+            'carrera_id' => $carreraId,
             'alumno_id'  => $alumno->id,
             'carrera' => $carrera ? [
                 'id'      => $carrera->Id,

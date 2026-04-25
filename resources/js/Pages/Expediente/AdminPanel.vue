@@ -56,6 +56,10 @@ const props = defineProps({
         type: Object,
         default: null
     },
+    planes: {
+        type: Array,
+        default: () => []
+    },
 });
 
 // Debug: ver qué datos llegan
@@ -481,6 +485,21 @@ const agregarFilaNuevaConAnno = async () => {
         libro: '',
         folio: '',
         esNueva: true
+    });
+};
+
+const asignandoPlanes = ref(false);
+const asignarPlanesAutomatico = async () => {
+    const confirmacion = await dialogConfirm(
+        '¿Asignar plan de estudio automáticamente a todos los alumnos que no tienen uno asignado?',
+        'Asignar planes'
+    );
+    if (!confirmacion) return;
+
+    asignandoPlanes.value = true;
+    router.post(route('expediente.asignar-planes'), {}, {
+        preserveScroll: true,
+        onFinish: () => { asignandoPlanes.value = false; },
     });
 };
 
@@ -1429,14 +1448,25 @@ const getEstadoBadge = (estado) => {
                                 <p class="text-sm text-gray-600">Administrar estudiantes del instituto</p>
                             </div>
                         </div>
-                        <button
-                            v-if="permisos.puedeCrear"
-                            @click="abrirModalNuevoAlumno"
-                            class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors duration-200"
-                        >
-                            <i class="bx bx-plus text-xl mr-2"></i>
-                            Nuevo Alumno
-                        </button>
+                        <div class="flex gap-2">
+                            <button
+                                v-if="permisos.puedeModificar"
+                                @click="asignarPlanesAutomatico"
+                                :disabled="asignandoPlanes"
+                                class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors duration-200 disabled:opacity-50"
+                            >
+                                <i class="bx bx-book-bookmark text-xl mr-2"></i>
+                                {{ asignandoPlanes ? 'Asignando...' : 'Asignar planes' }}
+                            </button>
+                            <button
+                                v-if="permisos.puedeCrear"
+                                @click="abrirModalNuevoAlumno"
+                                class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors duration-200"
+                            >
+                                <i class="bx bx-plus text-xl mr-2"></i>
+                                Nuevo Alumno
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Filtros -->
@@ -1505,7 +1535,7 @@ const getEstadoBadge = (estado) => {
                                         {{ alumno.apellido }}, {{ alumno.nombre }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {{ alumno.carrera_relacion?.nombre || '-' }}
+                                        {{ alumno.carrera?.nombre || '-' }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         {{ alumno.email || '-' }}
@@ -1835,6 +1865,10 @@ const getEstadoBadge = (estado) => {
                                 <div>
                                     <label class="block text-xs font-medium text-gray-600 mb-1">Curso</label>
                                     <p class="text-sm font-semibold text-gray-900">{{ alumnoEncontrado.curso > 0 ? alumnoEncontrado.curso + '°' : '-' }}</p>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-1">División</label>
+                                    <p class="text-sm font-semibold text-gray-900">{{ alumnoEncontrado.division ?? '-' }}</p>
                                 </div>
                                 <div>
                                     <label class="block text-xs font-medium text-gray-600 mb-1">Carrera</label>
@@ -2179,6 +2213,7 @@ const getEstadoBadge = (estado) => {
             :show="mostrarModalAlumno"
             :alumno="alumnoEditando"
             :carreras="carreras"
+            :planes="planes"
             @close="cerrarModalAlumno"
             @saved="alumnoGuardado"
         />

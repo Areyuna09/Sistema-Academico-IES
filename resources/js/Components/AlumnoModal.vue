@@ -1,11 +1,12 @@
 <script setup>
 import { useForm } from '@inertiajs/vue3';
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 
 const props = defineProps({
     show:     { type: Boolean, default: false },
     alumno:   { type: Object,  default: null },
-    carreras: { type: Array,   required: true }
+    carreras: { type: Array,   required: true },
+    planes:   { type: Array,   default: () => [] },
 });
 
 const emit = defineEmits(['close', 'saved']);
@@ -24,12 +25,14 @@ const form = useForm({
     carrera:   '',
     curso:     '',
     division:  '',
+    plan_estudio_id: '',
     // Segunda carrera
-    carrera2:  '',
-    legajo2:   '',
-    anno2:     new Date().getFullYear(),
-    curso2:    '',
-    division2: '',
+    carrera2:         '',
+    legajo2:          '',
+    anno2:            new Date().getFullYear(),
+    curso2:           '',
+    division2:        '',
+    plan_estudio_id2: '',
 });
 
 watch(() => props.alumno, (a) => {
@@ -46,13 +49,18 @@ watch(() => props.alumno, (a) => {
         form.carrera   = (typeof a.carrera === 'object' && a.carrera?.Id) ? a.carrera.Id : (a.carrera || '');
         form.curso     = a.curso     || '';
         form.division  = a.division  != null ? String(a.division) : '';
-        form.carrera2  = a.carrera2  || '';
-        form.legajo2   = a.legajo2   || '';
-        form.anno2     = a.anno2     || new Date().getFullYear();
-        form.curso2    = a.curso2    || '';
-        form.division2 = a.division2 != null ? String(a.division2) : '';
+        form.plan_estudio_id = a.plan_estudio_id || '';
 
-        if (a.carrera2) mostrarSegundaCarrera.value = true;
+        // Cargar datos de la carrera secundaria desde tbl_alumno_carreras
+        const sec = a.carreras_secundarias?.[0] ?? null;
+        form.carrera2          = sec?.carrera_id  || '';
+        form.legajo2           = sec?.legajo       || '';
+        form.anno2             = sec?.anno         || new Date().getFullYear();
+        form.curso2            = sec?.curso        || '';
+        form.division2         = sec?.division != null ? String(sec.division) : '';
+        form.plan_estudio_id2  = sec?.plan_estudio_id || '';
+
+        if (sec?.carrera_id) mostrarSegundaCarrera.value = true;
     } else {
         form.reset();
         form.anno = new Date().getFullYear();
@@ -67,16 +75,25 @@ watch(() => form.anno, (v) => {
 });
 
 const quitarSegundaCarrera = () => {
-    form.carrera2  = '';
-    form.legajo2   = '';
-    form.anno2     = new Date().getFullYear();
-    form.curso2    = '';
-    form.division2 = '';
+    form.carrera2         = '';
+    form.legajo2          = '';
+    form.anno2            = new Date().getFullYear();
+    form.curso2           = '';
+    form.division2        = '';
+    form.plan_estudio_id2 = '';
     mostrarSegundaCarrera.value = false;
 };
 
 const carrerasDisponiblesParaSegunda = () =>
     props.carreras.filter(c => String(c.Id) !== String(form.carrera));
+
+const planesDeCarrera = computed(() =>
+    props.planes.filter(p => String(p.carrera_id) === String(form.carrera))
+);
+
+const planesDeCarrera2 = computed(() =>
+    props.planes.filter(p => String(p.carrera_id) === String(form.carrera2))
+);
 
 const submit = () => {
     const url    = props.alumno ? route('alumnos.update', props.alumno.id) : route('alumnos.store');
@@ -180,6 +197,16 @@ const close = () => {
                                     <option value="2">2</option>
                                 </select>
                             </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Plan de estudio</label>
+                                <select v-model="form.plan_estudio_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" :disabled="!form.carrera">
+                                    <option value="">{{ form.carrera ? 'Sin plan asignado (automático)' : 'Seleccione una carrera primero' }}</option>
+                                    <option v-for="p in planesDeCarrera" :key="p.id" :value="p.id">
+                                        {{ p.nombre }} ({{ p.anio }}){{ p.vigente ? ' — vigente' : '' }}
+                                    </option>
+                                </select>
+                                <p v-if="form.errors.plan_estudio_id" class="mt-1 text-sm text-red-600">{{ form.errors.plan_estudio_id }}</p>
+                            </div>
                         </div>
                     </div>
 
@@ -239,6 +266,15 @@ const close = () => {
                                         <option value="">Sin división</option>
                                         <option value="1">1</option>
                                         <option value="2">2</option>
+                                    </select>
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Plan de estudio</label>
+                                    <select v-model="form.plan_estudio_id2" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" :disabled="!form.carrera2">
+                                        <option value="">{{ form.carrera2 ? 'Sin plan asignado (automático)' : 'Seleccione una carrera primero' }}</option>
+                                        <option v-for="p in planesDeCarrera2" :key="p.id" :value="p.id">
+                                            {{ p.nombre }} ({{ p.anio }}){{ p.vigente ? ' — vigente' : '' }}
+                                        </option>
                                     </select>
                                 </div>
                             </div>

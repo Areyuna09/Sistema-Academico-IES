@@ -40,11 +40,6 @@ class Alumno extends Model
         'materia',
         'fecha',
         'plan_estudio_id',
-        'carrera2',
-        'legajo2',
-        'anno2',
-        'curso2',
-        'division2',
     ];
 
     /**
@@ -84,11 +79,11 @@ class Alumno extends Model
     }
 
     /**
-     * Relación: Segunda carrera del alumno (opcional)
+     * Relación: Carreras secundarias del alumno
      */
-    public function carreraRelacion2()
+    public function carrerasSecundarias()
     {
-        return $this->belongsTo(Carrera::class, 'carrera2', 'Id');
+        return $this->hasMany(AlumnoCarrera::class, 'alumno_id')->with(['carrera', 'planEstudio']);
     }
 
     /**
@@ -148,10 +143,10 @@ class Alumno extends Model
             return $plan;
         }
 
-        // 3. Fallback: plan vigente de la carrera (el admin lo marcó como
-        //    vigente para nuevos inscriptos)
+        // 3. Fallback: el plan más antiguo de la carrera cubre alumnos
+        //    ingresados antes del primer plan registrado
         return PlanEstudio::where('carrera_id', $carreraId)
-            ->where('vigente', true)
+            ->orderBy('anio', 'asc')
             ->first();
     }
 

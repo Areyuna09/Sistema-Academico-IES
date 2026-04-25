@@ -73,6 +73,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/api/expediente/alumno/{alumnoId}', [ExpedienteController::class, 'obtenerExpedienteAlumno'])->name('api.expediente.alumno');
         // API para calendario de asistencias diarias
         Route::get('/api/expediente/asistencias-diarias/{profesorMateriaId}', [ExpedienteController::class, 'obtenerAsistenciasDiarias'])->name('api.expediente.asistencias-diarias');
+        Route::post('/expediente/asignar-planes', [ExpedienteController::class, 'asignarPlanesAlumnos'])->name('expediente.asignar-planes');
         // Ruta genérica al final
         Route::get('/expediente/{id}', [ExpedienteController::class, 'show'])->name('expediente.show');
     });
