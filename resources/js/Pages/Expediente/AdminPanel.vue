@@ -402,6 +402,29 @@ const cambiarCarreraLegajo = async (idx) => {
     }
 };
 
+// Cambiar la carrera activa en el legajo
+const cambiarCarreraLegajo = async (idx) => {
+    carreraLegajoIdx.value = idx;
+    const registro = todosLosRegistros.value[idx];
+        console.log('registro seleccionado:', JSON.parse(JSON.stringify(registro)));
+    if (!registro) return;
+
+    buscando.value = true;
+    try {
+        const response = await axios.post(route('expediente.buscar-dni'), {
+            dni: registro.dni,
+            carrera_id: registro.id_carrera
+        });
+        alumnoEncontrado.value = response.data.alumno;
+        historialAcademico.value = response.data.historial;
+        historialOriginal.value = JSON.parse(JSON.stringify(response.data.historial));
+    } catch (error) {
+        errorBusqueda.value = 'Error al cargar la carrera seleccionada';
+    } finally {
+        buscando.value = false;
+    }
+};
+
 // Función para agregar fila nueva en un año específico
 const agregarFilaNuevaEnAnno = async (anno) => {
     if (!alumnoEncontrado.value) return;

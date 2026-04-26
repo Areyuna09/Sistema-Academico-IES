@@ -23,7 +23,8 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Deshabilitar modo estricto para toda la operación (es session-level, se resetea al terminar)
+        // Deshabilitar modo estricto solo para esta sesión: necesario para
+        // poder leer y corregir las fechas '0000-00-00' que MySQL strict rechaza.
         DB::statement("SET SESSION sql_mode = ''");
 
         // Corregir fechas inválidas antes del ALTER TABLE
@@ -34,6 +35,10 @@ return new class extends Migration
                OR fecha = '0000-00-00'
                OR (fecha IS NOT NULL AND fecha < '1000-01-01 00:00:00')
         ");
+
+        // Restaurar modo estricto para el resto de la migración
+        DB::statement("SET SESSION sql_mode = 'STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'");
+
 
         // Solo agregar la columna si no existe ya (idempotente)
         if (!Schema::hasColumn('tbl_alumnos', 'plan_estudio_id')) {
