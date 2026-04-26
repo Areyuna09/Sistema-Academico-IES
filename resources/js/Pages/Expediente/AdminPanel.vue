@@ -56,10 +56,13 @@ const props = defineProps({
         type: Object,
         default: null
     },
+    planes: {
+        type: Array,
+        default: () => []
+    },
 });
 
 // Debug: ver qué datos llegan
-console.log('AdminPanel Props:', props);
 
 // Tab activo
 const tabActivo = ref('materias');
@@ -78,7 +81,16 @@ const guardando = ref(false);
 
 // Variables para agregar fila nueva en tabla
 const materiasDisponibles = ref([]);
-const filasNuevas = ref([]); // Array de filas nuevas agregadas
+const filasNuevas = ref([]);
+const annoNuevo = ref('');
+
+// Años que solo existen en filasNuevas (no tienen historial previo)
+const annosConSoloFilasNuevas = computed(() => {
+    if (!filasNuevas.value.length) return [];
+    const annosHistorial = new Set(historialAcademico.value ? Object.keys(historialAcademico.value) : []);
+    const unicos = [...new Set(filasNuevas.value.map(f => f.anno))];
+    return unicos.filter(a => !annosHistorial.has(a)).sort();
+});
 
 // Variables para modales
 const mostrarModalAlumno = ref(false);
@@ -358,6 +370,36 @@ const limpiarBusqueda = () => {
     historialAcademico.value = null;
     historialOriginal.value = null;
     errorBusqueda.value = '';
+    todosLosRegistros.value = [];
+    filasNuevas.value = [];
+    materiasDisponibles.value = [];
+    carreraLegajoIdx.value = 0;
+};
+
+// Cambiar la carrera activa en el legajo
+const cambiarCarreraLegajo = async (idx) => {
+    carreraLegajoIdx.value = idx;
+    const registro = todosLosRegistros.value[idx];
+    if (!registro) return;
+
+    // Limpiar datos de la carrera anterior
+    materiasDisponibles.value = [];
+    filasNuevas.value = [];
+
+    buscando.value = true;
+    try {
+        const response = await axios.post(route('expediente.buscar-dni'), {
+            dni: registro.dni,
+            carrera_id: registro.id_carrera
+        });
+        alumnoEncontrado.value = response.data.alumno;
+        historialAcademico.value = response.data.historial;
+        historialOriginal.value = JSON.parse(JSON.stringify(response.data.historial));
+    } catch (error) {
+        errorBusqueda.value = 'Error al cargar la carrera seleccionada';
+    } finally {
+        buscando.value = false;
+    }
 };
 
 // Cambiar la carrera activa en el legajo
@@ -433,6 +475,55 @@ const eliminarFilaNueva = (fila) => {
     if (index > -1) {
         filasNuevas.value.splice(index, 1);
     }
+};
+
+// Agregar fila nueva con selector de año (para alumnos sin historial)
+const agregarFilaNuevaConAnno = async () => {
+    if (!alumnoEncontrado.value || !annoNuevo.value) return;
+
+    if (materiasDisponibles.value.length === 0) {
+        try {
+            const response = await axios.get(route('expediente.materias-disponibles'), {
+                params: { carrera_id: alumnoEncontrado.value.id_carrera }
+            });
+            materiasDisponibles.value = response.data;
+        } catch (error) {
+            await dialogAlert('Error al cargar las materias disponibles', 'Error');
+            return;
+        }
+    }
+
+    filasNuevas.value.push({
+        id: null,
+        _uid: Date.now() + Math.random(),
+        materia_id: '',
+        materia: '',
+        anno: annoNuevo.value,
+        cursada_value: false,
+        rendida_value: false,
+        libre_value: false,
+        equivalencia_value: false,
+        nota: '',
+        fecha: '',
+        libro: '',
+        folio: '',
+        esNueva: true
+    });
+};
+
+const asignandoPlanes = ref(false);
+const asignarPlanesAutomatico = async () => {
+    const confirmacion = await dialogConfirm(
+        '¿Asignar plan de estudio automáticamente a todos los alumnos que no tienen uno asignado?',
+        'Asignar planes'
+    );
+    if (!confirmacion) return;
+
+    asignandoPlanes.value = true;
+    router.post(route('expediente.asignar-planes'), {}, {
+        preserveScroll: true,
+        onFinish: () => { asignandoPlanes.value = false; },
+    });
 };
 
 // Funciones para manejar modales de Alumno
@@ -600,7 +691,6 @@ const eliminarProfesor = async (profesor) => {
             });
         },
         onError: (errors) => {
-            console.log('Error al eliminar:', errors);
 
             // Otro tipo de error
             dialogAlert(
@@ -850,13 +940,11 @@ const guardarCambios = async () => {
             }
         }
 
-        // Validar y guardar filas nuevas primero
+        // Validar y guardar filas nuevas (saltar las que no tienen materia elegida)
         const filasNuevasValidas = [];
+        const filasVacias = filasNuevas.value.filter(f => !f.materia_id).length;
         for (const fila of filasNuevas.value) {
-            if (!fila.materia_id) {
-                await dialogAlert('Hay filas nuevas sin materia seleccionada', 'Validación');
-                return;
-            }
+            if (!fila.materia_id) continue;
             filasNuevasValidas.push({
                 alumno_id: alumnoEncontrado.value.id,
                 carrera_id: alumnoEncontrado.value.id_carrera,
@@ -911,21 +999,31 @@ const guardarCambios = async () => {
         }
 
         const totalOperaciones = cambios.length + filasNuevasValidas.length;
+        // Capturar el índice antes de limpiar
+        const idxActual = carreraLegajoIdx.value;
+        filasNuevas.value = [];
+
         if (errores === 0) {
+            const avisoVacias = filasVacias > 0
+                ? ` (${filasVacias} fila${filasVacias > 1 ? 's' : ''} sin materia seleccionada ${filasVacias > 1 ? 'fueron ignoradas' : 'fue ignorada'})`
+                : '';
             await dialogAlert(
-                `Se guardaron exitosamente ${totalOperaciones} cambio(s) en el legajo`,
+                `Se guardaron exitosamente ${totalOperaciones} cambio(s) en el legajo${avisoVacias}`,
                 'Cambios guardados'
             );
-            // Limpiar filas nuevas y recargar datos
-            filasNuevas.value = [];
-            await buscarAlumno();
         } else {
             await dialogAlert(
                 `Se guardaron ${totalOperaciones - errores} cambio(s). ${errores} error(es) ocurrieron.`,
                 'Guardado parcial'
             );
-            filasNuevas.value = [];
+        }
+
+        // Recargar manteniendo la carrera activa
+        if (idxActual === 0) {
             await buscarAlumno();
+        } else {
+            await buscarAlumno();
+            await cambiarCarreraLegajo(idxActual);
         }
 
     } catch (error) {
@@ -1373,14 +1471,25 @@ const getEstadoBadge = (estado) => {
                                 <p class="text-sm text-gray-600">Administrar estudiantes del instituto</p>
                             </div>
                         </div>
-                        <button
-                            v-if="permisos.puedeCrear"
-                            @click="abrirModalNuevoAlumno"
-                            class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors duration-200"
-                        >
-                            <i class="bx bx-plus text-xl mr-2"></i>
-                            Nuevo Alumno
-                        </button>
+                        <div class="flex gap-2">
+                            <button
+                                v-if="permisos.puedeModificar"
+                                @click="asignarPlanesAutomatico"
+                                :disabled="asignandoPlanes"
+                                class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors duration-200 disabled:opacity-50"
+                            >
+                                <i class="bx bx-book-bookmark text-xl mr-2"></i>
+                                {{ asignandoPlanes ? 'Asignando...' : 'Asignar planes' }}
+                            </button>
+                            <button
+                                v-if="permisos.puedeCrear"
+                                @click="abrirModalNuevoAlumno"
+                                class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors duration-200"
+                            >
+                                <i class="bx bx-plus text-xl mr-2"></i>
+                                Nuevo Alumno
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Filtros -->
@@ -1449,7 +1558,7 @@ const getEstadoBadge = (estado) => {
                                         {{ alumno.apellido }}, {{ alumno.nombre }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {{ alumno.carrera_relacion?.nombre || '-' }}
+                                        {{ alumno.carrera?.nombre || '-' }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         {{ alumno.email || '-' }}
@@ -1781,6 +1890,10 @@ const getEstadoBadge = (estado) => {
                                     <p class="text-sm font-semibold text-gray-900">{{ alumnoEncontrado.curso > 0 ? alumnoEncontrado.curso + '°' : '-' }}</p>
                                 </div>
                                 <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-1">División</label>
+                                    <p class="text-sm font-semibold text-gray-900">{{ alumnoEncontrado.division ?? '-' }}</p>
+                                </div>
+                                <div>
                                     <label class="block text-xs font-medium text-gray-600 mb-1">Carrera</label>
                                     <p class="text-sm font-semibold text-gray-900">{{ alumnoEncontrado.carrera }}</p>
                                 </div>
@@ -1914,7 +2027,7 @@ const getEstadoBadge = (estado) => {
                                                 <select
                                                     v-model="fila.materia_id"
                                                     @change="fila.materia = materiasDisponibles.find(m => m.id == fila.materia_id)?.nombre || ''"
-                                                    class="w-full px-2 py-1 text-sm border border-green-500 rounded focus:ring-2 focus:ring-green-500"
+                                                    :class="['w-full px-2 py-1 text-sm border rounded focus:ring-2', fila.materia_id ? 'border-green-500 focus:ring-green-500' : 'border-red-400 bg-red-50 focus:ring-red-400']"
                                                 >
                                                     <option value="">Seleccionar materia...</option>
                                                     <option
@@ -2023,10 +2136,89 @@ const getEstadoBadge = (estado) => {
                             </div>
                         </div>
 
-                        <!-- Mensaje si no hay historial -->
-                        <div v-if="!historialAcademico || Object.keys(historialAcademico).length === 0" class="text-center py-8 bg-gray-50 rounded-lg">
+                        <!-- Grupos de años que solo existen en filas nuevas (alumno sin historial previo) -->
+                        <div v-for="anno in annosConSoloFilasNuevas" :key="'nuevo-' + anno" class="mb-6">
+                            <div class="bg-gray-800 text-white px-4 py-2 rounded-t-lg flex justify-between items-center">
+                                <h3 class="font-semibold">{{ anno }}</h3>
+                                <button
+                                    @click="agregarFilaNuevaEnAnno(anno)"
+                                    class="inline-flex items-center px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded transition-colors duration-200"
+                                >
+                                    <i class="bx bx-plus text-lg mr-1"></i>
+                                    Agregar Nota
+                                </button>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full border-collapse bg-white">
+                                    <thead class="bg-gray-100">
+                                        <tr class="border-b border-gray-300">
+                                            <th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 border-r">Materia</th>
+                                            <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 border-r">R</th>
+                                            <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 border-r">P</th>
+                                            <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 border-r">E</th>
+                                            <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 border-r">L</th>
+                                            <th class="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-r">Nota</th>
+                                            <th class="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-r">Fecha</th>
+                                            <th class="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-r">Libro</th>
+                                            <th class="px-3 py-2 text-center text-xs font-semibold text-gray-700">Folio</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="(fila, index) in filasNuevas.filter(f => f.anno === anno)" :key="'nueva-' + index" class="bg-yellow-50 border-b border-gray-200 hover:bg-yellow-100">
+                                            <td class="px-2 py-2 text-sm border-r">
+                                                <select
+                                                    v-model="fila.materia_id"
+                                                    @change="fila.materia = materiasDisponibles.find(m => m.id == fila.materia_id)?.nombre || ''"
+                                                    class="w-full px-2 py-1 text-sm border border-green-500 rounded focus:ring-2 focus:ring-green-500"
+                                                >
+                                                    <option value="">Seleccionar materia...</option>
+                                                    <option
+                                                        v-for="materia in materiasDisponibles.filter(m => (m.anno + '° Año') === anno)"
+                                                        :key="materia.id"
+                                                        :value="materia.id"
+                                                    >{{ materia.nombre }}</option>
+                                                </select>
+                                            </td>
+                                            <td class="px-2 py-2 text-center border-r"><input type="checkbox" :checked="fila.cursada_value && !fila.rendida_value" @click="toggleCheckboxFilaNueva(fila, 'cursada')" class="w-4 h-4 cursor-pointer" /></td>
+                                            <td class="px-2 py-2 text-center border-r"><input type="checkbox" :checked="fila.cursada_value && fila.rendida_value" @click="toggleCheckboxFilaNueva(fila, 'rendida')" class="w-4 h-4 cursor-pointer" /></td>
+                                            <td class="px-2 py-2 text-center border-r"><input type="checkbox" :checked="fila.equivalencia_value" @click="toggleCheckboxFilaNueva(fila, 'equivalencia')" class="w-4 h-4 cursor-pointer" /></td>
+                                            <td class="px-2 py-2 text-center border-r"><input type="checkbox" :checked="fila.libre_value" @click="toggleCheckboxFilaNueva(fila, 'libre')" class="w-4 h-4 cursor-pointer" /></td>
+                                            <td class="px-2 py-2 text-center border-r"><input v-model="fila.nota" type="number" min="1" max="10" step="0.1" placeholder="-" class="w-16 px-2 py-1 text-center border border-green-500 rounded" /></td>
+                                            <td class="px-2 py-2 text-center border-r"><input v-model="fila.fecha" type="date" class="w-32 px-2 py-1 text-sm border border-green-500 rounded" /></td>
+                                            <td class="px-2 py-2 text-center border-r"><input v-model="fila.libro" type="text" placeholder="Libro" class="w-20 px-2 py-1 text-center border border-green-500 rounded" /></td>
+                                            <td class="px-2 py-2 text-center border-r"><input v-model="fila.folio" type="text" placeholder="Folio" class="w-20 px-2 py-1 text-center border border-green-500 rounded" /></td>
+                                            <td class="px-2 py-2 text-center"><button @click="eliminarFilaNueva(fila)" class="text-red-600 hover:text-red-800"><i class="bx bx-trash text-xl"></i></button></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Mensaje + panel para agregar cuando no hay historial -->
+                        <div v-if="(!historialAcademico || Object.keys(historialAcademico).length === 0) && annosConSoloFilasNuevas.length === 0" class="py-8 bg-gray-50 rounded-lg text-center">
                             <i class="bx bx-info-circle text-5xl text-gray-300 mb-3"></i>
-                            <p class="text-gray-600">Este alumno aún no tiene materias cursadas registradas</p>
+                            <p class="text-gray-600 mb-4">Este alumno aún no tiene materias cursadas registradas</p>
+                            <div v-if="permisos.puedeModificar" class="flex items-center justify-center gap-3 mt-2">
+                                <select
+                                    v-model="annoNuevo"
+                                    class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 text-sm"
+                                >
+                                    <option value="">Seleccionar año...</option>
+                                    <option value="1° Año">1° Año</option>
+                                    <option value="2° Año">2° Año</option>
+                                    <option value="3° Año">3° Año</option>
+                                    <option value="4° Año">4° Año</option>
+                                    <option value="Sin año">Sin año asignado</option>
+                                </select>
+                                <button
+                                    @click="agregarFilaNuevaConAnno"
+                                    :disabled="!annoNuevo"
+                                    class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-colors"
+                                >
+                                    <i class="bx bx-plus mr-1"></i>
+                                    Agregar nota
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -2044,6 +2236,7 @@ const getEstadoBadge = (estado) => {
             :show="mostrarModalAlumno"
             :alumno="alumnoEditando"
             :carreras="carreras"
+            :planes="planes"
             @close="cerrarModalAlumno"
             @saved="alumnoGuardado"
         />
