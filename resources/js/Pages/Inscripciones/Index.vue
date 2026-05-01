@@ -1,6 +1,6 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import { Head, router, usePage, useForm } from '@inertiajs/vue3';
+import { ref, computed } from 'vue';
+import { Head, router, usePage } from '@inertiajs/vue3';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
 import MateriaCard from '@/Components/MateriaCard.vue';
 import { emitirNuevaNotificacion } from '@/Utils/notificaciones';
@@ -46,33 +46,6 @@ const cambiarCarrera = (carreraId) => {
 };
 
 const page = usePage();
-const mostrarNotificacion = ref(false);
-const tipoNotificacion = ref(''); // 'success', 'error', 'warning'
-const mensajeNotificacion = ref('');
-
-// Detectar mensajes flash de la sesión
-onMounted(() => {
-    if (page.props.flash?.success) {
-        mostrarToast('success', page.props.flash.success);
-    }
-    if (page.props.flash?.error) {
-        mostrarToast('error', page.props.flash.error);
-    }
-    if (page.props.flash?.warning) {
-        mostrarToast('warning', page.props.flash.warning);
-    }
-});
-
-const mostrarToast = (tipo, mensaje) => {
-    tipoNotificacion.value = tipo;
-    mensajeNotificacion.value = mensaje;
-    mostrarNotificacion.value = true;
-
-    // Auto-ocultar después de 5 segundos
-    setTimeout(() => {
-        mostrarNotificacion.value = false;
-    }, 5000);
-};
 
 const busqueda = ref('');
 const filtroEstado = ref('todas');
@@ -543,55 +516,5 @@ const cerrarModal = () => {
             </div>
         </transition>
 
-        <!-- Notificación Toast -->
-        <transition
-            enter-active-class="transition-all duration-300 ease-out"
-            enter-from-class="opacity-0 translate-y-2"
-            enter-to-class="opacity-100 translate-y-0"
-            leave-active-class="transition-all duration-200 ease-in"
-            leave-from-class="opacity-100 translate-y-0"
-            leave-to-class="opacity-0 translate-y-2"
-        >
-            <div
-                v-if="mostrarNotificacion"
-                class="fixed top-6 right-6 z-50 max-w-md"
-            >
-                <div
-                    :class="{
-                        'bg-green-50 border-green-500': tipoNotificacion === 'success',
-                        'bg-red-50 border-red-500': tipoNotificacion === 'error',
-                        'bg-yellow-50 border-yellow-500': tipoNotificacion === 'warning'
-                    }"
-                    class="border-l-4 p-4 rounded-lg shadow-lg flex items-start gap-3"
-                >
-                    <i
-                        :class="{
-                            'bx bx-check-circle text-green-600': tipoNotificacion === 'success',
-                            'bx bx-error-circle text-red-600': tipoNotificacion === 'error',
-                            'bx bx-error text-yellow-600': tipoNotificacion === 'warning'
-                        }"
-                        class="text-2xl flex-shrink-0"
-                    ></i>
-                    <div class="flex-1">
-                        <p
-                            :class="{
-                                'text-green-800': tipoNotificacion === 'success',
-                                'text-red-800': tipoNotificacion === 'error',
-                                'text-yellow-800': tipoNotificacion === 'warning'
-                            }"
-                            class="text-sm font-medium"
-                        >
-                            {{ mensajeNotificacion }}
-                        </p>
-                    </div>
-                    <button
-                        @click="mostrarNotificacion = false"
-                        class="flex-shrink-0 text-gray-400 hover:text-gray-600"
-                    >
-                        <i class="bx bx-x text-xl"></i>
-                    </button>
-                </div>
-            </div>
-        </transition>
     </SidebarLayout>
 </template>
