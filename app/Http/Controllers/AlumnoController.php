@@ -230,20 +230,13 @@ class AlumnoController extends Controller
         $this->autorizarEliminar($request);
 
         try {
+            // Eliminar usuario asociado si existe
             if ($alumno->user) {
-                return back()->withErrors([
-                    'error' => 'No se puede eliminar el alumno porque tiene un usuario asociado. Primero elimine el usuario.'
-                ]);
-            }
-
-            if ($alumno->materiasCursadas()->count() > 0) {
-                return back()->withErrors([
-                    'error' => 'No se puede eliminar el alumno porque tiene materias cursadas en su legajo.'
-                ]);
+                $alumno->user->delete();
             }
 
             $dni = $alumno->dni;
-            $alumno->delete(); // cascade borra tbl_alumno_carreras
+            $alumno->delete(); // cascade borra tbl_alumno_carreras y carrerasSecundarias
 
             \Log::info('Alumno eliminado', [
                 'dni'          => $dni,
@@ -256,9 +249,7 @@ class AlumnoController extends Controller
 
         } catch (\Exception $e) {
             $this->handleError($e, 'eliminar alumno', ['alumno_id' => $alumno->id]);
-            return back()->withErrors([
-                'error' => $this->getFriendlyErrorMessage($e, 'Error al eliminar el alumno')
-            ]);
+            return back()->withErrors(['error' => $this->getFriendlyErrorMessage($e, 'Error al eliminar el alumno')]);
         }
     }
 }

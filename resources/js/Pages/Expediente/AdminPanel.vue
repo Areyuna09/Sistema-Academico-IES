@@ -679,20 +679,17 @@ const eliminarProfesor = async (profesor) => {
 };
 
 const eliminarAlumno = async (alumno) => {
-    const confirmacion = await dialogConfirm(
-        `¿Estás seguro de que deseas eliminar al alumno ${alumno.apellido}, ${alumno.nombre}?`,
-        'Confirmar eliminación'
-    );
+    const mensaje = alumno.tiene_notas
+        ? `El alumno ${alumno.apellido}, ${alumno.nombre} tiene notas registradas en su legajo.\n¿Estás seguro de que deseas eliminarlo? Esta acción no se puede deshacer.`
+        : `¿Estás seguro de que deseas eliminar al alumno ${alumno.apellido}, ${alumno.nombre}?`;
+
+    const confirmacion = await dialogConfirm(mensaje, 'Confirmar eliminación');
 
     if (confirmacion) {
         router.delete(route('alumnos.destroy', alumno.id), {
             preserveScroll: true,
-            onSuccess: () => {
-                router.reload({
-                    only: ['alumnos'],
-                    preserveScroll: true,
-                    preserveState: true,
-                });
+            onError: (errors) => {
+                dialogAlert(errors.error || 'Error al eliminar el alumno', 'Error');
             }
         });
     }
