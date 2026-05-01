@@ -35,8 +35,10 @@ class ValidacionCursadoService
      */
     public function validarParaCursar(string $dni, int $materiaId, int $carreraId): array
     {
-        // Obtener alumno
-        $alumno = Alumno::porDni($dni)->deCarrera($carreraId)->first();
+        // Obtener alumno — primero por carrera principal, luego como fallback por DNI solo
+        // (cubre alumnos que tienen esa carrera como secundaria en tbl_alumno_carreras)
+        $alumno = Alumno::porDni($dni)->deCarrera($carreraId)->first()
+            ?? Alumno::porDni($dni)->first();
 
         if (!$alumno) {
             return $this->respuestaError("Alumno con DNI {$dni} no encontrado en la carrera especificada");

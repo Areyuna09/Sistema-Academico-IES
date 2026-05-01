@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Alumno;
+use App\Models\AlumnoCarrera;
 use App\Models\Carrera;
 use App\Models\Materia;
 use App\Models\PlanEstudioMateria;
@@ -55,13 +56,44 @@ class InscripcionesController extends Controller
                 ->with('error', 'Alumno no encontrado');
         }
 
-        $carreraId = $alumno->carrera;
-        $carrera = Carrera::find($carreraId);
+        $alumno->load('carrerasSecundarias.carrera');
 
-        if (!$carrera) {
+        // Construir lista de carreras disponibles (principal + secundarias)
+        $carreraIdPrimaria = (int) $alumno->carrera;
+        $carrerasDisponibles = collect();
+
+        $carreraPrincipalObj = Carrera::find($carreraIdPrimaria);
+        if ($carreraPrincipalObj) {
+            $carrerasDisponibles->push([
+                'id'          => (int) $carreraPrincipalObj->Id,
+                'nombre'      => $carreraPrincipalObj->nombre,
+                'es_principal' => true,
+            ]);
+        }
+
+        foreach ($alumno->carrerasSecundarias as $sec) {
+            if ($sec->carrera) {
+                $carrerasDisponibles->push([
+                    'id'          => (int) $sec->carrera->Id,
+                    'nombre'      => $sec->carrera->nombre,
+                    'es_principal' => false,
+                ]);
+            }
+        }
+
+        if ($carrerasDisponibles->isEmpty()) {
             return redirect()->route('dashboard')
                 ->with('error', 'Tu perfil no tiene una carrera asignada. Contactá a Secretaría Académica.');
         }
+
+        // Carrera seleccionada por query param, validando que pertenezca al alumno
+        $carreraIdSeleccionada = (int) $request->input('carrera_id', $carreraIdPrimaria);
+        if (!$carrerasDisponibles->pluck('id')->contains($carreraIdSeleccionada)) {
+            $carreraIdSeleccionada = $carreraIdPrimaria;
+        }
+
+        $carrera = Carrera::find($carreraIdSeleccionada);
+        $carreraId = $carreraIdSeleccionada;
 
         $periodoActivo = PeriodoInscripcion::activo();
 
@@ -79,12 +111,20 @@ class InscripcionesController extends Controller
             ->toArray();
 
         // -----------------------------------------------------------------------
-        // Resolver plan de estudio del alumno y filtrar materias por él
+        // Resolver plan y datos académicos según la carrera seleccionada
         // -----------------------------------------------------------------------
-        $planAlumno = $alumno->resolverPlan();
+        if ($carreraIdSeleccionada === $carreraIdPrimaria) {
+            $planAlumno  = $alumno->resolverPlan();
+            $cursoActivo = $alumno->curso;
+            $annoActivo  = $alumno->anno;
+        } else {
+            $alumnoCarrera = $alumno->carrerasSecundarias->firstWhere('carrera_id', $carreraIdSeleccionada);
+            $planAlumno    = $alumnoCarrera ? $alumnoCarrera->resolverPlan() : null;
+            $cursoActivo   = $alumnoCarrera?->curso ?? $alumno->curso;
+            $annoActivo    = $alumnoCarrera?->anno  ?? $alumno->anno;
+        }
 
         if ($planAlumno) {
-            // Obtener IDs de materias que pertenecen al plan del alumno
             $materiasDelPlan = PlanEstudioMateria::where('plan_estudio_id', $planAlumno->id)
                 ->pluck('materia_id')
                 ->toArray();
@@ -92,14 +132,14 @@ class InscripcionesController extends Controller
             $materias = Materia::with(['profesores:id,dni,apellido,nombre', 'carrera'])
                 ->whereIn('id', $materiasDelPlan)
                 ->where('semestre', $periodoActivo->cuatrimestre)
+                ->where('anno', '<=', (int) $cursoActivo)
                 ->whereNotIn('id', $historialAlumno)
                 ->get();
         } else {
-            // Sin plan definido: comportamiento anterior como fallback
-            // (muestra todas las materias de la carrera en el cuatrimestre)
             $materias = Materia::with(['profesores:id,dni,apellido,nombre', 'carrera'])
                 ->deCarrera($carreraId)
                 ->where('semestre', $periodoActivo->cuatrimestre)
+                ->where('anno', '<=', (int) $cursoActivo)
                 ->whereNotIn('id', $historialAlumno)
                 ->get();
         }
@@ -177,15 +217,16 @@ class InscripcionesController extends Controller
             'estudiante' => [
                 'dni' => $alumno->dni,
                 'nombre' => $alumno->nombre_completo,
-                'anio_cursado' => $alumno->curso ?? null,
-                'anio_ingreso' => $alumno->anno ?? null,
+                'anio_cursado' => $cursoActivo ?? null,
+                'anio_ingreso' => $annoActivo ?? null,
                 'descripcion' => $alumno->descripcion_personalizada ?? null,
             ],
             'carrera' => [
                 'id' => $carrera->Id,
                 'nombre' => $carrera->nombre ?? 'Sin descripción',
             ],
-            // Plan de estudio resuelto — el frontend puede mostrarlo si quiere
+            'carreras_disponibles' => $carrerasDisponibles->values(),
+            'carrera_activa_id' => $carreraIdSeleccionada,
             'plan' => $planAlumno ? [
                 'id' => $planAlumno->id,
                 'nombre' => $planAlumno->nombre,
@@ -200,7 +241,7 @@ class InscripcionesController extends Controller
                 'dias_restantes' => $periodoActivo->diasRestantes(),
             ],
             'materias' => $materiasConEstado,
-            'anio' => $alumno->curso ?? 'Sin especificar',
+            'anio' => $cursoActivo ?? 'Sin especificar',
         ]);
     }
 
@@ -212,8 +253,9 @@ class InscripcionesController extends Controller
         \Log::info('📥 POST /inscripciones recibido', ['data' => $request->all()]);
 
         $validated = $request->validate([
-            'materias' => 'required|array|min:1|max:5',
+            'materias'   => 'required|array|min:1|max:5',
             'materias.*' => 'required|integer|exists:tbl_materias,id',
+            'carrera_id' => 'nullable|integer',
         ]);
 
         \Log::info('✅ Validación exitosa', ['validated' => $validated]);
@@ -225,7 +267,7 @@ class InscripcionesController extends Controller
                 ->with('error', 'No tienes un perfil de alumno asociado');
         }
 
-        $alumno = $user->alumno;
+        $alumno = $user->alumno->load('carrerasSecundarias');
 
         if (!$alumno) {
             return redirect()->route('inscripciones.index')
@@ -244,12 +286,27 @@ class InscripcionesController extends Controller
                 ->with('error', 'El período de inscripción no está abierto en este momento');
         }
 
-        $carreraId = $alumno->carrera;
+        // Determinar carrera activa (principal o secundaria validada)
+        $carreraIdPrimaria = (int) $alumno->carrera;
+        $carreraIdSolicitada = (int) ($validated['carrera_id'] ?? $carreraIdPrimaria);
+
+        $carrerasValidas = collect([$carreraIdPrimaria])
+            ->merge($alumno->carrerasSecundarias->pluck('carrera_id'));
+
+        $carreraId = $carrerasValidas->contains($carreraIdSolicitada)
+            ? $carreraIdSolicitada
+            : $carreraIdPrimaria;
+
         $materiasInscritas = 0;
         $errores = [];
 
-        // Resolver plan UNA sola vez fuera del loop
-        $planAlumno = $alumno->resolverPlan();
+        // Resolver plan según carrera activa
+        if ($carreraId === $carreraIdPrimaria) {
+            $planAlumno = $alumno->resolverPlan();
+        } else {
+            $alumnoCarrera = $alumno->carrerasSecundarias->firstWhere('carrera_id', $carreraId);
+            $planAlumno = $alumnoCarrera ? $alumnoCarrera->resolverPlan() : null;
+        }
 
         // Si hay plan, precargar sus IDs para validar en O(1) dentro del loop
         $idsDelPlan = $planAlumno
