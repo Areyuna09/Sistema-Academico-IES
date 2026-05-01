@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { Head, router, usePage } from '@inertiajs/vue3';
+import { Head, router, usePage, useForm } from '@inertiajs/vue3';
 import SidebarLayout from '@/Layouts/SidebarLayout.vue';
 import MateriaCard from '@/Components/MateriaCard.vue';
 import { emitirNuevaNotificacion } from '@/Utils/notificaciones';
@@ -30,8 +30,20 @@ const props = defineProps({
     anio: {
         type: String,
         default: '3° 1°'
+    },
+    carreras_disponibles: {
+        type: Array,
+        default: () => []
+    },
+    carrera_activa_id: {
+        type: Number,
+        default: null
     }
 });
+
+const cambiarCarrera = (carreraId) => {
+    router.get(route('inscripciones.index'), { carrera_id: carreraId }, { preserveState: false });
+};
 
 const page = usePage();
 const mostrarNotificacion = ref(false);
@@ -148,7 +160,8 @@ const procesarInscripcion = () => {
     console.log('📝 Materias IDs:', materiasIds);
 
     router.post('/inscripciones', {
-        materias: materiasIds
+        materias: materiasIds,
+        carrera_id: props.carrera_activa_id
     }, {
         preserveState: false,
         onStart: () => {
@@ -305,6 +318,22 @@ const cerrarModal = () => {
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <!-- Selector de carrera (solo si tiene más de una) -->
+            <div v-if="carreras_disponibles.length > 1" class="bg-white border border-gray-200 rounded-lg p-1 flex gap-1">
+                <button
+                    v-for="c in carreras_disponibles"
+                    :key="c.id"
+                    @click="cambiarCarrera(c.id)"
+                    class="flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors"
+                    :class="c.id === carrera_activa_id
+                        ? 'bg-blue-600 text-white shadow'
+                        : 'text-gray-600 hover:bg-gray-100'"
+                >
+                    {{ c.nombre }}
+                    <span v-if="c.es_principal" class="ml-1 text-[10px] opacity-70">(principal)</span>
+                </button>
             </div>
 
             <!-- Barra de búsqueda y filtros -->
