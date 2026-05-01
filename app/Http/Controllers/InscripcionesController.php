@@ -573,7 +573,9 @@ class InscripcionesController extends Controller
             abort(404, 'No hay período de inscripción activo');
         }
 
-        $inscripciones = Inscripcion::with('materia')
+        $alumno->load('carrerasSecundarias.carrera', 'carreraRelacion');
+
+        $inscripciones = Inscripcion::with(['materia', 'carrera'])
             ->where('alumno_id', $alumno->id)
             ->where('periodo_id', $periodoActivo->id)
             ->where('estado', 'confirmada')
@@ -583,13 +585,35 @@ class InscripcionesController extends Controller
             abort(404, 'No tienes inscripciones en el período actual');
         }
 
+        // Agrupar inscripciones por carrera para mostrar en el comprobante
+        $inscripcionesPorCarrera = $inscripciones->groupBy('carrera_id')->map(function ($items, $carreraId) use ($alumno) {
+            // Buscar nombre de la carrera
+            if ((int) $carreraId === (int) $alumno->carrera) {
+                $nombreCarrera = $alumno->carreraRelacion->nombre ?? 'Sin especificar';
+                $curso         = $alumno->curso;
+                $division      = $alumno->division;
+            } else {
+                $sec           = $alumno->carrerasSecundarias->firstWhere('carrera_id', $carreraId);
+                $nombreCarrera = $sec?->carrera?->nombre ?? 'Sin especificar';
+                $curso         = $sec?->curso ?? '-';
+                $division      = $sec?->division ?? '-';
+            }
+            return [
+                'nombre'    => $nombreCarrera,
+                'curso'     => $curso,
+                'division'  => $division,
+                'materias'  => $items,
+            ];
+        })->values();
+
         $configuracion = Configuracion::get();
 
         $pdf = \PDF::loadView('pdfs.comprobante-inscripcion', [
-            'alumno' => $alumno,
-            'inscripciones' => $inscripciones,
-            'periodo' => $periodoActivo,
-            'configuracion' => $configuracion,
+            'alumno'                  => $alumno,
+            'inscripciones'           => $inscripciones,
+            'inscripcionesPorCarrera' => $inscripcionesPorCarrera,
+            'periodo'                 => $periodoActivo,
+            'configuracion'           => $configuracion,
         ]);
 
         $pdf->setPaper('A4', 'portrait');

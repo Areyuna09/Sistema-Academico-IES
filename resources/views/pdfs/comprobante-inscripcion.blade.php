@@ -219,9 +219,17 @@
         </tr>
         <tr>
             <td class="lbl">Carrera</td>
-            <td class="val">{{ $alumno->carreraRelacion->nombre ?? 'Sin especificar' }}</td>
+            @if($inscripcionesPorCarrera->count() > 1)
+            <td class="val" colspan="3">
+                @foreach($inscripcionesPorCarrera as $c)
+                    {{ $c['nombre'] }}@if(!$loop->last) &nbsp;/&nbsp; @endif
+                @endforeach
+            </td>
+            @else
+            <td class="val">{{ $inscripcionesPorCarrera->first()['nombre'] ?? ($alumno->carreraRelacion->nombre ?? 'Sin especificar') }}</td>
             <td class="lbl">Año de Cursada</td>
             <td class="val">{{ $alumno->curso }}° Año</td>
+            @endif
         </tr>
         <tr>
             <td class="lbl">División</td>
@@ -233,24 +241,52 @@
 
     <!-- Materias inscritas -->
     <div class="section-title">Materias Inscritas ({{ $inscripciones->count() }})</div>
-    <table class="materias-table">
-        <thead>
-            <tr>
-                <th style="width: 8%">#</th>
-                <th style="width: 55%">Materia</th>
-                <th style="width: 37%">Año / Cuatrimestre</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach($inscripciones as $index => $inscripcion)
-            <tr>
-                <td style="text-align:center">{{ $index + 1 }}</td>
-                <td style="font-weight:600">{{ $inscripcion->materia->nombre }}</td>
-                <td>{{ $inscripcion->materia->anno }}° Año - {{ $inscripcion->materia->semestre === 1 ? '1er' : '2do' }} Cuatr.</td>
-            </tr>
-            @endforeach
-        </tbody>
-    </table>
+
+    @if($inscripcionesPorCarrera->count() > 1)
+        @php $contador = 1; @endphp
+        @foreach($inscripcionesPorCarrera as $carreraData)
+        <div style="font-size:11px; font-weight:600; color:#374151; margin: 6px 0 3px 0; padding: 3px 6px; background:#f3f4f6; border-left:3px solid #4f46e5;">
+            {{ $carreraData['nombre'] }} — {{ $carreraData['curso'] }}° Año, Div. {{ $carreraData['division'] }}
+        </div>
+        <table class="materias-table">
+            <thead>
+                <tr>
+                    <th style="width: 8%">#</th>
+                    <th style="width: 55%">Materia</th>
+                    <th style="width: 37%">Año / Cuatrimestre</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($carreraData['materias'] as $inscripcion)
+                <tr>
+                    <td style="text-align:center">{{ $contador++ }}</td>
+                    <td style="font-weight:600">{{ $inscripcion->materia->nombre }}</td>
+                    <td>{{ $inscripcion->materia->anno }}° Año - {{ $inscripcion->materia->semestre === 1 ? '1er' : '2do' }} Cuatr.</td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+        @endforeach
+    @else
+        <table class="materias-table">
+            <thead>
+                <tr>
+                    <th style="width: 8%">#</th>
+                    <th style="width: 55%">Materia</th>
+                    <th style="width: 37%">Año / Cuatrimestre</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($inscripciones as $index => $inscripcion)
+                <tr>
+                    <td style="text-align:center">{{ $index + 1 }}</td>
+                    <td style="font-weight:600">{{ $inscripcion->materia->nombre }}</td>
+                    <td>{{ $inscripcion->materia->anno }}° Año - {{ $inscripcion->materia->semestre === 1 ? '1er' : '2do' }} Cuatr.</td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @endif
 
     <!-- Importante -->
     <div class="important-box">
