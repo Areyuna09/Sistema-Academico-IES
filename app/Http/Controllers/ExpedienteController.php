@@ -145,6 +145,11 @@ class ExpedienteController extends Controller
                                 ->paginate(15)
                                 ->withQueryString();
 
+        $alumnos->getCollection()->transform(function ($alumno) {
+            $alumno->tiene_notas = $alumno->materiasCursadas()->whereNotNull('nota')->exists();
+            return $alumno;
+        });
+
         // Obtener SOLO notas FINALES pendientes (las notas parciales no requieren aprobación)
         try {
             $notasPendientesQuery = NotaTemporal::with([

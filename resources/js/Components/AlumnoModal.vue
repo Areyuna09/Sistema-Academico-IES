@@ -13,6 +13,8 @@ const emit = defineEmits(['close', 'saved']);
 
 const mostrarSegundaCarrera = ref(false);
 
+const calcularCurso = (anno) => Math.min(Math.max(new Date().getFullYear() - anno + 1, 1), 6);
+
 const form = useForm({
     dni:       '',
     apellido:  '',
@@ -64,14 +66,12 @@ watch(() => props.alumno, (a) => {
     } else {
         form.reset();
         form.anno = new Date().getFullYear();
+        form.curso = calcularCurso(form.anno);
     }
 }, { immediate: true });
 
-// Calcular curso automáticamente al crear
 watch(() => form.anno, (v) => {
-    if (v && !props.alumno) {
-        form.curso = Math.min(Math.max(new Date().getFullYear() - v + 1, 1), 6);
-    }
+    if (v) form.curso = calcularCurso(Number(v));
 });
 
 const quitarSegundaCarrera = () => {
